@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     "Quotation",
     "amc",
     "authentication",
+    "Requisition",
     "search",
     "wagtail_modeladmin",
     "wagtail.contrib.forms",
