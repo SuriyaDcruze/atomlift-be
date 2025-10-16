@@ -164,43 +164,43 @@ class MachineTypeViewSet(SnippetViewSet):
 
 class MachineBrandViewSet(SnippetViewSet):
     model = MachineBrand
-    icon = "factory"
+    icon = "cog"
     menu_label = "Machine Brands"
 
 
 class DoorTypeViewSet(SnippetViewSet):
     model = DoorType
-    icon = "door"
+    icon = "cog"
     menu_label = "Door Types"
 
 
 class DoorBrandViewSet(SnippetViewSet):
     model = DoorBrand
-    icon = "package"
+    icon = "cog"
     menu_label = "Door Brands"
 
 
 class LiftTypeViewSet(SnippetViewSet):
     model = LiftType
-    icon = "chevron-up"
+    icon = "cog"
     menu_label = "Lift Types"
 
 
 class ControllerBrandViewSet(SnippetViewSet):
     model = ControllerBrand
-    icon = "cpu"
+    icon = "cog"
     menu_label = "Controller Brands"
 
 
 class CabinViewSet(SnippetViewSet):
     model = Cabin
-    icon = "box"
+    icon = "cog"
     menu_label = "Cabins"
 
 
 class LiftViewSet(SnippetViewSet):
     model = Lift
-    icon = "archive"
+    icon = "copy"
     menu_label = "Lifts"
     inspect_view_enabled = True
     list_export = (
@@ -215,6 +215,7 @@ class LiftViewSet(SnippetViewSet):
 
 class LiftGroup(SnippetViewSetGroup):
     items = (
+        LiftViewSet,
         FloorIDViewSet,
         BrandViewSet,
         MachineTypeViewSet,
@@ -224,7 +225,6 @@ class LiftGroup(SnippetViewSetGroup):
         LiftTypeViewSet,
         ControllerBrandViewSet,
         CabinViewSet,
-        LiftViewSet,
     )
     icon = "folder-inverse"
     menu_label = "Lift Management"

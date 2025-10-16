@@ -1,0 +1,12 @@
+{% extends "wagtailadmin/login.html" %}
+
+{% block branding_login %}Atom Admin{% endblock %}
+{% load static %}
+
+
+{% block branding_logo %}
+    <div style="text-align: center; margin-top: 20px;">
+        <img src="{% static 'img/logo.png' %}" alt="Custom Project"  />
+    </div>
+{% endblock %}
+

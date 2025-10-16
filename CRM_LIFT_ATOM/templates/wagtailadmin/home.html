@@ -1,0 +1,643 @@
+{% extends "wagtailadmin/base.html" %}
+{% load static %}
+
+{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <style>
+        /* Base styles adapted from sample */
+        #cpage11 .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        #cpage11 .card {
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 24px;
+            margin-bottom: 24px;
+            transition: all 0.3s ease;
+        }
+
+        #cpage11 .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        #cpage11 .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+            overflow-x: auto;
+            overflow-y: hidden;
+            white-space: nowrap;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        #cpage11 .chart-container canvas {
+            min-width: 100%;
+            height: 100% !important;
+        }
+
+        #cpage11 .filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 24px;
+            align-items: flex-end;
+        }
+
+        #cpage11 .filter-group {
+            display: flex;
+            flex-direction: column;
+            min-width: 150px;
+        }
+
+        #cpage11 .filter-group label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #4b5563;
+            margin-bottom: 8px;
+        }
+
+        #cpage11 select, input {
+            padding: 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            color: #4b5563;
+            background-color: #ffffff;
+        }
+
+        #cpage11 select:focus, input:focus {
+            outline: none;
+            border-color: #0d9488;
+            box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.1);
+        }
+
+        #cpage11 button {
+            padding: 8px 16px;
+            background-color: #0d9488;
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        #cpage11 button:hover {
+            background-color: #0f766e;
+        }
+
+        #cpage11 .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 300px;
+        }
+
+        #cpage11 .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #0d9488;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        #cpage11 .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        #cpage11 .page-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #1f2937;
+            margin: 0;
+        }
+
+        #cpage11 .stats-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        #cpage11 .stat-card {
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        #cpage11 .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        #cpage11 .stat-card.active {
+            border-color: #0d9488;
+            box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.1);
+        }
+
+        #cpage11 .stat-card.items {
+            background-color: #3b82f6e4;
+        }
+
+        #cpage11 .stat-card.contacts {
+            background-color: #0d9488e4;
+        }
+
+        #cpage11 .stat-card.enquiries {
+            background-color: #f59e0be4;
+        }
+
+        #cpage11 .stat-icon {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 16px;
+        }
+
+        #cpage11 .stat-content h3 {
+            font-size: 14px;
+            font-weight: 500;
+            color: #ffffff;
+            margin: 0;
+        }
+
+        #cpage11 .stat-content p {
+            font-size: 24px;
+            font-weight: 600;
+            color: #ffffff;
+            margin: 0;
+        }
+
+        #cpage11 .no-data {
+            text-align: center;
+            padding: 48px 0;
+            color: #4b5563;
+        }
+
+        #cpage11 .no-data i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            color: #4b5563;
+        }
+
+        @media (max-width: 768px) {
+            #cpage11 .filters {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            #cpage11 .filter-group {
+                min-width: auto;
+            }
+
+            #cpage11 .chart-container {
+                height: 300px;
+            }
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .alert-warning {
+            background-color: #fefce8;
+            color: #854d0e;
+            border: 1px solid #fef08a;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+    <section id="cpage11">
+        <div class="container">
+            <div class="page-header">
+                <h1 class="page-title">Admin Dashboard</h1>
+            </div>
+
+            <div class="stats-summary">
+                <div class="stat-card items active" data-entity="items">
+                    <div class="stat-icon">
+                        <i class="fas fa-box"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>Total Items</h3>
+                        <p id="total-items">-</p>
+                    </div>
+                </div>
+                <div class="stat-card contacts" data-entity="contacts">
+                    <div class="stat-icon">
+                        <i class="fas fa-address-book"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>Total Contacts</h3>
+                        <p id="total-contacts">-</p>
+                    </div>
+                </div>
+                <div class="stat-card enquiries" data-entity="enquiries">
+                    <div class="stat-icon">
+                        <i class="fas fa-envelope"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>Total Enquiries</h3>
+                        <p id="total-enquiries">-</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="filters">
+                    <div class="filter-group">
+                        <label for="entity_type">Data Type</label>
+                        <select id="entity_type" name="entity_type">
+                            <option value="items" selected>Items</option>
+                            <option value="contacts">Contacts</option>
+                            <option value="enquiries">Enquiries</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="period">Time Period</label>
+                        <select id="period" name="period">
+                            <option value="month" selected>Monthly</option>
+                            <option value="year">Yearly</option>
+                            <option value="custom">Custom Range</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group" id="year-filter">
+                        <label for="year">Year</label>
+                        <select id="year" name="year">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+
+                    <div class="filter-group date-range" style="display: none;">
+                        <label for="start_date">Start Date</label>
+                        <input type="date" id="start_date" name="start_date">
+                    </div>
+
+                    <div class="filter-group date-range" style="display: none;">
+                        <label for="end_date">End Date</label>
+                        <input type="date" id="end_date" name="end_date">
+                    </div>
+
+                    <div class="filter-group date-range" id="aggregation-filter" style="display: none;">
+                        <label for="aggregation">Group By</label>
+                        <select id="aggregation" name="aggregation">
+                            <option value="day">Day</option>
+                            <option value="week">Week</option>
+                            <option value="month">Month</option>
+                            <option value="year">Year</option>
+                        </select>
+                    </div>
+
+                    <button id="apply-filters">Apply Filters</button>
+                </div>
+
+                <div id="date-range-alert" class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span id="alert-message">Some aggregation options may not be available for shorter date ranges.</span>
+                </div>
+
+                <div id="chart-loading" class="loading">
+                    <div class="spinner"></div>
+                </div>
+
+                <div id="chart-container" class="chart-container" style="display: none;">
+                    <canvas id="dashboardChart"></canvas>
+                </div>
+
+                <div id="no-data" class="no-data" style="display: none;">
+                    <i class="fas fa-chart-bar"></i>
+                    <p>No data available for the selected period.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        $(document).ready(function() {
+            let dashboardChart = null;
+            const currentYear = new Date().getFullYear();
+            let currentEntityType = 'items';
+
+            // Populate year dropdown with last 5 years
+            const yearSelect = $('#year');
+            for (let i = 0; i < 5; i++) {
+                const year = currentYear - i;
+                yearSelect.append(`<option value="${year}">${year}</option>`);
+            }
+
+            // Set default dates for custom range
+            const today = new Date();
+            const oneYearAgo = new Date();
+            oneYearAgo.setFullYear(today.getFullYear() - 1);
+            $('#start_date').val(formatDate(oneYearAgo));
+            $('#end_date').val(formatDate(today));
+
+            // Handle stat card clicks
+            $('.stat-card').click(function() {
+                const entityType = $(this).data('entity');
+                $('.stat-card').removeClass('active');
+                $(this).addClass('active');
+                $('#entity_type').val(entityType);
+                currentEntityType = entityType;
+                fetchDashboardData();
+            });
+
+            // Handle entity type dropdown change
+            $('#entity_type').change(function() {
+                const entityType = $(this).val();
+                $('.stat-card').removeClass('active');
+                $(`.stat-card[data-entity="${entityType}"]`).addClass('active');
+                currentEntityType = entityType;
+                fetchDashboardData();
+            });
+
+            // Handle period change
+            $('#period').change(function() {
+                const period = $(this).val();
+                if (period === 'custom') {
+                    $('.date-range').show();
+                    $('#year-filter').hide();
+                    checkDateRangeSize();
+                } else if (period === 'year') {
+                    $('.date-range').hide();
+                    $('#year-filter').hide();
+                } else {
+                    $('.date-range').hide();
+                    $('#year-filter').show();
+                }
+            });
+
+            // Handle date range changes
+            $('#start_date, #end_date').change(function() {
+                checkDateRangeSize();
+            });
+
+            // Check date range size and update aggregation options
+            function checkDateRangeSize() {
+                const startDateStr = $('#start_date').val();
+                const endDateStr = $('#end_date').val();
+                if (!startDateStr || !endDateStr) return;
+
+                const startDate = new Date(startDateStr);
+                const endDate = new Date(endDateStr);
+                const diffTime = Math.abs(endDate - startDate);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                const aggregationSelect = $('#aggregation');
+                const oldValue = aggregationSelect.val();
+                aggregationSelect.empty();
+                aggregationSelect.append('<option value="day">Day</option>');
+
+                if (diffDays >= 14) {
+                    aggregationSelect.append('<option value="week">Week</option>');
+                }
+                if (diffDays >= 60) {
+                    aggregationSelect.append('<option value="month">Month</option>');
+                }
+                if (diffDays >= 365) {
+                    aggregationSelect.append('<option value="year">Year</option>');
+                }
+
+                if (diffDays < 365) {
+                    $('#date-range-alert').show();
+                    if (diffDays < 60) {
+                        $('#alert-message').text('Range is less than 60 days. Monthly and yearly aggregation not available.');
+                    } else {
+                        $('#alert-message').text('Range is less than 1 year. Yearly aggregation not available.');
+                    }
+                } else {
+                    $('#date-range-alert').hide();
+                }
+
+                if (oldValue && aggregationSelect.find(`option[value="${oldValue}"]`).length > 0) {
+                    aggregationSelect.val(oldValue);
+                } else {
+                    aggregationSelect.val(diffDays >= 365 ? 'year' : diffDays >= 60 ? 'month' : diffDays >= 14 ? 'week' : 'day');
+                }
+            }
+
+            // Apply filters and fetch data
+            $('#apply-filters').click(function() {
+                fetchDashboardData();
+            });
+
+            // Initialize with default data
+            fetchDashboardData();
+
+            function fetchDashboardData() {
+                const period = $('#period').val();
+                const year = $('#year').val();
+                const startDate = $('#start_date').val();
+                const endDate = $('#end_date').val();
+                const aggregation = $('#aggregation').val();
+                const entityType = $('#entity_type').val();
+
+                $('#chart-container').hide();
+                $('#no-data').hide();
+                $('#chart-loading').show();
+
+                let params = { 
+                    period: period,
+                    entity_type: entityType
+                };
+                
+                if (period === 'month') {
+                    params.year = year;
+                } else if (period === 'custom') {
+                    params.start_date = startDate;
+                    params.end_date = endDate;
+                    params.aggregation = aggregation;
+                }
+
+                // REAL AJAX CALL (to be implemented)
+                $.ajax({
+                    url: '/api/stats/dashboard/', // Replace with your actual API endpoint
+                    method: 'GET',
+                    data: params,
+                    success: function(response) {
+                        $('#chart-loading').hide();
+                        updateStatsSummary(response.totals);
+                        if (response.graph_data.labels && response.graph_data.labels.length > 0) {
+                            updateChartWithData(response.graph_data);
+                            $('#chart-container').show();
+                        } else {
+                            $('#no-data').show();
+                        }
+                    },
+                    error: function(xhr) {
+                        $('#chart-loading').hide();
+                        $('#no-data').show();
+                        console.error('Error fetching dashboard data:', xhr.responseJSON?.error || 'Unknown error');
+                        $('#no-data p').text(xhr.responseJSON?.error || 'Error fetching data.');
+                    }
+                });
+                
+            }
+            
+            
+
+
+            function updateChartWithData(data) {
+                const gridColor = 'rgba(0, 0, 0, 0.1)';
+                const textColor = '#6B7280';
+                
+                // Different colors for different entity types
+                const entityColors = {
+                    'items': { bg: 'rgba(59, 130, 246, 0.6)', border: 'rgba(59, 130, 246, 1)' },
+                    'contacts': { bg: 'rgba(13, 148, 136, 0.6)', border: 'rgba(13, 148, 136, 1)' },
+                    'enquiries': { bg: 'rgba(245, 158, 11, 0.6)', border: 'rgba(245, 158, 11, 1)' }
+                };
+
+                const colors = entityColors[data.entity_type] || entityColors.items;
+
+                let datasets = [{
+                    label: data.data_series.label,
+                    data: data.data_series.data,
+                    backgroundColor: colors.bg,
+                    borderColor: colors.border,
+                    borderWidth: 2,
+                    tension: 0.2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    fill: true
+                }];
+
+                const labelCount = data.labels.length;
+                const minWidth = 600;
+                const widthPerLabel = 30;
+                const chartWidth = Math.max(minWidth, labelCount * widthPerLabel);
+
+                if (dashboardChart) {
+                    dashboardChart.destroy();
+                }
+
+                const ctx = document.getElementById('dashboardChart').getContext('2d');
+                const canvas = document.getElementById('dashboardChart');
+                canvas.style.width = `${chartWidth}px`;
+
+                dashboardChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.labels,
+                        datasets: datasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: getChartTitle(data),
+                                color: textColor,
+                                font: { size: 16 }
+                            },
+                            legend: {
+                                labels: { color: textColor }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                                titleColor: '#FFFFFF',
+                                bodyColor: '#FFFFFF',
+                                titleFont: { size: 14 },
+                                bodyFont: { size: 14 },
+                                padding: 10,
+                                cornerRadius: 4,
+                                displayColors: true
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { color: gridColor },
+                                ticks: {
+                                    color: textColor,
+                                    maxRotation: 45,
+                                    minRotation: 0,
+                                    autoSkip: true,
+                                    maxTicksLimit: 20
+                                }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: gridColor },
+                                ticks: { color: textColor, precision: 0 }
+                            }
+                        }
+                    }
+                });
+            }
+
+            function getChartTitle(data) {
+                const period = $('#period').val();
+                let title = data.data_series.label;
+                if (period === 'custom') {
+                    const aggregation = $('#aggregation').val();
+                    const start = $('#start_date').val();
+                    const end = $('#end_date').val();
+                    return `${title} (${capitalizeFirstLetter(aggregation)}ly) - ${formatDateForDisplay(start)} to ${formatDateForDisplay(end)}`;
+                }
+                return `${title} (${capitalizeFirstLetter(data.period)})`;
+            }
+
+            function updateStatsSummary(totals) {
+                $('#total-items').text(totals.total_items);
+                $('#total-contacts').text(totals.total_contacts);
+                $('#total-enquiries').text(totals.total_enquiries);
+            }
+
+            function capitalizeFirstLetter(string) {
+                return string.charAt(0).toUpperCase() + string.slice(1);
+            }
+
+            function formatDate(date) {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            }
+
+            function formatDateForDisplay(dateStr) {
+                const date = new Date(dateStr);
+                return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+            }
+        });
+    </script>
+</body>
+</html>
+{% endblock %}
