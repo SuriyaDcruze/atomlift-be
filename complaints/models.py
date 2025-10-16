@@ -1,14 +1,10 @@
 from django.db import models
 from django.utils import timezone
-from django.db.models import Q
-from django.contrib.auth.models import Group
-
-from wagtail.snippets.models import register_snippet
 from wagtail.snippets.views.snippets import SnippetViewSet, SnippetViewSetGroup
+from wagtail.snippets.models import register_snippet
 from wagtail.admin.panels import FieldPanel, MultiFieldPanel, TabbedInterface, ObjectList
-
 from customer.models import Customer
-from authentication.models import CustomUser  # adjust import path if needed
+from authentication.models import CustomUser
 
 
 # ---------- Dropdown Snippets ----------
@@ -40,15 +36,14 @@ class Complaint(models.Model):
     contact_person_mobile = models.CharField(max_length=20, blank=True, null=True)
     block_wing = models.CharField(max_length=200, blank=True, null=True)
 
-    # ✅ Assign To — shows only users in “Employees” group (and optional role check)
     assign_to = models.ForeignKey(
-    CustomUser,
-    on_delete=models.SET_NULL,
-    null=True,
-    blank=True,
-    limit_choices_to={'groups__name': 'employee'},  # ✅ FIXED
-    related_name='assigned_complaints',
-)
+        CustomUser,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        limit_choices_to={'groups__name': 'employee'},
+        related_name='assigned_complaints',
+    )
 
     priority = models.ForeignKey(ComplaintPriority, on_delete=models.SET_NULL, null=True, blank=True)
     subject = models.CharField(max_length=200)
@@ -62,18 +57,16 @@ class Complaint(models.Model):
         ordering = ["-date", "-id"]
 
     def save(self, *args, **kwargs):
-        # Auto-generate reference ID like CMP1001
         if not self.reference:
-            last_complaint = Complaint.objects.order_by("id").last()
+            last = Complaint.objects.order_by("id").last()
             last_id = 1000
-            if last_complaint and last_complaint.reference.startswith("CMP"):
+            if last and last.reference.startswith("CMP"):
                 try:
-                    last_id = int(last_complaint.reference.replace("CMP", ""))
+                    last_id = int(last.reference.replace("CMP", ""))
                 except ValueError:
                     pass
-            self.reference = f"CMP{str(last_id + 1)}"
+            self.reference = f"CMP{last_id + 1}"
 
-        # Autofill customer details if not provided
         if self.customer:
             if not self.contact_person_name:
                 self.contact_person_name = getattr(self.customer, "contact_person_name", "")
@@ -87,7 +80,6 @@ class Complaint(models.Model):
     def __str__(self):
         return f"{self.reference} - {self.subject}"
 
-    # ---------- Wagtail Panels ----------
     complaint_panels = [
         MultiFieldPanel([
             FieldPanel("reference", read_only=True),
