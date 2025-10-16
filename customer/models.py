@@ -116,8 +116,19 @@ class Customer(models.Model):
         verbose_name = "Customer"
         verbose_name_plural = "Customers"
 
+    # --- Custom string display for dropdowns ---
     def __str__(self):
-        return f"{self.site_name} ({self.reference_id})"
+        if self.job_no:
+            return f"{self.site_name} - {self.job_no}"
+        return self.site_name
+
+    # --- Custom display for list view ---
+    def display_name(self):
+     if self.job_no:
+        return f"{self.site_name} - {self.job_no}"
+     return self.site_name
+    display_name.short_description = "Site name"
+
 
     def save(self, *args, **kwargs):
         # --- Auto-generate reference ID ---
@@ -227,16 +238,15 @@ class CustomerViewSet(SnippetViewSet):
     menu_label = "Customers"
     inspect_view_enabled = True
     list_display = (
-        "reference_id", "site_name", "site_id", "email", "phone",
+        "reference_id", "display_name", "site_id", "email", "phone",
         "city", "branch", "routes", "sector",
     )
     list_export = (
-        "reference_id", "site_name", "site_id", "email", "phone",
+        "reference_id", "display_name", "site_id", "email", "phone",
         "city", "branch", "routes", "sector",
     )
 
 
-# -------- LICENSE VIEWSET (READ-ONLY, FULL DETAILS) --------
 class CustomerLicenseViewSet(SnippetViewSet):
     model = CustomerLicense
     icon = "doc-full"
