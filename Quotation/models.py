@@ -16,9 +16,9 @@ class Quotation(ClusterableModel):
     customer = models.ForeignKey(
         'customer.Customer', on_delete=models.SET_NULL, null=True, blank=True
     )
-    # amc_type = models.ForeignKey(
-    #     'amc.AMCType', on_delete=models.SET_NULL, null=True, blank=True
-    # )
+    amc_type = models.ForeignKey(
+        'amc.AMCType', on_delete=models.SET_NULL, null=True, blank=True
+     )
     
     # sales_service_executive = models.ForeignKey(
     #     'authentication.CustomUser',  
@@ -60,7 +60,7 @@ class Quotation(ClusterableModel):
             FieldPanel("reference_id", read_only=True),
             FieldPanel("customer"),
             FieldPanel("type"),
-            #FieldPanel("amc_type"),
+            FieldPanel("amc_type"),
             #FieldPanel("sales_service_executive"),
             FieldPanel("year_of_make"),
             
@@ -108,7 +108,7 @@ class QuotationViewSet(SnippetViewSet):
     list_display = (
         'reference_id', 
         'customer', 
-        #'amc_type', 
+        'amc_type', 
         #'sales_service_executive', 
         'type', 
         'date'

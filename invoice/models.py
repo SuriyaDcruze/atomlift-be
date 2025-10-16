@@ -59,7 +59,6 @@ class Invoice(ClusterableModel):
 class InvoiceItem(models.Model):
     # Relates back to the parent Invoice
     invoice = ParentalKey(Invoice, on_delete=models.CASCADE, related_name='items')
-    # Assuming Item is located in 'authentication' or 'amc' app
     item = models.ForeignKey('items.Item', on_delete=models.SET_NULL, null=True, blank=True)
     rate = models.DecimalField(max_digits=10, decimal_places=2)
     qty = models.IntegerField(default=1)
@@ -92,7 +91,7 @@ class InvoiceViewSet(SnippetViewSet):
     icon = "folder-open-inverse"
     menu_label = "Invoices"
     inspect_view_enabled = True
-    # Note: 'amc_type' in list_display will require the field to be uncommented on the model
+   
     list_display = ('reference_id', 'customer', 'start_date', 'due_date', 'status')
     search_fields = ('reference_id', 'customer__site_name', 'status')
     

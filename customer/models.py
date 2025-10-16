@@ -55,17 +55,17 @@ class Customer(models.Model):
     designation = models.CharField(max_length=100, blank=True)
 
     # --- Location Info ---
-    pin_code = models.CharField(max_length=10, blank=True)
-    country = models.CharField(max_length=100, blank=True)
+    pin_code = models.CharField(max_length=10, blank=True,null=True)
+    country = models.CharField(max_length=100, blank=True,null=True)
     province_state = models.ForeignKey(ProvinceState, on_delete=models.SET_NULL, null=True)
     city = models.CharField(max_length=100)
     sector = models.CharField(
         max_length=20, choices=SECTOR_CHOICES, default='private', blank=True, null=True
     )
-    routes = models.ForeignKey(Route, on_delete=models.SET_NULL, null=True)
-    branch = models.ForeignKey(Branch, on_delete=models.SET_NULL, null=True)
+    routes = models.ForeignKey(Route, on_delete=models.SET_NULL, null=True,blank=True)
+    branch = models.ForeignKey(Branch, on_delete=models.SET_NULL, null=True,blank=True)
     handover_date = models.DateField(null=True, blank=True)
-    billing_name = models.CharField(max_length=100, blank=True)
+    billing_name = models.CharField(max_length=100, blank=True,null=True)
     uploads_files = models.FileField(upload_to='customer_uploads/', null=True, blank=True, max_length=100)
 
     # --- Admin Panels ---
