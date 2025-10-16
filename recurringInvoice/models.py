@@ -110,7 +110,7 @@ from wagtail.snippets.views.snippets import SnippetViewSet, SnippetViewSetGroup
 
 class RecurringInvoiceViewSet(SnippetViewSet):
     model = RecurringInvoice
-    icon = "repeat"
+    icon = "group"
     menu_label = "Recurring Invoices"
     inspect_view_enabled = True
     list_display = ('reference_id', 'customer', 'profile_name', 'repeat_every', 'start_date', 'status')

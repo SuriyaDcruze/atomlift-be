@@ -90,7 +90,7 @@ class PaymentReceived(models.Model):
 # ---------- SNIPPET VIEWSET ----------
 class PaymentReceivedViewSet(SnippetViewSet):
     model = PaymentReceived
-    icon = "credit-card"
+    icon = "group"
     menu_label = "Payments Received"
     inspect_view_enabled = True
     list_display = ["payment_number", "customer", "invoice", "amount", "payment_type", "date"]
@@ -104,8 +104,8 @@ class PaymentReceivedViewSet(SnippetViewSet):
 class PaymentGroup(SnippetViewSetGroup):
     items = (PaymentReceivedViewSet,)
     menu_icon = "group"
-    menu_label = "Payment Management"
-    menu_name = "payment_management"
+    menu_label = "Payment "
+    menu_name = "payment"
 
 
 # ---------- REGISTER GROUP ----------

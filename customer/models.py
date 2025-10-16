@@ -205,19 +205,19 @@ class CustomerLicense(models.Model):
 
 class RouteViewSet(SnippetViewSet):
     model = Route
-    icon = "route"
+    icon = "form"
     menu_label = "Routes"
 
 
 class BranchViewSet(SnippetViewSet):
     model = Branch
-    icon = "building"
+    icon = "pick"
     menu_label = "Branches"
 
 
 class ProvinceStateViewSet(SnippetViewSet):
     model = ProvinceState
-    icon = "map"
+    icon = "site"
     menu_label = "Provinces / States"
 
 
@@ -268,9 +268,9 @@ class CustomerGroup(SnippetViewSetGroup):
 
 class CustomerLicenseGroup(SnippetViewSetGroup):
     items = (CustomerLicenseViewSet,)
-    icon = "folder-open-inverse"
-    menu_label = "Customer License Management"
-    menu_name = "customer_license_management"
+    menu_icon = "doc-full"
+    menu_label = "Customer License "
+    menu_name = "customer_license"
 
 
 # ======================================================
