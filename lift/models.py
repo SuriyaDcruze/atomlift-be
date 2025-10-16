@@ -5,7 +5,7 @@ from wagtail.snippets.views.snippets import SnippetViewSet, SnippetViewSetGroup
 
 
 # ---------- SNIPPETS ----------
-# @register_snippet
+
 class FloorID(models.Model):
     value = models.CharField(max_length=10, unique=True)
     panels = [FieldPanel("value")]
@@ -14,7 +14,6 @@ class FloorID(models.Model):
         return self.value
 
 
-# @register_snippet
 class Brand(models.Model):
     value = models.CharField(max_length=100, unique=True)
     panels = [FieldPanel("value")]
@@ -23,7 +22,6 @@ class Brand(models.Model):
         return self.value
 
 
-# @register_snippet
 class MachineType(models.Model):
     value = models.CharField(max_length=50, unique=True)
     panels = [FieldPanel("value")]
@@ -32,7 +30,6 @@ class MachineType(models.Model):
         return self.value
 
 
-# @register_snippet
 class MachineBrand(models.Model):
     value = models.CharField(max_length=100, unique=True)
     panels = [FieldPanel("value")]
@@ -41,7 +38,6 @@ class MachineBrand(models.Model):
         return self.value
 
 
-# @register_snippet
 class DoorType(models.Model):
     value = models.CharField(max_length=50, unique=True)
     panels = [FieldPanel("value")]
@@ -50,7 +46,6 @@ class DoorType(models.Model):
         return self.value
 
 
-# @register_snippet
 class DoorBrand(models.Model):
     value = models.CharField(max_length=100, unique=True)
     panels = [FieldPanel("value")]
@@ -59,7 +54,6 @@ class DoorBrand(models.Model):
         return self.value
 
 
-# @register_snippet
 class LiftType(models.Model):
     value = models.CharField(max_length=50, unique=True)
     panels = [FieldPanel("value")]
@@ -68,7 +62,6 @@ class LiftType(models.Model):
         return self.value
 
 
-# @register_snippet
 class ControllerBrand(models.Model):
     value = models.CharField(max_length=100, unique=True)
     panels = [FieldPanel("value")]
@@ -77,7 +70,6 @@ class ControllerBrand(models.Model):
         return self.value
 
 
-# @register_snippet
 class Cabin(models.Model):
     value = models.CharField(max_length=100, unique=True)
     panels = [FieldPanel("value")]
@@ -87,7 +79,7 @@ class Cabin(models.Model):
 
 
 # ---------- MAIN MODEL ----------
-# @register_snippet
+
 class Lift(models.Model):
     lift_code = models.CharField(max_length=10, unique=True)
     name = models.CharField(max_length=100)
@@ -95,8 +87,12 @@ class Lift(models.Model):
     floor_id = models.ForeignKey(FloorID, on_delete=models.SET_NULL, null=True)
     brand = models.ForeignKey(Brand, on_delete=models.SET_NULL, null=True)
     model = models.CharField(max_length=100)
-    no_of_passengers = models.CharField(max_length=50)
-    load_kg = models.CharField(max_length=50)
+    no_of_passengers = models.PositiveIntegerField()
+    load_kg = models.PositiveIntegerField(
+        blank=True,
+        null=True,
+        help_text="Automatically calculated as passengers × 68 if left empty, but editable."
+    )
     speed = models.CharField(max_length=50)
     lift_type = models.ForeignKey(LiftType, on_delete=models.SET_NULL, null=True)
     machine_type = models.ForeignKey(MachineType, on_delete=models.SET_NULL, null=True)
@@ -133,16 +129,25 @@ class Lift(models.Model):
         FieldPanel("license_end_date"),
     ]
 
+    def save(self, *args, **kwargs):
+        """
+        Automatically calculate load_kg = no_of_passengers * 68
+        if load_kg is not manually entered.
+        """
+        if self.no_of_passengers and (self.load_kg is None or self.load_kg == 0):
+            self.load_kg = int(self.no_of_passengers) * 68
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.lift_code} - {self.name}"
-    
+
 
 # ---------- SNIPPET VIEWSETS ----------
+
 class FloorIDViewSet(SnippetViewSet):
     model = FloorID
     icon = "list-ul"
     menu_label = "Floor IDs"
-    
 
 
 class BrandViewSet(SnippetViewSet):
@@ -199,10 +204,15 @@ class LiftViewSet(SnippetViewSet):
     menu_label = "Lifts"
     inspect_view_enabled = True
     list_export = (
-        'lift_code', 'brand', 'model', 'no_of_passengers', 'load_kg', 'speed', 'lift_type', 'machine_type', 'machine_brand', 'door_type', 'door_brand', 'controller_brand', 'cabin', 'block', 'license_no', 'license_start_date', 'license_end_date')
+        'lift_code', 'brand', 'model', 'no_of_passengers', 'load_kg',
+        'speed', 'lift_type', 'machine_type', 'machine_brand',
+        'door_type', 'door_brand', 'controller_brand', 'cabin',
+        'block', 'license_no', 'license_start_date', 'license_end_date'
+    )
 
 
 # ---------- GROUP ----------
+
 class LiftGroup(SnippetViewSetGroup):
     items = (
         FloorIDViewSet,
@@ -219,5 +229,6 @@ class LiftGroup(SnippetViewSetGroup):
     icon = "folder-inverse"
     menu_label = "Lift Management"
     menu_name = "lift_management"
+
 
 register_snippet(LiftGroup)
