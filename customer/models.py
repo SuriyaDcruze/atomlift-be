@@ -266,10 +266,11 @@ class CustomerLicenseViewSet(SnippetViewSet):
 
 class CustomerGroup(SnippetViewSetGroup):
     items = (
+        CustomerViewSet,
         RouteViewSet,
         BranchViewSet,
-        ProvinceStateViewSet,
-        CustomerViewSet,
+        ProvinceStateViewSet
+        
     )
     menu_icon = "group"
     menu_label = "Customer "

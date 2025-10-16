@@ -129,10 +129,11 @@ class ItemViewSet(SnippetViewSet):
 # ---------- GROUP ----------
 class ItemGroup(SnippetViewSetGroup):
     items = (
+        ItemViewSet,
         TypeViewSet,
         MakeViewSet,
-        UnitViewSet,
-        ItemViewSet,
+        UnitViewSet
+        
     )
     menu_icon = "clipboard-list" 
     menu_label = "Item "
