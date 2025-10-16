@@ -134,9 +134,9 @@ class ItemGroup(SnippetViewSetGroup):
         UnitViewSet,
         ItemViewSet,
     )
-    icon = "folder-inverse"
-    menu_label = "Item Management"
-    menu_name = "item_management"
+    menu_icon = "clipboard-list" 
+    menu_label = "Item "
+    menu_name = "item"
 
 
 # ---------- REGISTER GROUP ----------

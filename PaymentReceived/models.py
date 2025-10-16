@@ -103,7 +103,7 @@ class PaymentReceivedViewSet(SnippetViewSet):
 # ---------- SNIPPET GROUP ----------
 class PaymentGroup(SnippetViewSetGroup):
     items = (PaymentReceivedViewSet,)
-    icon = "folder-open-inverse"
+    menu_icon = "group"
     menu_label = "Payment Management"
     menu_name = "payment_management"
 

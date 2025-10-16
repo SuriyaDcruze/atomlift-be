@@ -24,3 +24,13 @@ def hide_settings_items(request, menu_items):
         if not item.name in ['redirects','sites','collections','workflows','workflow-tasks']:
             new_menu_items.append(item)
     menu_items[:] = new_menu_items
+
+
+@hooks.register('register_admin_menu_item')
+def register_main_admin_menu_item():
+    return MenuItem(
+        'Dashboard',
+        reverse('wagtailadmin_home'),
+        icon_name='home',
+        order=1
+    )

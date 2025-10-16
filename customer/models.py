@@ -261,9 +261,9 @@ class CustomerGroup(SnippetViewSetGroup):
         ProvinceStateViewSet,
         CustomerViewSet,
     )
-    icon = "folder-user"
-    menu_label = "Customer Management"
-    menu_name = "customer_management"
+    menu_icon = "group"
+    menu_label = "Customer "
+    menu_name = "customer"
 
 
 class CustomerLicenseGroup(SnippetViewSetGroup):

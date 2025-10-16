@@ -126,9 +126,9 @@ class QuotationViewSet(SnippetViewSet):
 # ---------- SNIPPET GROUP ----------
 class QuotationGroup(SnippetViewSetGroup):
     items = (QuotationViewSet,)
-    icon = "file-text-full"
-    menu_label = "Quotation Management"
-    menu_name = "quotation_management"
+    menu_icon = "group"
+    menu_label = "Quotation "
+    menu_name = "quotation"
 
 
 # ---------- REGISTER GROUP ----------

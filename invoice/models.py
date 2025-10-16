@@ -106,9 +106,9 @@ class InvoiceViewSet(SnippetViewSet):
 class InvoiceGroup(SnippetViewSetGroup):
     # Only one ViewSet for this group
     items = (InvoiceViewSet,) 
-    icon = "calculator"
+    menu_icon = "group"
     menu_label = "Billing & Invoicing"
-    menu_name = "invoicing_management"
+    menu_name = "invoicing"
 
 
 # ---------- REGISTER GROUP ----------

@@ -121,9 +121,9 @@ class RecurringInvoiceViewSet(SnippetViewSet):
 class RecurringInvoiceGroup(SnippetViewSetGroup):
     # Only one ViewSet for this group
     items = (RecurringInvoiceViewSet,) 
-    icon = "calculator"
-    menu_label = "Recurring Billing"
-    menu_name = "recurring_billing_management"
+    menu_icon = "group"
+    menu_label = "Recurring "
+    menu_name = "recurring_billing"
 
 
 # ---------- REGISTER GROUP ----------

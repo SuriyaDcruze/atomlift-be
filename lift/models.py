@@ -200,7 +200,7 @@ class CabinViewSet(SnippetViewSet):
 
 class LiftViewSet(SnippetViewSet):
     model = Lift
-    icon = "copy"
+    icon = "cog"
     menu_label = "Lifts"
     inspect_view_enabled = True
     list_export = (
@@ -226,9 +226,9 @@ class LiftGroup(SnippetViewSetGroup):
         ControllerBrandViewSet,
         CabinViewSet,
     )
-    icon = "folder-inverse"
-    menu_label = "Lift Management"
-    menu_name = "lift_management"
+    menu_icon = "cog"
+    menu_label = "Lift "
+    menu_name = "lift"
 
 
 register_snippet(LiftGroup)

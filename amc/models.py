@@ -176,7 +176,7 @@ class PaymentTermsViewSet(SnippetViewSet):
 
 class AMCViewSet(SnippetViewSet):
     model = AMC
-    icon = "wrench"
+    icon = "calendar"
     menu_label = "All AMCs"
     inspect_view_enabled = True
     list_display = ("reference_id", "customer", "amcname", "status", "start_date", "end_date", "amount_due")
@@ -185,9 +185,9 @@ class AMCViewSet(SnippetViewSet):
 
 class AMCManagementGroup(SnippetViewSetGroup):
     items = (AMCViewSet, AMCTypeViewSet, PaymentTermsViewSet)
-    icon = "building"
-    menu_label = "AMC Management"
-    menu_name = "amc_management"
+    menu_icon = "calendar"
+    menu_label = "AMC "
+    menu_name = "amc"
 
 
 register_snippet(AMCManagementGroup)
