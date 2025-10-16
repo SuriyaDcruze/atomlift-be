@@ -18,7 +18,7 @@ class Invoice(ClusterableModel):
     # Using 'customer.Customer' for lazy reference
     customer = models.ForeignKey('customer.Customer', on_delete=models.SET_NULL, null=True, blank=True)
     # amc_type (Commented out in your source, but often necessary)
-    # amc_type = models.ForeignKey('amc.AMCType', on_delete=models.SET_NULL, null=True, blank=True)
+    amc_type = models.ForeignKey('amc.AMCType', on_delete=models.SET_NULL, null=True, blank=True)
     
     start_date = models.DateField()
     due_date = models.DateField()
@@ -33,7 +33,7 @@ class Invoice(ClusterableModel):
         MultiFieldPanel([
             FieldPanel('reference_id', read_only=True),
             FieldPanel('customer'),
-            # FieldPanel('amc_type'), # Uncomment if AMCType is used
+            FieldPanel('amc_type'), # Uncomment if AMCType is used
             FieldPanel('start_date'),
             FieldPanel('due_date'),
             FieldPanel('discount'),

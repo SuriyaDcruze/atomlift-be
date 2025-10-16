@@ -19,13 +19,14 @@ class Requisition(models.Model):
     site = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True, blank=True)
     amc_id = models.ForeignKey(AMC, on_delete=models.SET_NULL, null=True, blank=True)
     service = models.CharField(max_length=100, blank=True)
-    # employee = models.ForeignKey(
-    #     CustomUser,
-    #     on_delete=models.SET_NULL,
-    #     null=True,
-    #     blank=True,
-    #     limit_choices_to={'role': 'SALESMAN'}
-    # )
+    employee = models.ForeignKey(
+    CustomUser,
+    on_delete=models.SET_NULL,
+    null=True,
+    blank=True,
+    limit_choices_to={'groups__name': 'employee'},  # ✅ FIXED
+    related_name='assigned_requisitions',
+     )
     status = models.CharField(
         max_length=20,
         choices=[
@@ -53,7 +54,7 @@ class Requisition(models.Model):
             FieldPanel("site"),
             FieldPanel("amc_id"),
             FieldPanel("service"),
-            #FieldPanel("employee"),
+            FieldPanel("employee"),
         ], heading="Requisition Details"),
 
         MultiFieldPanel([
@@ -95,7 +96,7 @@ class RequisitionViewSet(SnippetViewSet):
         "site",
         "amc_id",
         "service",
-        #"employee",
+        "employee",
         "status",
         "approve_for",
     )

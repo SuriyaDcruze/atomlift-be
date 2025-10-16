@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     "amc",
     "authentication",
     "Requisition",
+    "complaints",
     "search",
     "wagtail_modeladmin",
     "wagtail.contrib.forms",

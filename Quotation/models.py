@@ -2,6 +2,7 @@ from django.db import models
 from wagtail.admin.panels import FieldPanel, MultiFieldPanel
 from wagtail.snippets.models import register_snippet
 from modelcluster.models import ClusterableModel
+from authentication.models import CustomUser  # Corrected import
 
 # Assuming the following models exist in these respective apps:
 # Customer in 'customer' app
@@ -20,14 +21,14 @@ class Quotation(ClusterableModel):
         'amc.AMCType', on_delete=models.SET_NULL, null=True, blank=True
      )
     
-    # sales_service_executive = models.ForeignKey(
-    #     'authentication.CustomUser',  
-    #     on_delete=models.SET_NULL,
-    #     null=True,
-    #     blank=True,
-    #     limit_choices_to={"role": "SALESMAN"},
-    #     verbose_name="Sales/Service Executive"
-    # )
+    sales_service_executive = models.ForeignKey(
+    CustomUser,
+    on_delete=models.SET_NULL,
+    null=True,
+    blank=True,
+    limit_choices_to={'groups__name': 'employee'},  # ✅ FIXED
+    related_name='assigned_quotations',
+    )
 
     lifts = models.ManyToManyField(
         'lift.Lift', 
@@ -61,7 +62,7 @@ class Quotation(ClusterableModel):
             FieldPanel("customer"),
             FieldPanel("type"),
             FieldPanel("amc_type"),
-            #FieldPanel("sales_service_executive"),
+            FieldPanel("sales_service_executive"),
             FieldPanel("year_of_make"),
             
             # 💡 FIX: Mark 'date' as read_only because auto_now_add=True makes it non-editable
@@ -109,7 +110,7 @@ class QuotationViewSet(SnippetViewSet):
         'reference_id', 
         'customer', 
         'amc_type', 
-        #'sales_service_executive', 
+        'sales_service_executive', 
         'type', 
         'date'
     )

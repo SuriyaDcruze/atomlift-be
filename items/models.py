@@ -110,13 +110,13 @@ class MakeViewSet(SnippetViewSet):
 
 class UnitViewSet(SnippetViewSet):
     model = Unit
-    icon = "scale"
+    icon = "form"
     menu_label = "Units"
 
 
 class ItemViewSet(SnippetViewSet):
     model = Item
-    icon = "package"
+    icon = "clipboard-list"
     menu_label = "Items"
     inspect_view_enabled = True
     list_export = (

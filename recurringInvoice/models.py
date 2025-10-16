@@ -6,6 +6,7 @@ from wagtail.snippets.models import register_snippet
 from modelcluster.fields import ParentalKey
 from modelcluster.models import ClusterableModel
 from datetime import timedelta
+from authentication.models import CustomUser  # Corrected import
 
 
 class RecurringInvoice(ClusterableModel):
@@ -27,11 +28,13 @@ class RecurringInvoice(ClusterableModel):
     end_date = models.DateField(null=True, blank=True)
     last_generated_date = models.DateField(null=True, blank=True)
 
-    # sales_person = models.ForeignKey(
-    #     'authentication.CustomUser',  # CORRECTED: Using lazy string reference
-    #     on_delete=models.SET_NULL, null=True, blank=True,
-    #     limit_choices_to={"role": "SALESMAN"}
-    # )
+    sales_person = models.ForeignKey(
+    CustomUser,
+    on_delete=models.SET_NULL,
+    null=True,
+    blank=True,
+    limit_choices_to={'groups__name': 'employee'},  # ✅ FIXED
+    related_name='assigned_recurring_invoices',)
 
     billing_address = models.TextField(blank=True)
     gst_treatment = models.CharField(max_length=50, blank=True)
@@ -48,7 +51,7 @@ class RecurringInvoice(ClusterableModel):
             FieldPanel('repeat_every'),
             FieldPanel('start_date'),
             FieldPanel('end_date'),
-            #FieldPanel('sales_person'),  # UNCOMMENTED
+            FieldPanel('sales_person'),  # UNCOMMENTED
             FieldPanel('billing_address'),
             FieldPanel('gst_treatment'),
             FieldPanel('uploads_files'),
