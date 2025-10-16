@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lionsol Homepage Demo</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    {% load static %}
+    <style>
+        /* Custom styles if needed, though Tailwind should cover most */
+        .rotate-180 {
+            transform: rotate(180deg);
+        }
+        .transition-transform {
+            transition-property: transform;
+            transition-duration: 150ms;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-gray-50">
+    <!-- Navbar Component -->
+    <nav class="bg-white shadow-sm relative z-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <div class="flex-shrink-0">
+                    <img class="h-8" src="{% static 'home/logo.png' %}" alt="Logo" />
+                </div>
+
+                <!-- Navigation Links - Centered -->
+                <div class="hidden md:flex items-center space-x-8 flex-1 justify-center">
+                    <!-- All Products Dropdown -->
+                    <div class="relative">
+                        <button
+                            onclick="document.getElementById('products-dropdown').classList.toggle('hidden')"
+                            class="text-gray-800 hover:text-gray-900 flex items-center focus:outline-none"
+                            aria-haspopup="true"
+                            aria-expanded="false"
+                        >
+                            All Products
+                            <svg
+                                class="ml-1 h-4 w-4 transition-transform"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                            >
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+
+                        <div id="products-dropdown" class="absolute z-10 mt-2 w-48 bg-white rounded-md shadow-lg py-1 hidden">
+                            <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Product 1</a>
+                            <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Product 2</a>
+                        </div>
+                    </div>
+
+                    <!-- Help Centre Link -->
+                    <a href="#" class="text-gray-800 hover:text-gray-900">
+                        Help Centre
+                    </a>
+
+                    <!-- Testimonial Link -->
+                    <a href="#" class="text-gray-800 hover:text-gray-900">
+                        Testimonial
+                    </a>
+                </div>
+
+                <!-- Right Side Buttons -->
+                <div class="flex items-center space-x-4">
+                    <a
+                        href="/login"
+                        class="text-gray-800 hover:text-gray-900 border-t-2 border-transparent md:border-none md:border-t-0 rounded-lg p-2"
+                        style="border-top-color: transparent"
+                    >
+                        Sign In
+                    </a>
+                    <a
+                        href="/signup"
+                        class="bg-orange-600 text-black px-4 py-2 rounded-md hover:bg-orange-700 transition-colors"
+                    >
+                        Create an Account
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main>
+        <!-- Hero Section -->
+        <section class="bg-[#FEF4EA] text-black py-12 px-4 sm:py-16 sm:px-6 lg:px-8">
+            <div class="max-w-7xl mx-auto">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-12 items-center">
+                    <!-- Main headline and CTA -->
+                    <div class="space-y-6 mt-8 lg:mt-0 text-center lg:text-left">
+                        <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight">
+                            Transform Your Business with Lionsol Cloud Solutions
+                        </h1>
+                        <p class="text-lg sm:text-xl text-gray-800 max-w-xl mx-auto lg:mx-0">
+                            Streamline operations, boost productivity, and drive growth with our comprehensive cloud-based software suite.
+                        </p>
+
+                        <div class="flex flex-col sm:flex-row gap-4 pt-4 max-w-md mx-auto lg:mx-0">
+                            <button class="w-full sm:w-auto bg-orange-600 text-black hover:bg-orange-700 font-semibold py-3 px-6 rounded-lg transition duration-300 shadow-lg">
+                                Get Pricing
+                            </button>
+                            <button class="w-full sm:w-auto bg-white border-2 text-orange-500 border-orange-500 hover:bg-orange-100 font-semibold py-3 px-6 rounded-lg transition duration-300">
+                                Start Free Trial
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Image section -->
+                    <div class="relative w-full h-64 sm:h-80 md:h-96 rounded-xl overflow-hidden mt-8 lg:mt-0">
+                        <img
+                            src="{% static 'home/BusinessApp.png' %}"
+                            alt="Business team collaborating with cloud technology"
+                            class="w-full h-full object-cover rounded-xl"
+                        />
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- BusinessApp Section -->
+        <div class="bg-white py-12 px-4 sm:px-6 lg:px-8">
+            <div class="max-w-7xl mx-auto">
+                <!-- Header Section -->
+                <div class="text-center mb-12">
+                    <h1 class="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+                        Lionsol One Business App
+                    </h1>
+                    <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+                        Manage your business on the go with our powerful mobile application.
+                    </p>
+                </div>
+
+                <!-- Features Section - 4 Column Layout -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+                    <!-- Feature 1 -->
+                    <div class="text-center p-4">
+                        <img
+                            src="{% static 'home/BusinessApp.jpeg' %}"
+                            alt="Digital Work"
+                            class="rounded-lg shadow-md w-24 h-24 mx-auto mb-4 object-cover"
+                        />
+                        <div class="text-gray-700 space-y-1">
+                            <p class="font-semibold">Encourage Field</p>
+                            <p>Employees to Work</p>
+                            <p>Digitally</p>
+                        </div>
+                    </div>
+
+                    <!-- Feature 2 -->
+                    <div class="text-center p-4">
+                        <img
+                            src="{% static 'home/BusinessApp.jpeg' %}"
+                            alt="Job Navigation"
+                            class="rounded-lg shadow-md w-24 h-24 mx-auto mb-4 object-cover"
+                        />
+                        <div class="text-gray-700 space-y-1">
+                            <p>Help Employee</p>
+                            <p>to navigate to the</p>
+                            <p>Job site</p>
+                        </div>
+                    </div>
+
+                    <!-- Feature 3 -->
+                    <div class="text-center p-4">
+                        <img
+                            src="{% static 'home/BusinessApp.jpeg' %}"
+                            alt="Automated Reports"
+                            class="rounded-lg shadow-md w-24 h-24 mx-auto mb-4 object-cover"
+                        />
+                        <div class="text-gray-700 space-y-1">
+                            <p>Reports to be</p>
+                            <p>sent to customer's</p>
+                            <p>Automate</p>
+                        </div>
+                    </div>
+
+                    <!-- Feature 4 -->
+                    <div class="text-center p-4">
+                        <img
+                            src="{% static 'home/BusinessApp.jpeg' %}"
+                            alt="Time Monitoring"
+                            class="rounded-lg shadow-md w-24 h-24 mx-auto mb-4 object-cover"
+                        />
+                        <div class="text-gray-700 space-y-1">
+                            <p>Monitor Work Time</p>
+                            <p>taken by field</p>
+                            <p>Employee</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- App Download Buttons - Centered -->
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                    <a href="#" class="block w-full sm:w-auto">
+                        <div class="bg-black text-white px-6 py-3 rounded-lg flex items-center justify-center hover:bg-gray-800 transition">
+                            <div class="mr-3">
+                                <svg class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z" />
+                                </svg>
+                            </div>
+                            <div class="text-left">
+                                <div class="text-xs">GET IT ON</div>
+                                <div class="text-lg font-semibold">Google Play</div>
+                            </div>
+                        </div>
+                    </a>
+
+                    <a href="#" class="block w-full sm:w-auto">
+                        <div class="bg-black text-white px-6 py-3 rounded-lg flex items-center justify-center hover:bg-gray-800 transition">
+                            <div class="mr-3">
+                                <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M14.8 2H7.2C5.4 2 4 3.4 4 5.2v13.6C4 20.6 5.4 22 7.2 22h7.6c1.8 0 3.2-1.4 3.2-3.2V5.2C18 3.4 16.6 2 14.8 2zM11 20c-1.7 0-3-1.3-3-3s1.3-3 3-3 3 1.3 3 3-1.3 3-3 3zm5-11H6V6h10v3z" />
+                                </svg>
+                            </div>
+                            <div class="text-left">
+                                <div class="text-xs">Download on the</div>
+                                <div class="text-lg font-semibold">App Store</div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lionsol Products Section -->
+        <div class="bg-[#FEF4EA] py-12 px-4 sm:px-6 lg:px-8">
+            <div class="max-w-7xl mx-auto">
+                <!-- Header Section -->
+                <div class="text-center mb-12">
+                    <h1 class="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+                        Lionsol Products
+                    </h1>
+                    <p class="text-lg text-gray-600">
+                        Comprehensive solutions for every business need
+                    </p>
+                </div>
+
+                <!-- Products Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <!-- Field Service -->
+                    <div class="bg-gray-50 p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                        <img
+                            src="{% static 'home/lionsolproduct.png' %}"
+                            alt="Field Service"
+                        />
+                        <h2 class="text-xl font-semibold text-gray-800 mb-3">Field Service</h2>
+                        <p class="text-gray-600 mb-4">
+                            Efficiently manage your field operations and service teams
+                        </p>
+                        <a
+                            href="#"
+                            class="text-blue-600 hover:text-blue-800 font-medium inline-flex items-center"
+                        >
+                            Learn more about Field Service
+                            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </a>
+                    </div>
+
+                    <!-- Elevator AMC -->
+                    <div class="bg-gray-50 p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                        <img
+                            src="{% static 'home/lionsolproduct.png' %}"
+                            alt="Elevator AMC"
+                        />
+                        <h2 class="text-xl font-semibold text-gray-800 mb-3">Elevator AMC</h2>
+                        <p class="text-gray-600 mb-4">
+                            Specialized software for elevator maintenance
+                        </p>
+                        <a
+                            href="#"
+                            class="text-blue-600 hover:text-blue-800 font-medium inline-flex items-center"
+                        >
+                            Learn more about Elevator AMC
+                            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </a>
+                    </div>
+
+                    <!-- Lionsol HR -->
+                    <div class="bg-gray-50 p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                        <img
+                            src="{% static 'home/lionsolproduct.png' %}"
+                            alt="Lionsol HR"
+                        />
+                        <h2 class="text-xl font-semibold text-gray-800 mb-3">Lionsol HR</h2>
+                        <p class="text-gray-600 mb-4">
+                            Complete HR management solution for your workforce
+                        </p>
+                        <a
+                            href="#"
+                            class="text-blue-600 hover:text-blue-800 font-medium inline-flex items-center"
+                        >
+                            Learn more about Lionsol HR
+                            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </a>
+                    </div>
+
+                    <!-- Lionsol CRM -->
+                    <div class="bg-gray-50 p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                        <img
+                            src="{% static 'home/lionsolproduct.png' %}"
+                            alt="Lionsol CRM"
+                        />
+                        <h2 class="text-xl font-semibold text-gray-800 mb-3">Lionsol CRM</h2>
+                        <p class="text-gray-600 mb-4">
+                            Build and maintain strong customer relationships
+                        </p>
+                        <a
+                            href="#"
+                            class="text-blue-600 hover:text-blue-800 font-medium inline-flex items-center"
+                        >
+                            Learn more about Lionsol CRM
+                            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Prime Customer Section -->
+        <div class="bg-white py-12 px-4 sm:px-6 lg:px-8">
+            <div class="max-w-7xl mx-auto">
+                <!-- Header Section -->
+                <div class="text-center mb-12">
+                    <h1 class="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+                        Our Prime Customers
+                    </h1>
+                </div>
+
+                <!-- Customer Logos - Responsive Grid -->
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
+                    <!-- Customer Logo 1 -->
+                    <div class="bg-gray-100 p-6 rounded-lg flex items-center justify-center">
+                        <img src="{% static 'home/customer.png' %}" alt="Customer 1" />
+                    </div>
+
+                    <!-- Customer Logo 2 -->
+                    <div class="bg-gray-100 p-6 rounded-lg flex items-center justify-center">
+                        <img src="{% static 'home/customer.png' %}" alt="Customer 2" />
+                    </div>
+
+                    <!-- Customer Logo 3 -->
+                    <div class="bg-gray-100 p-6 rounded-lg flex items-center justify-center">
+                        <img src="{% static 'home/customer.png' %}" alt="Customer 3" />
+                    </div>
+
+                    <!-- Customer Logo 4 -->
+                    <div class="bg-gray-100 p-6 rounded-lg flex items-center justify-center">
+                        <img src="{% static 'home/customer.png' %}" alt="Customer 4" />
+                    </div>
+
+                    <!-- Customer Logo 5 -->
+                    <div class="bg-gray-100 p-6 rounded-lg flex items-center justify-center">
+                        <img src="{% static 'home/customer.png' %}" alt="Customer 5" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Why Choose Section -->
+        <div class="bg-black py-12 px-4 sm:px-6 lg:px-8">
+            <div class="max-w-7xl mx-auto">
+                <!-- Header Section -->
+                <div class="text-center mb-12">
+                    <h1 class="text-3xl sm:text-4xl font-semibold text-white mb-4">
+                        Why Choose Lionsol?
+                    </h1>
+                    <p class="text-lg text-white max-w-2xl mx-auto">
+                        Powerful features designed for business success
+                    </p>
+                </div>
+
+                <!-- Features Grid - Title and Icon Side by Side -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div class="bg-white rounded-md p-6">
+                        <!-- Icon and Title - Side by Side -->
+                        <div class="flex items-center mb-3">
+                            <img
+                                src="{% static 'home/BusinessApp.jpeg' %}"
+                                alt="Cloud-Based"
+                                class="w-12 h-12 object-contain mr-4"
+                            />
+                            <h3 class="text-lg font-semibold text-gray-800">Cloud-Based</h3>
+                        </div>
+
+                        <!-- Description Below -->
+                        <p class="text-gray-600 pl-16">Access your data anytime, anywhere with our secure cloud platform.</p>
+                    </div>
+
+                    <div class="bg-white rounded-md p-6">
+                        <!-- Icon and Title - Side by Side -->
+                        <div class="flex items-center mb-3">
+                            <img
+                                src="{% static 'home/BusinessApp.jpeg' %}"
+                                alt="Fully Customizable"
+                                class="w-12 h-12 object-contain mr-4"
+                            />
+                            <h3 class="text-lg font-semibold text-gray-800">Fully Customizable</h3>
+                        </div>
+
+                        <!-- Description Below -->
+                        <p class="text-gray-600 pl-16">Tailor our solutions to fit your unique business requirements.</p>
+                    </div>
+
+                    <div class="bg-white rounded-md p-6">
+                        <!-- Icon and Title - Side by Side -->
+                        <div class="flex items-center mb-3">
+                            <img
+                                src="{% static 'home/BusinessApp.jpeg' %}"
+                                alt="Enterprise Security"
+                                class="w-12 h-12 object-contain mr-4"
+                            />
+                            <h3 class="text-lg font-semibold text-gray-800">Enterprise Security</h3>
+                        </div>
+
+                        <!-- Description Below -->
+                        <p class="text-gray-600 pl-16">Your data is protected with industry-leading security measures.</p>
+                    </div>
+
+                    <div class="bg-white rounded-md p-6">
+                        <!-- Icon and Title - Side by Side -->
+                        <div class="flex items-center mb-3">
+                            <img
+                                src="{% static 'home/BusinessApp.jpeg' %}"
+                                alt="Real-time Analytics"
+                                class="w-12 h-12 object-contain mr-4"
+                            />
+                            <h3 class="text-lg font-semibold text-gray-800">Real-time Analytics</h3>
+                        </div>
+
+                        <!-- Description Below -->
+                        <p class="text-gray-600 pl-16">Make data-driven decisions with powerful reporting tools.</p>
+                    </div>
+
+                    <div class="bg-white rounded-md p-6">
+                        <!-- Icon and Title - Side by Side -->
+                        <div class="flex items-center mb-3">
+                            <img
+                                src="{% static 'home/BusinessApp.jpeg' %}"
+                                alt="Mobile Friendly"
+                                class="w-12 h-12 object-contain mr-4"
+                            />
+                            <h3 class="text-lg font-semibold text-gray-800">Mobile Friendly</h3>
+                        </div>
+
+                        <!-- Description Below -->
+                        <p class="text-gray-600 pl-16">Full functionality across all devices for maximum flexibility.</p>
+                    </div>
+
+                    <div class="bg-white rounded-md p-6">
+                        <!-- Icon and Title - Side by Side -->
+                        <div class="flex items-center mb-3">
+                            <img
+                                src="{% static 'home/BusinessApp.jpeg' %}"
+                                alt="Remote Dedicated Training & Support"
+                                class="w-12 h-12 object-contain mr-4"
+                            />
+                            <h3 class="text-lg font-semibold text-gray-800">Remote Dedicated Training & Support</h3>
+                        </div>
+
+                        <!-- Description Below -->
+                        <p class="text-gray-600 pl-16">Get expert assistance whenever you need it with our dedicated support team.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ready to Transform Section -->
+        <div class="bg-white py-12 px-4 sm:px-6 lg:px-8">
+            <div class="max-w-6xl mx-auto flex flex-col lg:flex-row items-center">
+                <!-- Text Content - Left Side -->
+                <div class="lg:w-1/2 text-center lg:text-left mb-8 lg:mb-0">
+                    <h2 class="text-2xl sm:text-3xl font-semibold text-gray-900 mb-4">
+                        Ready to Transform Your Business?
+                    </h2>
+
+                    <p class="text-base sm:text-lg text-gray-600 mb-8">
+                        Join thousands of businesses that trust Lionsol for<br class="hidden sm:block" />
+                        their operational needs.
+                    </p>
+
+                    <div class="flex flex-row justify-center lg:justify-start gap-4">
+                        <button class="bg-orange-500 hover:bg-orange-600 text-black font-medium py-2 px-6 rounded-sm text-sm sm:text-base transition-colors shadow-lg">
+                            Request Demo
+                        </button>
+                        <button class="bg-white hover:bg-gray-50 text-orange-500 font-medium py-2 px-6 border border-orange-300 rounded-sm text-sm sm:text-base transition-colors">
+                            Call Us Now
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Image - Right Side -->
+                <div class="lg:w-1/2 flex justify-center lg:justify-end">
+                    <div class="w-48 h-48 sm:w-64 sm:h-64 rounded-full overflow-hidden border-4 border-blue-100 shadow-lg">
+                        <img
+                            src="{% static 'home/ready.jpg' %}"
+                            alt="Business transformation"
+                            class="w-full h-full object-cover"
+                        />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer Component -->
+    <footer class="bg-black text-white py-8 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto">
+            <!-- Main Content with Vertical Separator -->
+            <div class="flex flex-col md:flex-row">
+                <!-- Left Side: Logo, Quick Links, Products -->
+                <div class="md:w-1/2 md:pr-8 flex flex-col">
+                    <img src="{% static 'home/logo.png' %}" alt="logo" class="h-14 w-40 pb-4"/>
+                    <div class="flex flex-col md:flex-row gap-8">
+                        <!-- Quick Links -->
+                        <div class="flex-1">
+                            <h3 class="text-lg font-semibold mb-3">Quick Links</h3>
+                            <ul class="space-y-2">
+                                <li><a href="#" class="hover:text-blue-400">Home</a></li>
+                                <li><a href="#" class="hover:text-blue-400">About Us</a></li>
+                                <li><a href="#" class="hover:text-blue-400">Schedule a Demo</a></li>
+                                <li><a href="#" class="hover:text-blue-400">Terms and Conditions</a></li>
+                                <li><a href="#" class="hover:text-blue-400">Privacy and Policy</a></li>
+                                <li><a href="#" class="hover:text-blue-400">Customer Testimonial</a></li>
+                                <li><a href="#" class="hover:text-blue-400">Help Center</a></li>
+                            </ul>
+                        </div>
+
+                        <!-- Products -->
+                        <div class="flex-1">
+                            <h3 class="text-lg font-semibold mb-3">Products</h3>
+                            <ul class="space-y-2">
+                                <li><a href="#" class="hover:text-blue-400">Field Service</a></li>
+                                <li><a href="#" class="hover:text-blue-400">Lionsel HR</a></li>
+                                <li><a href="#" class="hover:text-blue-400">Lionsel Geo</a></li>
+                                <li><a href="#" class="hover:text-blue-400">Elevator AMC</a></li>
+                                <li><a href="#" class="hover:text-blue-400">Whatsapp API</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Vertical Separator - Increased Height -->
+                <div class="hidden md:block relative mx-8">
+                    <div class="absolute top-0 bottom-0 left-0 w-px bg-gray-600 h-full"></div>
+                </div>
+
+                <!-- Right Side: Email ID, Corporate Office, Contact Us -->
+                <div class="md:w-1/2 md:pl-8 mt-6 md:mt-0">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <!-- Email ID -->
+                        <div>
+                            <h3 class="text-lg font-semibold mb-3">Email ID</h3>
+                            <ul class="space-y-2">
+                                <li><a href="mailto:customersupport@lionsol.in" class="hover:text-blue-400">customersupport@lionsol.in</a></li>
+                                <li><a href="mailto:software@lionsol.in" class="hover:text-blue-400">software@lionsol.in</a></li>
+                            </ul>
+                        </div>
+
+                        <!-- Corporate Office -->
+                        <div>
+                            <h3 class="text-lg font-semibold mb-3">Corporate Office</h3>
+                            <p class="text-sm">
+                                Office No 602, Rajavi Arcade,<br />
+                                Nr. Gurukul Metro Station,<br />
+                                Oppo Swaminaryan Temple,<br />
+                                Mennagar, Ahmedabad - 380052,<br />
+                                Gujarat, India.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Contact Us -->
+                    <div class="mt-8">
+                        <h3 class="text-lg font-semibold mb-3">Contact Us</h3>
+                        <ul class="space-y-2">
+                            <li>Toll Free: 91.11.6931.3323</li>
+                            <li>Monday - Friday</li>
+                            <li>9:30 AM - 6:30 PM</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Horizontal Separator with Icons -->
+            <div class="relative my-8">
+                <div class="absolute inset-0 flex items-center">
+                    <div class="w-full border-t border-gray-600"></div>
+                </div>
+                <div class="relative flex justify-center">
+                    <div class="bg-black px-4 flex space-x-4">
+                        <!-- Social Media Icons (Facebook, Instagram, YouTube, Twitter, LinkedIn) -->
+                        <a href="#" class="hover:text-blue-400">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M22.675 0H1.325C.593 0 0 .593 0 1.325v21.35C0 23.407.593 24 1.325 24h11.498v-9.294H9.692V11.237h3.131V8.797c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.707h-3.12V24h6.116c.732 0 1.325-.593 1.325-1.325V1.325C24 .593 23.407 0 22.675 0z"/></svg>
+                        </a>
+                        <a href="#" class="hover:text-blue-400">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.07 1.645.07 4.85s-.012 3.584-.07 4.85c-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07s-3.584-.012-4.85-.07c-3.251-.148-4.77-1.691-4.919-4.919-.058-1.265-.07-1.645-.07-4.85s.012-3.584.07-4.85c.149-3.227 1.664-4.771 4.919-4.919 1.266-.058 1.644-.07 4.85-.07zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948s.014 3.668.072 4.948c.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072s3.668-.014 4.948-.072c4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948s-.014-3.667-.072-4.947c-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.689-.073-4.948-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.162 6.162 6.162 6.162-2.759 6.162-6.162-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4s1.791-4 4-4 4 1.79 4 4-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.44-.645 1.44-1.44s-.645-1.44-1.44-1.44z"/></svg>
+                        </a>
+                        <a href="#" class="hover:text-blue-400">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                        </a>
+                        <a href="#" class="hover:text-blue-400">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/></svg>
+                        </a>
+                        <a href="#" class="hover:text-blue-400">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Simple JavaScript for dropdown functionality
+        document.addEventListener('click', function(event) {
+            const dropdown = document.getElementById('products-dropdown');
+            const button = dropdown.previousElementSibling;
+
+            if (!button.contains(event.target) && !dropdown.contains(event.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>

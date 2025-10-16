@@ -12,6 +12,7 @@ urlpatterns = [
     path('lift/', include('lift.urls')),
     path('items/', include('items.urls')),
     path('customer/', include('customer.urls')),
+    path('home/', include('home.urls')),
     path("django-admin/", admin.site.urls),
     path("admin/", include(wagtailadmin_urls)),
     path("documents/", include(wagtaildocs_urls)),
