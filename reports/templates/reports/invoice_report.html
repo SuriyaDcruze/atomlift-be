@@ -1,0 +1,96 @@
+{% extends "reports/base_report.html" %}
+
+{% block report_title %}Invoice Reports{% endblock %}
+
+{% block export_links %}
+<a href="{% url 'reports:export_invoices_csv' %}">
+    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    </svg>
+    Export CSV
+</a>
+{% endblock %}
+
+{% block filters %}
+<div class="filter-grid">
+    <div class="filter-field">
+        <label>Period</label>
+        <select name="period">
+            <option value="ALL TIME" {% if selected_period == 'ALL TIME' %}selected{% endif %}>ALL TIME</option>
+            <option value="CURRENT MONTH" {% if selected_period == 'CURRENT MONTH' %}selected{% endif %}>CURRENT MONTH</option>
+        </select>
+    </div>
+    <div class="filter-field">
+        <label>By</label>
+        <select name="by">
+            <option value="ALL" {% if selected_by == 'ALL' %}selected{% endif %}>ALL</option>
+            <option value="Customer" {% if selected_by == 'Customer' %}selected{% endif %}>Customer</option>
+            <option value="Admin" {% if selected_by == 'Admin' %}selected{% endif %}>Admin</option>
+        </select>
+    </div>
+    <div class="filter-field">
+        <label>Customer</label>
+        <select name="customer">
+            <option value="ALL" {% if selected_customer == 'ALL' %}selected{% endif %}>ALL</option>
+            {% for customer in customers %}
+            <option value="{{ customer }}" {% if selected_customer == customer %}selected{% endif %}>{{ customer }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="filter-field">
+        <label>Status</label>
+        <select name="status">
+            <option value="ALL" {% if selected_status == 'ALL' %}selected{% endif %}>ALL</option>
+            <option value="PAID" {% if selected_status == 'PAID' %}selected{% endif %}>PAID</option>
+            <option value="Pending" {% if selected_status == 'Pending' %}selected{% endif %}>Pending</option>
+        </select>
+    </div>
+</div>
+{% endblock %}
+
+{% block table_content %}
+<table>
+    <thead>
+        <tr>
+            <th>INVOICE ID</th>
+            <th>CUSTOMER</th>
+            <th>INVOICE DATE</th>
+            <th>DUE DATE</th>
+            <th>VALUE</th>
+            <th>DUE BALANCE</th>
+            <th>STATUS</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for invoice in invoices %}
+        <tr>
+            <td>{{ invoice.reference_id|default:invoice.id }}</td>
+            <td>{{ invoice.customer.site_name|default:"N/A" }}</td>
+            <td>{{ invoice.start_date }}</td>
+            <td>
+                <span class="{% if invoice.due_date and invoice.due_date|date:'Y-m-d' < 'now'|date:'Y-m-d' %}badge badge-red{% else %}badge badge-yellow{% endif %}">
+                    {{ invoice.due_date }}
+                </span>
+            </td>
+            <td>INR {{ invoice.value|floatformat:2|default:"0.00" }}</td>
+            <td>INR {{ invoice.due_balance|floatformat:2|default:"0.00" }}</td>
+            <td>
+                {% if invoice.status == "PAID" %}
+                    <span class="badge badge-green">PAID</span>
+                {% else %}
+                    <span class="badge badge-yellow">{{ invoice.status|default:"Pending" }}</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="7" class="no-data">No invoice reports found for the selected period</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
+
+{% block pagination %}
+Showing 0 to {{ invoices|length }} of {{ invoices|length }} entries
+{% endblock %}

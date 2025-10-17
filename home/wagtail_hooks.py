@@ -17,7 +17,7 @@ from PaymentReceived.models import PaymentReceived
 def hide_explorer_menu_item_from_frank(request, menu_items):
     new_menu_items = []
     for item in menu_items:
-        if not item.name in ['reports','help','explorer','documents','images']:
+        if not item.name in ['help','explorer','documents','images']:
             new_menu_items.append(item)
     menu_items[:] = new_menu_items
 

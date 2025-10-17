@@ -1,0 +1,100 @@
+{% extends "reports/base_report.html" %}
+
+{% block report_title %}Quotation Reports{% endblock %}
+
+{% block export_links %}
+<a href="{% url 'reports:export_quotations_csv' %}">
+    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    </svg>
+    Export CSV
+</a>
+{% endblock %}
+
+{% block filters %}
+<div class="filter-grid">
+    <div class="filter-field">
+        <label>Period</label>
+        <select name="period">
+            <option value="ALL TIME" {% if selected_period == 'ALL TIME' %}selected{% endif %}>ALL TIME</option>
+            <option value="Today" {% if selected_period == 'Today' %}selected{% endif %}>Today</option>
+            <option value="This Week" {% if selected_period == 'This Week' %}selected{% endif %}>This Week</option>
+            <option value="This Month" {% if selected_period == 'This Month' %}selected{% endif %}>This Month</option>
+        </select>
+    </div>
+    <div class="filter-field">
+        <label>By</label>
+        <select name="by">
+            <option value="ALL" {% if selected_by == 'ALL' %}selected{% endif %}>ALL</option>
+            <option value="Customer" {% if selected_by == 'Customer' %}selected{% endif %}>Customer</option>
+            <option value="Admin" {% if selected_by == 'Admin' %}selected{% endif %}>Admin</option>
+        </select>
+    </div>
+    <div class="filter-field">
+        <label>Customer</label>
+        <select name="customer">
+            <option value="ALL" {% if selected_customer == 'ALL' %}selected{% endif %}>ALL</option>
+            {% for customer in customers %}
+            <option value="{{ customer }}" {% if selected_customer == customer %}selected{% endif %}>{{ customer }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="filter-field">
+        <label>Status</label>
+        <select name="status">
+            <option value="ALL" {% if selected_status == 'ALL' %}selected{% endif %}>ALL</option>
+            <option value="Active" {% if selected_status == 'Active' %}selected{% endif %}>Active</option>
+            <option value="Closed" {% if selected_status == 'Closed' %}selected{% endif %}>Closed</option>
+        </select>
+    </div>
+</div>
+{% endblock %}
+
+{% block table_content %}
+<table>
+    <thead>
+        <tr>
+            <th>NUMBER</th>
+            <th>DATE</th>
+            <th>NAME</th>
+            <th>AMC DETAILS</th>
+            <th>QUOTATION TYPE</th>
+            <th>AMOUNT</th>
+            <th>GST</th>
+            <th>NET AMOUNT</th>
+            <th>LIFTS</th>
+            <th>STATUS</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for quotation in quotations %}
+        <tr>
+            <td>{{ quotation.reference_id|default:quotation.id }}</td>
+            <td>{{ quotation.date }}</td>
+            <td>{{ quotation.customer.site_name|default:"N/A" }}</td>
+            <td>{{ quotation.amc_type|default:"N/A" }}</td>
+            <td>{{ quotation.type|default:"N/A" }}</td>
+            <td>{{ quotation.amount|default:"0" }}</td>
+            <td>{{ quotation.gst|default:"0%" }}</td>
+            <td>{{ quotation.net_amount|default:"0" }}</td>
+            <td>{{ quotation.lifts|default:"No Lifts" }}</td>
+            <td>
+                {% if quotation.status == "Active" %}
+                    <span class="badge badge-green">Active</span>
+                {% else %}
+                    <span class="badge badge-red">{{ quotation.status|default:"Closed" }}</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="10" class="no-data">No quotation reports found for the selected period</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
+
+{% block pagination %}
+Showing 0 to {{ quotations|length }} of {{ quotations|length }} entries
+{% endblock %}

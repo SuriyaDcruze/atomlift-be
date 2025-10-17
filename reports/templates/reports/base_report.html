@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+{% load static wagtailadmin_tags %}
+
+{% block extra_css %}
+<style>
+    .report-container {
+        padding: 1.5rem;
+        background-color: #f9fafb;
+        min-height: 100vh;
+    }
+    .report-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+    .report-title {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #1f2937;
+    }
+    .filter-section {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    .filter-field label {
+        display: block;
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin-bottom: 0.25rem;
+        font-weight: 500;
+    }
+    .filter-field select,
+    .filter-field input {
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+    }
+    .filter-field select:focus,
+    .filter-field input:focus {
+        outline: none;
+        border-color: #243158;
+        box-shadow: 0 0 0 3px rgba(36, 49, 88, 0.1);
+    }
+    .btn-search {
+        background-color: #243158;
+        color: white;
+        padding: 0.5rem 1rem;
+        border: none;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .btn-search:hover {
+        background-color: #1b2545;
+    }
+    .btn-export {
+        background: white;
+        border: 1px solid #243158;
+        color: #243158;
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .btn-export:hover {
+        background-color: #f9fafb;
+    }
+    .export-dropdown {
+        position: relative;
+        display: inline-block;
+    }
+    .export-menu {
+        display: none;
+        position: absolute;
+        right: 0;
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.375rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        min-width: 12rem;
+        z-index: 10;
+        margin-top: 0.5rem;
+    }
+    .export-menu.show {
+        display: block;
+    }
+    .export-menu a {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        color: #374151;
+        text-decoration: none;
+        font-size: 0.875rem;
+    }
+    .export-menu a:hover {
+        background-color: #f3f4f6;
+    }
+    .data-table {
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+    .table-responsive {
+        overflow-x: auto;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    thead {
+        background-color: #f3f4f6;
+    }
+    thead th {
+        padding: 0.75rem;
+        text-align: left;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #374151;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    tbody td {
+        padding: 0.75rem;
+        font-size: 0.875rem;
+        color: #1f2937;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    tbody tr:hover {
+        background-color: #f9fafb;
+    }
+    .badge {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    .badge-green {
+        background-color: #d1fae5;
+        color: #065f46;
+    }
+    .badge-yellow {
+        background-color: #fef3c7;
+        color: #92400e;
+    }
+    .badge-red {
+        background-color: #fee2e2;
+        color: #991b1b;
+    }
+    .badge-blue {
+        background-color: #dbeafe;
+        color: #1e40af;
+    }
+    .badge-purple {
+        background-color: #e9d5ff;
+        color: #6b21a8;
+    }
+    .badge-gray {
+        background-color: #f3f4f6;
+        color: #374151;
+    }
+    .pagination-info {
+        padding: 0.75rem;
+        font-size: 0.875rem;
+        color: #6b7280;
+        border-top: 1px solid #e5e7eb;
+    }
+    .icon {
+        width: 1rem;
+        height: 1rem;
+    }
+    .no-data {
+        text-align: center;
+        padding: 2rem;
+        color: #6b7280;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="report-container">
+    <div class="report-header">
+        <h1 class="report-title">{% block report_title %}{% endblock %}</h1>
+        <div class="export-dropdown">
+            <button class="btn-export" onclick="toggleExportMenu()">
+                <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                </svg>
+                Export
+            </button>
+            <div class="export-menu" id="exportMenu">
+                {% block export_links %}{% endblock %}
+            </div>
+        </div>
+    </div>
+
+    <div class="filter-section">
+        <form method="get" action="">
+            {% block filters %}{% endblock %}
+            <div style="display: flex; justify-content: flex-end;">
+                <button type="submit" class="btn-search">
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    Search
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div class="data-table">
+        <div class="table-responsive">
+            {% block table_content %}{% endblock %}
+        </div>
+        <div class="pagination-info">
+            {% block pagination %}{% endblock %}
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleExportMenu() {
+    document.getElementById('exportMenu').classList.toggle('show');
+}
+
+// Close dropdown when clicking outside
+window.onclick = function(event) {
+    if (!event.target.matches('.btn-export') && !event.target.closest('.btn-export')) {
+        var dropdowns = document.getElementsByClassName("export-menu");
+        for (var i = 0; i < dropdowns.length; i++) {
+            var openDropdown = dropdowns[i];
+            if (openDropdown.classList.contains('show')) {
+                openDropdown.classList.remove('show');
+            }
+        }
+    }
+}
+</script>
+{% endblock %}

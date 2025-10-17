@@ -33,10 +33,10 @@ INSTALLED_APPS = [
     "recurringInvoice",
     "PaymentReceived",
     "Quotation",
-
     "authentication",
     "Requisition",
     "complaints",
+    "reports",
     "search",
     "wagtail_modeladmin",
     "wagtail.contrib.forms",

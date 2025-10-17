@@ -1,0 +1,106 @@
+{% extends "reports/base_report.html" %}
+
+{% block report_title %}Complaints Report{% endblock %}
+
+{% block export_links %}
+<a href="{% url 'reports:export_complaints_csv' %}">
+    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    </svg>
+    Export CSV
+</a>
+{% endblock %}
+
+{% block filters %}
+<div class="filter-grid">
+    <div class="filter-field">
+        <label>Period</label>
+        <select name="period">
+            <option value="ALL TIME" {% if selected_period == 'ALL TIME' %}selected{% endif %}>ALL TIME</option>
+            <option value="LAST_WEEK" {% if selected_period == 'LAST_WEEK' %}selected{% endif %}>LAST WEEK</option>
+            <option value="LAST_MONTH" {% if selected_period == 'LAST_MONTH' %}selected{% endif %}>LAST MONTH</option>
+        </select>
+    </div>
+    <div class="filter-field">
+        <label>By</label>
+        <select name="by">
+            <option value="ALL" {% if selected_by == 'ALL' %}selected{% endif %}>ALL</option>
+            <option value="Customer" {% if selected_by == 'Customer' %}selected{% endif %}>Customer</option>
+            <option value="Admin" {% if selected_by == 'Admin' %}selected{% endif %}>Admin</option>
+        </select>
+    </div>
+    <div class="filter-field">
+        <label>Customer</label>
+        <select name="customer">
+            <option value="ALL" {% if selected_customer == 'ALL' %}selected{% endif %}>ALL</option>
+            {% for customer in customers %}
+            <option value="{{ customer }}" {% if selected_customer == customer %}selected{% endif %}>{{ customer }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="filter-field">
+        <label>Status</label>
+        <select name="status">
+            <option value="ALL" {% if selected_status == 'ALL' %}selected{% endif %}>ALL</option>
+            <option value="In Progress" {% if selected_status == 'In Progress' %}selected{% endif %}>In Progress</option>
+            <option value="Open" {% if selected_status == 'Open' %}selected{% endif %}>Open</option>
+            <option value="Closed" {% if selected_status == 'Closed' %}selected{% endif %}>Closed</option>
+        </select>
+    </div>
+</div>
+{% endblock %}
+
+{% block table_content %}
+<table>
+    <thead>
+        <tr>
+            <th>COMPLAINT NO</th>
+            <th>DATE</th>
+            <th>AMC ID</th>
+            <th>SITE ID</th>
+            <th>CUSTOMER</th>
+            <th>TYPE</th>
+            <th>PROBLEM</th>
+            <th>RESOLUTION</th>
+            <th>DONE BY</th>
+            <th>STATUS</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for complaint in complaints %}
+        <tr>
+            <td>{{ complaint.reference|default:complaint.id }}</td>
+            <td>{{ complaint.date|date:"d.m.Y" }}</td>
+            <td>{{ complaint.amc_id|default:"N/A" }}</td>
+            <td>{{ complaint.site_id|default:"N/A" }}</td>
+            <td>{{ complaint.customer.site_name|default:"Unknown" }}</td>
+            <td>
+                <span class="badge badge-blue">{{ complaint.complaint_type|default:"General" }}</span>
+            </td>
+            <td>{{ complaint.subject|default:"N/A" }}</td>
+            <td>{{ complaint.solution|default:"Pending" }}</td>
+            <td>{{ complaint.assign_to.get_full_name|default:"Unassigned" }}</td>
+            <td>
+                {% if complaint.priority == "Closed" %}
+                    <span class="badge badge-green">Closed</span>
+                {% elif complaint.priority == "In Progress" %}
+                    <span class="badge badge-purple">In Progress</span>
+                {% elif complaint.priority == "Open" %}
+                    <span class="badge badge-yellow">Open</span>
+                {% else %}
+                    <span class="badge badge-gray">{{ complaint.priority|default:"Open" }}</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="10" class="no-data">No complaints found for the selected period</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
+
+{% block pagination %}
+Showing 0 to {{ complaints|length }} of {{ complaints|length }} entries
+{% endblock %}

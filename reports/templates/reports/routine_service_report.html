@@ -1,0 +1,119 @@
+{% extends "reports/base_report.html" %}
+
+{% block report_title %}Routine Services Reports{% endblock %}
+
+{% block filters %}
+<div class="filter-grid">
+    <div class="filter-field">
+        <label>Customer</label>
+        <select name="customer">
+            <option value="">SELECT</option>
+            {% for customer in customers %}
+            <option value="{{ customer }}" {% if selected_customer == customer %}selected{% endif %}>{{ customer }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="filter-field">
+        <label>By</label>
+        <select name="by">
+            <option value="DATE" {% if selected_by == 'DATE' %}selected{% endif %}>DATE</option>
+            <option value="AMC TYPE">AMC TYPE</option>
+            <option value="CUSTOMER">CUSTOMER</option>
+        </select>
+    </div>
+    <div class="filter-field">
+        <label>Routes</label>
+        <select name="routes">
+            <option value="">SELECT</option>
+            <option value="Route 1">Route 1</option>
+            <option value="Route 2">Route 2</option>
+        </select>
+    </div>
+    <div class="filter-field">
+        <label>Status</label>
+        <select name="status">
+            <option value="ALL" {% if selected_status == 'ALL' %}selected{% endif %}>ALL</option>
+            <option value="Active">Active</option>
+            <option value="Completed">Completed</option>
+        </select>
+    </div>
+    <div class="filter-field">
+        <label>AMC Types</label>
+        <select name="amc_types">
+            <option value="">SELECT</option>
+            <option value="Comprehensive">Comprehensive</option>
+            <option value="Basic">Basic</option>
+        </select>
+    </div>
+    <div class="filter-field">
+        <label>Period</label>
+        <select name="period">
+            <option value="MONTH" {% if selected_period == 'MONTH' %}selected{% endif %}>MONTH</option>
+            <option value="WEEK">WEEK</option>
+            <option value="QUARTER">QUARTER</option>
+        </select>
+    </div>
+    <div class="filter-field">
+        <label>Month</label>
+        <select name="month">
+            <option value="July" {% if selected_month == 'July' %}selected{% endif %}>July, 2025</option>
+            <option value="August">August, 2025</option>
+            <option value="September">September, 2025</option>
+            <option value="October">October, 2025</option>
+            <option value="November">November, 2025</option>
+            <option value="December">December, 2025</option>
+        </select>
+    </div>
+    <div class="filter-field">
+        <label>Start Date</label>
+        <input type="date" name="start_date" value="{{ start_date }}" placeholder="01.07.2025">
+    </div>
+    <div class="filter-field">
+        <label>End Date</label>
+        <input type="date" name="end_date" value="{{ end_date }}" placeholder="31.07.2025">
+    </div>
+</div>
+{% endblock %}
+
+{% block table_content %}
+<table>
+    <thead>
+        <tr>
+            <th>DATE</th>
+            <th>AMC ID</th>
+            <th>START DATE</th>
+            <th>END DATE</th>
+            <th>AMC TYPE</th>
+            <th>CONTRACT AMOUNT</th>
+            <th>PAID AMOUNT</th>
+            <th>DUE AMOUNT</th>
+            <th>CUSTOMER</th>
+            <th>SITE ADDRESS</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for amc in amc_records %}
+        <tr>
+            <td>{{ amc.contract_start_date|date:"d.m.Y" }}</td>
+            <td>{{ amc.amc_id|default:"N/A" }}</td>
+            <td>{{ amc.contract_start_date|date:"d.m.Y" }}</td>
+            <td>{{ amc.contract_end_date|date:"d.m.Y" }}</td>
+            <td>{{ amc.amctype.amc_type_name|default:"N/A" }}</td>
+            <td>{{ amc.contract_amount|floatformat:2 }}</td>
+            <td>{{ amc.total_paid|floatformat:2|default:"0.00" }}</td>
+            <td>{{ amc.amount_due|floatformat:2|default:"0.00" }}</td>
+            <td>{{ amc.customer.site_name|default:"Unknown" }}</td>
+            <td>{{ amc.site_address|default:"N/A" }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="10" class="no-data">No service reports found for the selected filters</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
+
+{% block pagination %}
+Showing 1-{{ amc_records|length }} of {{ amc_records|length }}
+{% endblock %}

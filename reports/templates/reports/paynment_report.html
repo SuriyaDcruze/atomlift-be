@@ -1,0 +1,105 @@
+{% extends "reports/base_report.html" %}
+
+{% block report_title %}Payment Reports{% endblock %}
+
+{% block filters %}
+<div class="filter-grid">
+    <div class="filter-field">
+        <label>Customer</label>
+        <select name="customer">
+            <option value="">SELECT</option>
+            {% for customer in customers %}
+            <option value="{{ customer }}" {% if selected_customer == customer %}selected{% endif %}>{{ customer }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="filter-field">
+        <label>Status</label>
+        <select name="status">
+            <option value="ALL" {% if selected_status == 'ALL' %}selected{% endif %}>ALL</option>
+            <option value="Paid">Paid</option>
+            <option value="Pending">Pending</option>
+        </select>
+    </div>
+    <div class="filter-field">
+        <label>Payment Mode</label>
+        <select name="payment_mode">
+            <option value="MONTH" {% if selected_payment_mode == 'MONTH' %}selected{% endif %}>MONTH</option>
+            <option value="Cheque">Cheque</option>
+            <option value="Online">Online</option>
+        </select>
+    </div>
+    <div class="filter-field">
+        <label>Period</label>
+        <select name="period">
+            <option value="ALL" {% if selected_period == 'ALL' %}selected{% endif %}>ALL</option>
+            <option value="This Month">This Month</option>
+            <option value="Last Quarter">Last Quarter</option>
+        </select>
+    </div>
+    <div class="filter-field">
+        <label>Month</label>
+        <select name="month">
+            <option value="July" {% if selected_month == 'July' %}selected{% endif %}>July, 2025</option>
+            <option value="August">August, 2025</option>
+            <option value="September">September, 2025</option>
+            <option value="October">October, 2025</option>
+            <option value="November">November, 2025</option>
+            <option value="December">December, 2025</option>
+        </select>
+    </div>
+    <div class="filter-field">
+        <label>Start Date</label>
+        <input type="date" name="start_date" value="{{ start_date }}" placeholder="01.07.2025">
+    </div>
+    <div class="filter-field">
+        <label>End Date</label>
+        <input type="date" name="end_date" value="{{ end_date }}" placeholder="31.07.2025">
+    </div>
+</div>
+{% endblock %}
+
+{% block table_content %}
+<table>
+    <thead>
+        <tr>
+            <th>S.NO</th>
+            <th>RECEIPT NO</th>
+            <th>PAYMENT DATE</th>
+            <th>LTMA NO</th>
+            <th>SITE NAME</th>
+            <th>MOBILE NO</th>
+            <th>QUOTATION NO</th>
+            <th>AMC ORDER/CONTRACT NO</th>
+            <th>PAYMENT TYPE</th>
+            <th>CHEQUE NO</th>
+            <th>CHEQUE DATE</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for payment in payments %}
+        <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ payment.id }}</td>
+            <td>{{ payment.payment_date }}</td>
+            <td>{{ payment.invoice.ltma_id|default:"N/A" }}</td>
+            <td>{{ payment.customer.site_name|default:"N/A" }}</td>
+            <td>{{ payment.customer.mobile_number|default:"N/A" }}</td>
+            <td>{{ payment.invoice.reference_id|default:"N/A" }}</td>
+            <td>{{ payment.invoice.amc_type|default:"N/A" }}</td>
+            <td>{{ payment.payment_type|default:"N/A" }}</td>
+            <td>{{ payment.cheque_no|default:"-" }}</td>
+            <td>{{ payment.cheque_date|default:"-" }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="11" class="no-data">No payment records found for the selected filters</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
+
+{% block pagination %}
+Showing 1-{{ payments|length }} of {{ payments|length }}
+{% endblock %}
