@@ -3,6 +3,13 @@ from wagtail.snippets.views.snippets import SnippetViewSet, SnippetViewSetGroup
 from wagtail import hooks
 from wagtail.admin.menu import MenuItem
 from django.urls import reverse
+from wagtail.admin.ui.components import Component
+from django.template.loader import render_to_string
+from customer.models import Customer
+from complaints.models import Complaint
+from amc.models import AMC
+from invoice.models import Invoice
+from PaymentReceived.models import PaymentReceived
 
 
 

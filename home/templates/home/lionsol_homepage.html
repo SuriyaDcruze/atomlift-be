@@ -330,41 +330,34 @@
             </div>
         </div>
 
-        <!-- Prime Customer Section -->
+        <!-- Dashboard Metrics Section -->
         <div class="bg-white py-12 px-4 sm:px-6 lg:px-8">
             <div class="max-w-7xl mx-auto">
                 <!-- Header Section -->
                 <div class="text-center mb-12">
                     <h1 class="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-                        Our Prime Customers
+                        Dashboard Metrics
                     </h1>
                 </div>
 
-                <!-- Customer Logos - Responsive Grid -->
-                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
-                    <!-- Customer Logo 1 -->
-                    <div class="bg-gray-100 p-6 rounded-lg flex items-center justify-center">
-                        <img src="{% static 'home/customer.png' %}" alt="Customer 1" />
+                <!-- Metrics Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Total Customers -->
+                    <div class="bg-blue-50 p-8 rounded-lg text-center shadow-md">
+                        <h2 class="text-2xl font-semibold text-blue-800 mb-4">Total Customers</h2>
+                        <p class="text-4xl font-bold text-blue-600">{{ total_customers }}</p>
                     </div>
 
-                    <!-- Customer Logo 2 -->
-                    <div class="bg-gray-100 p-6 rounded-lg flex items-center justify-center">
-                        <img src="{% static 'home/customer.png' %}" alt="Customer 2" />
+                    <!-- Total Complaints -->
+                    <div class="bg-red-50 p-8 rounded-lg text-center shadow-md">
+                        <h2 class="text-2xl font-semibold text-red-800 mb-4">Total Complaints</h2>
+                        <p class="text-4xl font-bold text-red-600">{{ total_complaints }}</p>
                     </div>
 
-                    <!-- Customer Logo 3 -->
-                    <div class="bg-gray-100 p-6 rounded-lg flex items-center justify-center">
-                        <img src="{% static 'home/customer.png' %}" alt="Customer 3" />
-                    </div>
-
-                    <!-- Customer Logo 4 -->
-                    <div class="bg-gray-100 p-6 rounded-lg flex items-center justify-center">
-                        <img src="{% static 'home/customer.png' %}" alt="Customer 4" />
-                    </div>
-
-                    <!-- Customer Logo 5 -->
-                    <div class="bg-gray-100 p-6 rounded-lg flex items-center justify-center">
-                        <img src="{% static 'home/customer.png' %}" alt="Customer 5" />
+                    <!-- Open Complaints -->
+                    <div class="bg-yellow-50 p-8 rounded-lg text-center shadow-md">
+                        <h2 class="text-2xl font-semibold text-yellow-800 mb-4">Open Complaints</h2>
+                        <p class="text-4xl font-bold text-yellow-600">{{ open_complaints }}</p>
                     </div>
                 </div>
             </div>

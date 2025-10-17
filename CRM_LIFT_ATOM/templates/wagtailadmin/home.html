@@ -20,28 +20,28 @@
     <div class="bg-white p-4 rounded-lg shadow-sm border relative">
       <i class="fas fa-calendar-check absolute top-4 right-4 w-6 h-6 text-gray-400"></i>
       <h3 class="text-gray-500 font-medium text-sm">AMC Due</h3>
-      <div class="text-xl font-bold my-1">12</div>
+      <div class="text-xl font-bold my-1">{{ amc_due_count }}</div>
       <div class="text-xs text-green-500">8.5% ↑ from yesterday</div>
     </div>
 
     <div class="bg-white p-4 rounded-lg shadow-sm border relative">
       <i class="fas fa-money-bill-wave absolute top-4 right-4 w-6 h-6 text-gray-400"></i>
       <h3 class="text-gray-500 font-medium text-sm">Income</h3>
-      <div class="text-xl font-bold my-1">₹10,293</div>
+      <div class="text-xl font-bold my-1">₹{{ total_income|floatformat:0 }}</div>
       <div class="text-xs text-green-500">1.3% ↑ from yesterday</div>
     </div>
 
     <div class="bg-white p-4 rounded-lg shadow-sm border relative">
       <i class="fas fa-exclamation-triangle absolute top-4 right-4 w-6 h-6 text-gray-400"></i>
       <h3 class="text-gray-500 font-medium text-sm">Open Complaints</h3>
-      <div class="text-xl font-bold my-1">5/10</div>
+      <div class="text-xl font-bold my-1">{{ open_complaints }}/{{ total_complaints }}</div>
       <div class="text-xs text-red-500">4.3% ↓ from yesterday</div>
     </div>
 
     <div class="bg-white p-4 rounded-lg shadow-sm border relative">
       <i class="fas fa-file-invoice-dollar absolute top-4 right-4 w-6 h-6 text-gray-400"></i>
       <h3 class="text-gray-500 font-medium text-sm">Open Invoice</h3>
-      <div class="text-xl font-bold my-1">8/12</div>
+      <div class="text-xl font-bold my-1">{{ open_invoices }}/{{ total_invoices }}</div>
       <div class="text-xs text-green-500">1.8% ↑ from yesterday</div>
     </div>
   </div>
@@ -52,14 +52,14 @@
       <div class="bg-white p-4 rounded-lg shadow-sm border relative">
         <i class="fas fa-users absolute top-4 right-4 w-6 h-6 text-gray-400"></i>
         <h3 class="text-gray-500 font-medium text-sm">Customers</h3>
-        <div class="text-xl font-bold my-1">125</div>
+        <div class="text-xl font-bold my-1">{{ total_customers }}</div>
         <div class="text-xs text-green-500">8.5% ↑ from past week</div>
       </div>
 
       <div class="bg-white p-4 rounded-lg shadow-sm border relative">
         <i class="fas fa-comments absolute top-4 right-4 w-6 h-6 text-gray-400"></i>
         <h3 class="text-gray-500 font-medium text-sm">Complaints</h3>
-        <div class="text-xl font-bold my-1">45</div>
+        <div class="text-xl font-bold my-1">{{ total_complaints }}</div>
         <div class="text-xs text-green-500">1.3% ↑ from past week</div>
       </div>
 
@@ -80,7 +80,7 @@
         </svg>
         <div>
           <h3 class="text-gray-500 font-medium text-base mb-3">AMC Renew in Progress</h3>
-          <div class="text-3xl font-bold mb-2">6 AMCs pending renewal</div>
+          <div class="text-3xl font-bold mb-2">{{ amc_due_count }} AMCs pending renewal</div>
           <p class="text-gray-600 text-base mb-2">
             Review and process pending renewals to maintain service continuity.
           </p>
@@ -113,24 +113,27 @@
           </tr>
         </thead>
         <tbody>
+          {% for complaint in recent_complaints %}
           <tr class="border-t text-sm">
-            <td class="p-2"></td>
-            <td class="p-2">System not booting</td>
-            <td class="p-2">Ravi Kumar</td>
-            <td class="p-2"><span class="bg-yellow-100 text-yellow-600 px-2 py-1 rounded-full text-xs">Open</span></td>
-            <td class="p-2">2025-10-10</td>
-            <td class="p-2">-</td>
-            <td class="p-2">Checking hardware</td>
+            <td class="p-2"><a href="/complaints/complaint/{{ complaint.pk }}/download_pdf/" target="_blank"><i class="fas fa-download"></i></a></td>
+            <td class="p-2">{{ complaint.subject }}</td>
+            <td class="p-2">{% if complaint.assign_to %}{{ complaint.assign_to.get_full_name }}{% else %}Unassigned{% endif %}</td>
+            <td class="p-2">
+              {% if complaint.solution %}
+                <span class="bg-green-100 text-green-600 px-2 py-1 rounded-full text-xs">Closed</span>
+              {% else %}
+                <span class="bg-yellow-100 text-yellow-600 px-2 py-1 rounded-full text-xs">Open</span>
+              {% endif %}
+            </td>
+            <td class="p-2">{{ complaint.created|date:'Y-m-d' }}</td>
+            <td class="p-2">{% if complaint.solution %}{{ complaint.solution }}{% else %}-{% endif %}</td>
+            <td class="p-2">{% if complaint.technician_remark %}{{ complaint.technician_remark }}{% else %}-{% endif %}</td>
           </tr>
+          {% empty %}
           <tr class="border-t text-sm">
-            <td class="p-2"></td>
-            <td class="p-2">Printer error</td>
-            <td class="p-2">Anu</td>
-            <td class="p-2"><span class="bg-green-100 text-green-600 px-2 py-1 rounded-full text-xs">Closed</span></td>
-            <td class="p-2">2025-10-09</td>
-            <td class="p-2">Replaced cartridge</td>
-            <td class="p-2">Resolved</td>
+            <td colspan="7" class="p-2 text-center">No complaints yet.</td>
           </tr>
+          {% endfor %}
         </tbody>
       </table>
     </div>
