@@ -149,6 +149,7 @@ class QuotationGroup(SnippetViewSetGroup):
     menu_icon = "group"
     menu_label = "Quotation "
     menu_name = "quotation"
+    menu_order = 6
 
 
 # ---------- REGISTER GROUP ----------

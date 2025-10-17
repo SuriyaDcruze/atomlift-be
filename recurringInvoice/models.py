@@ -165,6 +165,7 @@ class RecurringInvoiceGroup(SnippetViewSetGroup):
     menu_icon = "group"
     menu_label = "Recurring "
     menu_name = "recurring_billing"
+    menu_order = 9
 
 
 # ---------- REGISTER GROUP ----------

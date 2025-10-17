@@ -109,6 +109,7 @@ class InvoiceGroup(SnippetViewSetGroup):
     menu_icon = "group"
     menu_label = "Billing & Invoicing"
     menu_name = "invoicing"
+    menu_order = 7
 
 
 # ---------- REGISTER GROUP ----------

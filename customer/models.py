@@ -291,6 +291,7 @@ class CustomerGroup(SnippetViewSetGroup):
     menu_icon = "group"
     menu_label = "Customer"
     menu_name = "customer"
+    menu_order = 5
 
 
 class CustomerLicenseGroup(SnippetViewSetGroup):
@@ -298,6 +299,7 @@ class CustomerLicenseGroup(SnippetViewSetGroup):
     menu_icon = "doc-full"
     menu_label = "Customer License"
     menu_name = "customer_license"
+    menu_order = 3
 
 
 # ======================================================

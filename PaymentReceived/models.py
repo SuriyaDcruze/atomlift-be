@@ -106,6 +106,7 @@ class PaymentGroup(SnippetViewSetGroup):
     menu_icon = "group"
     menu_label = "Payment "
     menu_name = "payment"
+    menu_order = 8
 
 
 # ---------- REGISTER GROUP ----------

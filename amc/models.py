@@ -234,6 +234,7 @@ class AMCManagementGroup(SnippetViewSetGroup):
     menu_icon = "calendar"
     menu_label = "AMC "
     menu_name = "amc"
+    menu_order = 4
 
 
 register_snippet(AMCManagementGroup)

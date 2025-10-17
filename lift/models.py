@@ -251,8 +251,9 @@ class LiftGroup(SnippetViewSetGroup):
         CabinViewSet,
     )
     menu_icon = "cog"
-    menu_label = "Lift Management"
+    menu_label = "Lift "
     menu_name = "lift"
+    menu_order = 1 
 
 
 register_snippet(LiftGroup)
