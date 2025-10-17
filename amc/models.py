@@ -179,8 +179,54 @@ class AMCViewSet(SnippetViewSet):
     icon = "calendar"
     menu_label = "All AMCs"
     inspect_view_enabled = True
-    list_display = ("reference_id", "customer", "amcname", "status", "start_date", "end_date", "amount_due")
-    search_fields = ("reference_id", "amcname", "customer__site_name", "equipment_no")
+
+    # 👇 Columns shown in admin list
+    list_display = (
+        "reference_id",
+        "customer",
+        "amcname",
+        "status",
+        "start_date",
+        "end_date",
+        "amount_due",
+    )
+
+    # 👇 Export ALL model fields to CSV & XLSX
+    list_export = [
+        "id",
+        "reference_id",
+        "customer",
+        "amcname",
+        "latitude",
+        "equipment_no",
+        "invoice_frequency",
+        "amc_type",
+        "payment_terms",
+        "start_date",
+        "end_date",
+        "notes",
+        "is_generate_contract",
+        "no_of_services",
+        "price",
+        "no_of_lifts",
+        "gst_percentage",
+        "total",
+        "contract_amount",
+        "total_amount_paid",
+        "amount_due",
+        "amc_service_item",
+        "status",
+        "created",
+    ]
+    export_formats = ["csv", "xlsx"]
+
+    # 👇 Searchable fields
+    search_fields = (
+        "reference_id",
+        "amcname",
+        "customer__site_name",
+        "equipment_no",
+    )
 
 
 class AMCManagementGroup(SnippetViewSetGroup):

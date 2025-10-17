@@ -88,6 +88,8 @@ class RequisitionViewSet(SnippetViewSet):
     icon = "form"
     menu_label = "Requisitions"
     inspect_view_enabled = True
+
+    # ✅ Fields shown in list view
     list_display = (
         "reference_id",
         "date",
@@ -100,9 +102,26 @@ class RequisitionViewSet(SnippetViewSet):
         "status",
         "approve_for",
     )
+
+    # ✅ Export ALL model fields
+    list_export = [
+        "id",
+        "reference_id",
+        "date",
+        "item",
+        "qty",
+        "site",
+        "amc_id",
+        "service",
+        "employee",
+        "status",
+        "approve_for",
+    ]
+    export_formats = ["csv", "xlsx"]
+
+    # ✅ Search and filters
     search_fields = ("reference_id", "item__name", "site__site_name", "employee__username")
     list_filter = ("status", "approve_for", "date")
-
 
 # ---------- GROUP ----------
 class InventoryGroup(SnippetViewSetGroup):

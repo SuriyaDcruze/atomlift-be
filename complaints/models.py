@@ -130,6 +130,8 @@ class ComplaintViewSet(SnippetViewSet):
     icon = "info-circle"
     menu_label = "All Complaints"
     inspect_view_enabled = True
+
+    # 👇 Columns shown in list view
     list_display = (
         "reference",
         "customer",
@@ -138,7 +140,36 @@ class ComplaintViewSet(SnippetViewSet):
         "assign_to",
         "date",
     )
-    search_fields = ("reference", "subject", "customer__site_name", "message")
+
+    # 👇 Export ALL model fields (CSV + XLSX)
+    list_export = [
+        "id",
+        "reference",
+        "complaint_type",
+        "date",
+        "customer",
+        "contact_person_name",
+        "contact_person_mobile",
+        "block_wing",
+        "assign_to",
+        "priority",
+        "subject",
+        "message",
+        "technician_remark",
+        "solution",
+        "created",
+        "updated",
+    ]
+    export_formats = ["csv", "xlsx"]
+
+    # 👇 Search fields
+    search_fields = (
+        "reference",
+        "subject",
+        "customer__site_name",
+        "message",
+    )
+
 
 
 class ComplaintManagementGroup(SnippetViewSetGroup):

@@ -105,24 +105,43 @@ class QuotationViewSet(SnippetViewSet):
     icon = "doc-full"
     menu_label = "Quotations"
     inspect_view_enabled = True
-    
+
+    # ✅ Admin list columns
     list_display = (
-        'reference_id', 
-        'customer', 
-        'amc_type', 
-        'sales_service_executive', 
-        'type', 
-        'date'
-    )
-    
-    search_fields = (
-        'reference_id', 
-        'customer__site_name', 
-        # Use field names available on the related model (e.g., 'username' or 'email' on CustomUser)
-        'sales_service_executive__username',
-        'type'
+        "reference_id",
+        "customer",
+        "amc_type",
+        "sales_service_executive",
+        "type",
+        "year_of_make",
+        "date",
     )
 
+    # ✅ Export ALL model fields
+    list_export = [
+        "id",
+        "reference_id",
+        "customer",
+        "amc_type",
+        "sales_service_executive",
+        "lifts",
+        "type",
+        "year_of_make",
+        "date",
+        "remark",
+        "other_remark",
+        "uploads_files",
+    ]
+    export_formats = ["csv", "xlsx"]
+
+    # ✅ Search & filters
+    search_fields = (
+        "reference_id",
+        "customer__site_name",
+        "sales_service_executive__username",
+        "type",
+    )
+    list_filter = ("type", "date")
 
 # ---------- SNIPPET GROUP ----------
 class QuotationGroup(SnippetViewSetGroup):

@@ -116,8 +116,46 @@ class RecurringInvoiceViewSet(SnippetViewSet):
     icon = "group"
     menu_label = "Recurring Invoices"
     inspect_view_enabled = True
-    list_display = ('reference_id', 'customer', 'profile_name', 'repeat_every', 'start_date', 'status')
-    search_fields = ('reference_id', 'customer__site_name', 'profile_name', 'status')
+
+    # ✅ Admin list view columns
+    list_display = (
+        "reference_id",
+        "customer",
+        "profile_name",
+        "repeat_every",
+        "start_date",
+        "status",
+    )
+
+    # ✅ Full export fields
+    list_export = [
+        "id",
+        "reference_id",
+        "customer",
+        "profile_name",
+        "order_number",
+        "repeat_every",
+        "start_date",
+        "end_date",
+        "last_generated_date",
+        "sales_person",
+        "billing_address",
+        "gst_treatment",
+        "uploads_files",
+        "status",
+    ]
+    export_formats = ["csv", "xlsx"]
+
+    # ✅ Filters & search
+    list_filter = ("status", "repeat_every", "start_date")
+    search_fields = (
+        "reference_id",
+        "customer__site_name",
+        "profile_name",
+        "sales_person__username",
+        "status",
+    )
+
 
 
 # ---------- SNIPPET GROUP ----------
