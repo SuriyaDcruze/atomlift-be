@@ -286,6 +286,13 @@ class CustomerLicenseViewSet(SnippetViewSet):
 #  WAGTAIL GROUPS
 # ======================================================
 
+class CustomerLicenseGroup(SnippetViewSetGroup):
+    items = (CustomerLicenseViewSet,)
+    menu_icon = "doc-full"
+    menu_label = "Customer License"
+    menu_name = "Customer_license"
+    menu_order =3
+
 class CustomerGroup(SnippetViewSetGroup):
     items = (CustomerViewSet, RouteViewSet, BranchViewSet, ProvinceStateViewSet)
     menu_icon = "group"
@@ -294,12 +301,6 @@ class CustomerGroup(SnippetViewSetGroup):
     menu_order = 5
 
 
-class CustomerLicenseGroup(SnippetViewSetGroup):
-    items = (CustomerLicenseViewSet,)
-    menu_icon = "doc-full"
-    menu_label = "Customer License"
-    menu_name = "customer_license"
-    menu_order = 3
 
 
 # ======================================================
