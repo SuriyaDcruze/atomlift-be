@@ -1,471 +1,315 @@
 {% extends "wagtailadmin/base.html" %}
 {% load static %}
 
-{% block bodyclass %}modal-view{% endblock %}
-
-{% block title %}{% if is_edit %}Edit Customer{% else %}Create New Customer{% endif %}{% endblock %}
-
-{% block content %}
-<div class="nice-padding">
-  <header>
-    <div class="row">
-      <div class="col">
-        <h1 id="header-title">
-          <span class="icon icon-user" aria-hidden="true"></span> Customer
-        </h1>
-      </div>
-    </div>
-    <nav class="sidebar-nav">
-      <ul>
-        <li class="active"><a href="#">Basic Details</a></li>
-      </ul>
-    </nav>
-  </header>
-</div>
-
-<div class="content-wrapper nice-padding">
-  <form id="customerForm" class="customer-form">
-    <div class="form-group">
-      <label for="reference_id">Reference ID</label>
-      <input
-        type="text"
-        id="reference_id"
-        name="reference_id"
-        value="{% if is_edit %}{{ customer.reference_id }}{% endif %}"
-        class="field__input"
-        readonly
-      />
-    </div>
-
-    <div class="form-group required">
-      <label for="site_id">Site ID *</label>
-      <input
-        type="text"
-        id="site_id"
-        name="site_id"
-        value="{% if is_edit %}{{ customer.site_id }}{% endif %}"
-        required
-        class="field__input"
-      />
-    </div>
-
-    <div class="form-group">
-      <label for="job_no">Job No</label>
-      <input
-        type="text"
-        id="job_no"
-        name="job_no"
-        value="{% if is_edit %}{{ customer.job_no }}{% endif %}"
-        class="field__input"
-        oninput="updateJobNo(this.value)"
-      />
-    </div>
-
-    <div class="form-group required">
-      <label for="site_name">Site Name *</label>
-      <input
-        type="text"
-        id="site_name"
-        name="site_name"
-        value="{% if is_edit %}{{ customer.site_name }}{% endif %}"
-        required
-        class="field__input"
-        oninput="updateSiteName(this.value)"
-      />
-    </div>
-
-    <div class="form-group required">
-      <label for="site_address">Site Address *</label>
-      <textarea
-        id="site_address"
-        name="site_address"
-        rows="3"
-        class="field__textarea"
-        required
-      >{% if is_edit %}{{ customer.site_address }}{% endif %}</textarea>
-    </div>
-
-    <div class="form-group">
-      <label>Same as Site Address</label>
-      <div class="field__checkbox">
-        <input
-          type="checkbox"
-          id="same_as_site_address"
-          name="same_as_site_address"
-          {% if is_edit and customer.same_as_site_address %}checked{% endif %}
-          onchange="handleOfficeAddressSync()"
-        />
-        <label for="same_as_site_address">Check to set office address same as site address</label>
-      </div>
-    </div>
-
-    <div class="form-group">
-      <label for="office_address">Office Address</label>
-      <textarea
-        id="office_address"
-        name="office_address"
-        rows="3"
-        class="field__textarea"
-        {% if is_edit and customer.same_as_site_address %}disabled{% endif %}
-      >{% if is_edit %}{{ customer.office_address }}{% endif %}</textarea>
-    </div>
-
-    <div class="form-group required">
-      <label for="email">Email *</label>
-      <input
-        type="email"
-        id="email"
-        name="email"
-        value="{% if is_edit %}{{ customer.email }}{% endif %}"
-        required
-        class="field__input"
-      />
-    </div>
-
-    <div class="form-group required">
-      <label for="phone">Phone *</label>
-      <input
-        type="tel"
-        id="phone"
-        name="phone"
-        value="{% if is_edit %}{{ customer.phone }}{% endif %}"
-        class="field__input"
-        maxlength="10"
-        oninput="this.value = this.value.replace(/\D/g, '').slice(0, 10)"
-        required
-      />
-    </div>
-
-    <div class="form-group required">
-      <label for="mobile">Mobile (SMS Notification) *</label>
-      <input
-        type="tel"
-        id="mobile"
-        name="mobile"
-        value="{% if is_edit %}{{ customer.mobile }}{% endif %}"
-        class="field__input"
-        maxlength="10"
-        oninput="this.value = this.value.replace(/\D/g, '').slice(0, 10)"
-        required
-        pattern="\d{10}"
-        title="Mobile number must be exactly 10 digits"
-      />
-    </div>
-
-    <div class="form-group">
-      <label for="contact_person_name">Contact Person Name</label>
-      <input
-        type="text"
-        id="contact_person_name"
-        name="contact_person_name"
-        value="{% if is_edit %}{{ customer.contact_person_name }}{% endif %}"
-        class="field__input"
-      />
-    </div>
-
-    <div class="form-group">
-      <label for="designation">Designation</label>
-      <input
-        type="text"
-        id="designation"
-        name="designation"
-        value="{% if is_edit %}{{ customer.designation }}{% endif %}"
-        class="field__input"
-      />
-    </div>
-
-    <div class="form-group">
-      <label for="pin_code">Pin Code</label>
-      <input
-        type="text"
-        id="pin_code"
-        name="pin_code"
-        value="{% if is_edit %}{{ customer.pin_code }}{% endif %}"
-        class="field__input"
-      />
-    </div>
-
-    <div class="form-group">
-      <label for="city">City</label>
-      <input
-        type="text"
-        id="city"
-        name="city"
-        value="{% if is_edit %}{{ customer.city }}{% endif %}"
-        class="field__input"
-      />
-    </div>
-
-    <div class="form-group">
-      <label for="province_state">State</label>
-      <div style="display: flex;">
-        <select id="province_state" name="province_state" class="field__select">
-          <option value="">Select State</option>
-          {% for state in states %}
-            <option value="{{ state.id }}" {% if is_edit and customer.province_state.id == state.id %}selected{% endif %}>
-              {{ state.value }}
-            </option>
-          {% endfor %}
-        </select>
-        <button type="button" class="button button--secondary" onclick="openModal('state')" style="margin-left: 8px;">+</button>
-      </div>
-    </div>
-
-    <div class="form-group">
-      <label for="sector">Sector</label>
-      <select id="sector" name="sector" class="field__select">
-        <option value="">Select Sector</option>
-        <option value="government" {% if is_edit and customer.sector == 'government' %}selected{% endif %}>Government</option>
-        <option value="private" {% if is_edit and customer.sector == 'private' %}selected{% endif %}>Private</option>
-      </select>
-    </div>
-
-    <div class="form-group">
-      <label for="routes">Route</label>
-      <div style="display: flex;">
-        <select id="routes" name="routes" class="field__select">
-          <option value="">Select Route</option>
-          {% for route in routes %}
-            <option value="{{ route.id }}" {% if is_edit and customer.routes.id == route.id %}selected{% endif %}>
-              {{ route.value }}
-            </option>
-          {% endfor %}
-        </select>
-        <button type="button" class="button button--secondary" onclick="openModal('route')" style="margin-left: 8px;">+</button>
-      </div>
-    </div>
-
-    <div class="form-group">
-      <label for="branch">Branch</label>
-      <div style="display: flex;">
-        <select id="branch" name="branch" class="field__select">
-          <option value="">Select Branch</option>
-          {% for branch in branches %}
-            <option value="{{ branch.id }}" {% if is_edit and customer.branch.id == branch.id %}selected{% endif %}>
-              {{ branch.value }}
-            </option>
-          {% endfor %}
-        </select>
-        <button type="button" class="button button--secondary" onclick="openModal('branch')" style="margin-left: 8px;">+</button>
-      </div>
-    </div>
-
-    <div class="form-group">
-      <label for="gst_number">GST Number</label>
-      <input
-        type="text"
-        id="gst_number"
-        name="gst_number"
-        value="{% if is_edit %}{{ customer.gst_number }}{% endif %}"
-        class="field__input"
-      />
-    </div>
-
-    <div class="form-group">
-      <label for="pan_number">PAN Number</label>
-      <input
-        type="text"
-        id="pan_number"
-        name="pan_number"
-        value="{% if is_edit %}{{ customer.pan_number }}{% endif %}"
-        class="field__input"
-      />
-    </div>
-
-    <div class="form-group">
-      <label for="handover_date">Handover Date</label>
-      <input
-        type="date"
-        id="handover_date"
-        name="handover_date"
-        value="{% if is_edit %}{{ customer.handover_date|date:'Y-m-d' }}{% endif %}"
-        class="field__input"
-      />
-    </div>
-
-    <div class="form-group">
-      <label for="billing_name">Billing Name</label>
-      <input
-        type="text"
-        id="billing_name"
-        name="billing_name"
-        value="{% if is_edit %}{{ customer.billing_name }}{% endif %}"
-        class="field__input"
-    />
-    </div>
-
-    <!-- License Generation (only for create mode) -->
-    {% if not is_edit %}
-    <div class="form-group">
-      <h2>License Generation</h2>
-      <div class="field__checkbox">
-        <input type="checkbox" id="generate_customer_license" name="generate_customer_license" />
-        <label for="generate_customer_license">Generate Customer License</label>
-      </div>
-    </div>
-    {% endif %}
-
-    <!-- Actions -->
-    <div class="actions">
-      <button type="submit" class="button button--primary save-button">
-        <span class="icon icon-download" aria-hidden="true"></span> Save
-      </button>
-      <a href="{% url 'wagtailadmin_home' %}" class="button button--secondary">Cancel</a>
-    </div>
-  </form>
-</div>
-
-<!-- Modal for adding new options -->
-<div id="optionModal" class="modal" style="display: none;">
-  <div class="modal__overlay" onclick="closeModal()"></div>
-  <div class="modal__content">
-    <h3 id="modalTitle">Add New Option</h3>
-    <input type="text" id="modalInput" class="field__input" placeholder="Enter value" />
-    <div class="modal__actions">
-      <button type="button" class="button button--secondary" onclick="closeModal()">Cancel</button>
-      <button type="button" class="button button--primary" onclick="saveOption()">Save</button>
-    </div>
-    <div id="existingOptions" class="existing-options"></div>
-  </div>
-</div>
-
+{% block extra_css %}
 <style>
-  .sidebar-nav {
-    margin-top: 1rem;
-    padding-left: 0;
-  }
-  .sidebar-nav ul {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-  }
-  .sidebar-nav li {
-    margin-bottom: 0.5rem;
-  }
-  .sidebar-nav li.active a {
-    color: #1f2937;
-    font-weight: bold;
-    border-left: 4px solid #1f2937;
-    padding-left: 0.5rem;
-  }
-  .sidebar-nav a {
-    color: #6b7280;
-    text-decoration: none;
-    padding: 0.5rem 1rem;
-    display: block;
-  }
-  .sidebar-nav a:hover {
-    color: #1f2937;
+
+
+  .w-content-wrapper {
+    background: #f5f5f5;
+    min-height: calc(100vh - 4rem);
+    padding: 2rem;
   }
 
-  .customer-form {
-    max-width: 600px;
+  .w-header {
+    background: white;
+    border-bottom: 1px solid var(--w-color-border);
+    padding: 1.5rem 2rem;
+    margin: -2rem -2rem 2rem -2rem;
+  }
+
+  .w-header__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .w-header__title {
+    font-size: 1.75rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--w-color-text);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .w-header__icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--w-color-primary);
+    color: white;
+    border-radius: 50%;
+    font-size: 1rem;
+  }
+
+  .w-header__actions {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  .w-form-container {
+    background: white;
+    border: 1px solid var(--w-color-border);
+    border-radius: 4px;
+    padding: 2rem;
+    max-width: 800px;
     margin: 0 auto;
   }
 
-  .form-group {
+  .w-section {
+    margin-bottom: 2.5rem;
+  }
+
+  .w-section__heading {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0 0 1.5rem 0;
+    color: var(--w-color-text);
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--w-color-border);
+  }
+
+  .w-field {
     margin-bottom: 1.5rem;
   }
 
-  .form-group.required label:after {
-    content: " *";
-    color: #dc3545;
+  .w-field__label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--w-color-text);
+    font-size: 0.875rem;
   }
 
-  .field__input,
-  .field__textarea,
-  .field__select {
+  .w-field__required {
+    color: var(--w-color-error);
+    margin-left: 0.25rem;
+  }
+
+  .w-field__input,
+  .w-field__select,
+  .w-field__textarea {
     width: 100%;
-    padding: 0.75rem;
-    border: 1px solid #e5e7eb;
-    border-radius: 0.375rem;
-    background-color: #f9fafb;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid var(--w-color-input-border);
+    border-radius: 3px;
+    font-size: 0.875rem;
+    transition: border-color 0.2s;
+    font-family: inherit;
   }
 
-  .field__textarea {
+  .w-field__input:focus,
+  .w-field__select:focus,
+  .w-field__textarea:focus {
+    outline: none;
+    border-color: var(--w-color-input-focus);
+    box-shadow: 0 0 0 3px rgba(0, 125, 126, 0.1);
+  }
+
+  .w-field__input[readonly] {
+    background-color: #f9f9f9;
+    color: var(--w-color-text-meta);
+  }
+
+  .w-field__textarea {
     resize: vertical;
   }
 
-  .field__checkbox {
+  .w-field__help {
+    font-size: 0.75rem;
+    color: var(--w-color-text-meta);
+    margin-top: 0.25rem;
+  }
+
+  .w-field__checkbox-wrapper {
     display: flex;
+    align-items: center;
+    padding: 0.75rem;
+    background: #f9f9f9;
+    border-radius: 3px;
+    border: 1px solid var(--w-color-border);
+  }
+
+  .w-field__checkbox {
+    width: auto;
+    margin-right: 0.5rem;
+  }
+
+  .w-field__addon {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .w-field__addon .w-field__select {
+    flex: 1;
+  }
+
+  .w-field-group {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .w-button {
+    padding: 0.625rem 1.25rem;
+    border: none;
+    border-radius: 3px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-flex;
     align-items: center;
     gap: 0.5rem;
   }
 
-  .actions {
-    margin-top: 2rem;
-    padding-top: 1rem;
-    border-top: 1px solid #ddd;
+  .w-button--primary {
+    background: var(--w-color-primary);
+    color: white;
+  }
+
+  .w-button--primary:hover {
+    background: #006464;
+  }
+
+  .w-button--secondary {
+    background: white;
+    color: var(--w-color-text);
+    border: 1px solid var(--w-color-border);
+  }
+
+  .w-button--secondary:hover {
+    background: #f9f9f9;
+  }
+
+  .w-button--icon {
+    padding: 0.625rem 0.875rem;
+    min-width: auto;
+  }
+
+  .w-button--small {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+  }
+
+  .w-button--danger {
+    background: var(--w-color-error);
+    color: white;
+  }
+
+  .w-button--danger:hover {
+    background: #b12226;
+  }
+
+  .w-footer-actions {
+    background: white;
+    border-top: 1px solid var(--w-color-border);
+    padding: 1.5rem 2rem;
+    margin: 2rem -2rem -2rem -2rem;
     display: flex;
-    gap: 1rem;
     justify-content: flex-end;
+    gap: 0.75rem;
+    position: sticky;
+    bottom: 0;
   }
 
-  .save-button {
-    background-color: #2d6b5c;
-    border-color: #2d6b5c;
-  }
-  .save-button:hover {
-    background-color: #24594e;
-    border-color: #24594e;
+  .w-message {
+    padding: 1rem 1.25rem;
+    border-radius: 3px;
+    margin-bottom: 1.5rem;
+    border-left: 4px solid;
   }
 
-  .modal {
+  .w-message--info {
+    background: #e7f3ff;
+    border-color: var(--w-color-info);
+    color: var(--w-color-info);
+  }
+
+  .w-modal {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
     align-items: center;
     justify-content: center;
     z-index: 1000;
   }
 
-  .modal__overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+  .w-modal.active {
+    display: flex;
   }
 
-  .modal__content {
+  .w-modal__dialog {
     background: white;
-    padding: 2rem;
-    border-radius: 8px;
-    width: 400px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
   }
 
-  .existing-options {
-    margin-top: 1rem;
-    max-height: 200px;
+  .w-modal__header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--w-color-border);
+  }
+
+  .w-modal__title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+
+  .w-modal__body {
+    padding: 1.5rem;
     overflow-y: auto;
   }
 
-  .option-item {
+  .w-modal__footer {
+    padding: 1.5rem;
+    border-top: 1px solid var(--w-color-border);
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+  }
+
+  .w-option-list {
+    margin-top: 1.5rem;
+  }
+
+  .w-option-list__title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin: 0 0 0.75rem 0;
+    color: var(--w-color-text-meta);
+  }
+
+  .w-option-item {
     display: flex;
     justify-content: space-between;
-    padding: 0.5rem;
-    border-bottom: 1px solid #eee;
+    align-items: center;
+    padding: 0.75rem;
+    border: 1px solid var(--w-color-border);
+    border-radius: 3px;
+    margin-bottom: 0.5rem;
   }
 
-  .modal__actions {
-    margin-top: 1rem;
+  .w-option-item__actions {
     display: flex;
-    gap: 1rem;
-    justify-content: flex-end;
+    gap: 0.5rem;
   }
 
-  @media (max-width: 768px) {
-    .customer-form {
-      max-width: 100%;
-    }
-  }
-
-  /* Toast notifications */
   .toast-container {
     position: fixed;
     top: 20px;
@@ -475,54 +319,513 @@
 
   .toast {
     background: white;
-    border-radius: 8px;
+    border-radius: 4px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     margin-bottom: 10px;
-    min-width: 300px;
+    min-width: 320px;
     max-width: 500px;
     border-left: 4px solid;
+    animation: slideIn 0.3s ease-out;
+  }
+
+  @keyframes slideIn {
+    from {
+      transform: translateX(400px);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
   }
 
   .toast--success {
-    border-left-color: #28a745;
+    border-left-color: var(--w-color-success);
   }
 
   .toast--error {
-    border-left-color: #dc3545;
+    border-left-color: var(--w-color-error);
   }
 
   .toast__content {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 15px 20px;
+    padding: 1rem 1.25rem;
   }
 
   .toast__message {
     flex: 1;
-    margin-right: 15px;
-    font-size: 14px;
+    margin-right: 1rem;
+    font-size: 0.875rem;
     line-height: 1.4;
   }
 
   .toast__close {
     background: none;
     border: none;
-    font-size: 20px;
+    font-size: 1.5rem;
     cursor: pointer;
     color: #999;
     padding: 0;
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
+    line-height: 1;
   }
 
   .toast__close:hover {
     color: #333;
   }
+
+  @media (max-width: 768px) {
+    .w-content-wrapper {
+      padding: 1.5rem;
+    }
+
+    .w-header {
+      padding: 1rem 1.5rem;
+      margin: -1.5rem -1.5rem 1.5rem -1.5rem;
+    }
+
+    .w-header__row {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .w-header__title {
+      font-size: 1.5rem;
+    }
+
+    .w-form-container {
+      padding: 1.5rem;
+    }
+
+    .w-field-group {
+      grid-template-columns: 1fr;
+    }
+
+    .w-footer-actions {
+      padding: 1rem 1.5rem;
+      margin: 1.5rem -1.5rem -1.5rem -1.5rem;
+      flex-direction: column-reverse;
+    }
+
+    .w-footer-actions .w-button {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .toast {
+      min-width: 280px;
+    }
+
+    .toast-container {
+      left: 20px;
+      right: 20px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .w-header__title {
+      font-size: 1.25rem;
+    }
+
+    .w-modal__dialog {
+      width: 95%;
+    }
+  }
 </style>
+{% endblock %}
+
+{% block content %}
+<div class="w-content-wrapper">
+  <div class="w-header">
+    <div class="w-header__row">
+      <h1 class="w-header__title">
+        <span class="w-header__icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+        </span>
+        {% if is_edit %}Edit Customer{% else %}Create New Customer{% endif %}
+      </h1>
+      <div class="w-header__actions">
+        <a href="{% url 'wagtailadmin_home' %}" class="w-button w-button--secondary">Cancel</a>
+      </div>
+    </div>
+  </div>
+
+  <form id="customerForm">
+    <div class="w-form-container">
+      <div class="w-section">
+        <h2 class="w-section__heading">Basic Information</h2>
+
+        <div class="w-field">
+          <label for="reference_id" class="w-field__label">Reference ID</label>
+          <input
+            type="text"
+            id="reference_id"
+            name="reference_id"
+            value="{% if is_edit %}{{ customer.reference_id }}{% endif %}"
+            class="w-field__input"
+            readonly
+          />
+          <p class="w-field__help">Auto-generated reference number</p>
+        </div>
+
+        <div class="w-field-group">
+          <div class="w-field">
+            <label for="site_id" class="w-field__label">
+              Site ID<span class="w-field__required">*</span>
+            </label>
+            <input
+              type="text"
+              id="site_id"
+              name="site_id"
+              value="{% if is_edit %}{{ customer.site_id }}{% endif %}"
+              required
+              class="w-field__input"
+            />
+          </div>
+
+          <div class="w-field">
+            <label for="job_no" class="w-field__label">Job No</label>
+            <input
+              type="text"
+              id="job_no"
+              name="job_no"
+              value="{% if is_edit %}{{ customer.job_no }}{% endif %}"
+              class="w-field__input"
+              oninput="updateJobNo(this.value)"
+            />
+          </div>
+        </div>
+
+        <div class="w-field">
+          <label for="site_name" class="w-field__label">
+            Site Name<span class="w-field__required">*</span>
+          </label>
+          <input
+            type="text"
+            id="site_name"
+            name="site_name"
+            value="{% if is_edit %}{{ customer.site_name }}{% endif %}"
+            required
+            class="w-field__input"
+            oninput="updateSiteName(this.value)"
+          />
+          <p class="w-field__help">Site name will be auto-formatted with job number if provided</p>
+        </div>
+
+        <div class="w-field">
+          <label for="billing_name" class="w-field__label">Billing Name</label>
+          <input
+            type="text"
+            id="billing_name"
+            name="billing_name"
+            value="{% if is_edit %}{{ customer.billing_name }}{% endif %}"
+            class="w-field__input"
+          />
+        </div>
+      </div>
+
+      <div class="w-section">
+        <h2 class="w-section__heading">Address Details</h2>
+
+        <div class="w-field">
+          <label for="site_address" class="w-field__label">
+            Site Address<span class="w-field__required">*</span>
+          </label>
+          <textarea
+            id="site_address"
+            name="site_address"
+            rows="3"
+            class="w-field__textarea"
+            required
+          >{% if is_edit %}{{ customer.site_address }}{% endif %}</textarea>
+        </div>
+
+        <div class="w-field">
+          <div class="w-field__checkbox-wrapper">
+            <input
+              type="checkbox"
+              id="same_as_site_address"
+              name="same_as_site_address"
+              {% if is_edit and customer.same_as_site_address %}checked{% endif %}
+              onchange="handleOfficeAddressSync()"
+              class="w-field__checkbox"
+            />
+            <label for="same_as_site_address" class="w-field__label" style="margin-bottom: 0;">
+              Same as Site Address
+            </label>
+          </div>
+          <p class="w-field__help">Check this to automatically copy site address to office address</p>
+        </div>
+
+        <div class="w-field">
+          <label for="office_address" class="w-field__label">Office Address</label>
+          <textarea
+            id="office_address"
+            name="office_address"
+            rows="3"
+            class="w-field__textarea"
+            {% if is_edit and customer.same_as_site_address %}disabled{% endif %}
+          >{% if is_edit %}{{ customer.office_address }}{% endif %}</textarea>
+        </div>
+
+        <div class="w-field-group">
+          <div class="w-field">
+            <label for="city" class="w-field__label">City</label>
+            <input
+              type="text"
+              id="city"
+              name="city"
+              value="{% if is_edit %}{{ customer.city }}{% endif %}"
+              class="w-field__input"
+            />
+          </div>
+
+          <div class="w-field">
+            <label for="pin_code" class="w-field__label">Pin Code</label>
+            <input
+              type="text"
+              id="pin_code"
+              name="pin_code"
+              value="{% if is_edit %}{{ customer.pin_code }}{% endif %}"
+              class="w-field__input"
+            />
+          </div>
+
+          <div class="w-field">
+            <label for="province_state" class="w-field__label">State</label>
+            <div class="w-field__addon">
+              <select id="province_state" name="province_state" class="w-field__select">
+                <option value="">Select State</option>
+                {% for state in states %}
+                  <option value="{{ state.id }}" {% if is_edit and customer.province_state.id == state.id %}selected{% endif %}>
+                    {{ state.value }}
+                  </option>
+                {% endfor %}
+              </select>
+              <button type="button" class="w-button w-button--secondary w-button--icon" onclick="openModal('state')">+</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="w-section">
+        <h2 class="w-section__heading">Contact Information</h2>
+
+        <div class="w-field-group">
+          <div class="w-field">
+            <label for="email" class="w-field__label">
+              Email<span class="w-field__required">*</span>
+            </label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value="{% if is_edit %}{{ customer.email }}{% endif %}"
+              required
+              class="w-field__input"
+            />
+          </div>
+
+          <div class="w-field">
+            <label for="phone" class="w-field__label">
+              Phone<span class="w-field__required">*</span>
+            </label>
+            <input
+              type="tel"
+              id="phone"
+              name="phone"
+              value="{% if is_edit %}{{ customer.phone }}{% endif %}"
+              class="w-field__input"
+              maxlength="10"
+              oninput="this.value = this.value.replace(/\D/g, '').slice(0, 10)"
+              required
+            />
+          </div>
+
+          <div class="w-field">
+            <label for="mobile" class="w-field__label">
+              Mobile (SMS Notification)<span class="w-field__required">*</span>
+            </label>
+            <input
+              type="tel"
+              id="mobile"
+              name="mobile"
+              value="{% if is_edit %}{{ customer.mobile }}{% endif %}"
+              class="w-field__input"
+              maxlength="10"
+              oninput="this.value = this.value.replace(/\D/g, '').slice(0, 10)"
+              required
+              pattern="\d{10}"
+              title="Mobile number must be exactly 10 digits"
+            />
+            <p class="w-field__help">10-digit mobile number for SMS notifications</p>
+          </div>
+        </div>
+
+        <div class="w-field-group">
+          <div class="w-field">
+            <label for="contact_person_name" class="w-field__label">Contact Person Name</label>
+            <input
+              type="text"
+              id="contact_person_name"
+              name="contact_person_name"
+              value="{% if is_edit %}{{ customer.contact_person_name }}{% endif %}"
+              class="w-field__input"
+            />
+          </div>
+
+          <div class="w-field">
+            <label for="designation" class="w-field__label">Designation</label>
+            <input
+              type="text"
+              id="designation"
+              name="designation"
+              value="{% if is_edit %}{{ customer.designation }}{% endif %}"
+              class="w-field__input"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="w-section">
+        <h2 class="w-section__heading">Organization Details</h2>
+
+        <div class="w-field-group">
+          <div class="w-field">
+            <label for="sector" class="w-field__label">Sector</label>
+            <select id="sector" name="sector" class="w-field__select">
+              <option value="">Select Sector</option>
+              <option value="government" {% if is_edit and customer.sector == 'government' %}selected{% endif %}>Government</option>
+              <option value="private" {% if is_edit and customer.sector == 'private' %}selected{% endif %}>Private</option>
+            </select>
+          </div>
+
+          <div class="w-field">
+            <label for="routes" class="w-field__label">Route</label>
+            <div class="w-field__addon">
+              <select id="routes" name="routes" class="w-field__select">
+                <option value="">Select Route</option>
+                {% for route in routes %}
+                  <option value="{{ route.id }}" {% if is_edit and customer.routes.id == route.id %}selected{% endif %}>
+                    {{ route.value }}
+                  </option>
+                {% endfor %}
+              </select>
+              <button type="button" class="w-button w-button--secondary w-button--icon" onclick="openModal('route')">+</button>
+            </div>
+          </div>
+
+          <div class="w-field">
+            <label for="branch" class="w-field__label">Branch</label>
+            <div class="w-field__addon">
+              <select id="branch" name="branch" class="w-field__select">
+                <option value="">Select Branch</option>
+                {% for branch in branches %}
+                  <option value="{{ branch.id }}" {% if is_edit and customer.branch.id == branch.id %}selected{% endif %}>
+                    {{ branch.value }}
+                  </option>
+                {% endfor %}
+              </select>
+              <button type="button" class="w-button w-button--secondary w-button--icon" onclick="openModal('branch')">+</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="w-field-group">
+          <div class="w-field">
+            <label for="gst_number" class="w-field__label">GST Number</label>
+            <input
+              type="text"
+              id="gst_number"
+              name="gst_number"
+              value="{% if is_edit %}{{ customer.gst_number }}{% endif %}"
+              class="w-field__input"
+            />
+          </div>
+
+          <div class="w-field">
+            <label for="pan_number" class="w-field__label">PAN Number</label>
+            <input
+              type="text"
+              id="pan_number"
+              name="pan_number"
+              value="{% if is_edit %}{{ customer.pan_number }}{% endif %}"
+              class="w-field__input"
+            />
+          </div>
+
+          <div class="w-field">
+            <label for="handover_date" class="w-field__label">Handover Date</label>
+            <input
+              type="date"
+              id="handover_date"
+              name="handover_date"
+              value="{% if is_edit %}{{ customer.handover_date|date:'Y-m-d' }}{% endif %}"
+              class="w-field__input"
+            />
+          </div>
+        </div>
+      </div>
+
+      {% if not is_edit %}
+      <div class="w-section">
+        <h2 class="w-section__heading">License Generation</h2>
+
+        <div class="w-field">
+          <div class="w-field__checkbox-wrapper">
+            <input type="checkbox" id="generate_customer_license" name="generate_customer_license" class="w-field__checkbox" />
+            <label for="generate_customer_license" class="w-field__label" style="margin-bottom: 0;">
+              Generate Customer License
+            </label>
+          </div>
+          <p class="w-field__help">Enable this to automatically generate a license for this customer</p>
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="w-footer-actions">
+        <a href="{% url 'wagtailadmin_home' %}" class="w-button w-button--secondary">Cancel</a>
+        <button type="submit" class="w-button w-button--primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+            <polyline points="7 3 7 8 15 8"></polyline>
+          </svg>
+          Save Customer
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- Modal for adding new options -->
+<div id="optionModal" class="w-modal">
+  <div class="w-modal__dialog">
+    <div class="w-modal__header">
+      <h3 class="w-modal__title" id="modalTitle">Add New Option</h3>
+    </div>
+    <div class="w-modal__body">
+      <div class="w-field">
+        <label for="modalInput" class="w-field__label">Name</label>
+        <input type="text" id="modalInput" class="w-field__input" placeholder="Enter value" />
+      </div>
+      <div class="w-option-list" id="existingOptions"></div>
+    </div>
+    <div class="w-modal__footer">
+      <button type="button" class="w-button w-button--secondary" onclick="closeModal()">Cancel</button>
+      <button type="button" class="w-button w-button--primary" onclick="saveOption()">Save</button>
+    </div>
+  </div>
+</div>
 
 <script>
 let currentModalType = '';
@@ -566,7 +869,6 @@ function handleOfficeAddressSync() {
   }
 }
 
-// Additional address autofill logic
 document.addEventListener('DOMContentLoaded', function() {
   const sameAsSiteCheckbox = document.getElementById('same_as_site_address');
   const siteAddressField = document.getElementById('site_address');
@@ -603,11 +905,11 @@ function openModal(type) {
   modalTitle.textContent = `Add New ${type.charAt(0).toUpperCase() + type.slice(1)}`;
 
   loadExistingOptions(type);
-  modal.style.display = 'flex';
+  modal.classList.add('active');
 }
 
 function closeModal() {
-  document.getElementById('optionModal').style.display = 'none';
+  document.getElementById('optionModal').classList.remove('active');
   document.getElementById('modalInput').value = '';
 }
 
@@ -616,13 +918,13 @@ function loadExistingOptions(type) {
     .then(response => response.json())
     .then(data => {
       const container = document.getElementById('existingOptions');
-      container.innerHTML = `<h4>Existing ${type.charAt(0).toUpperCase() + type.slice(1)}s</h4>` +
+      container.innerHTML = `<h4 class="w-option-list__title">Existing ${type.charAt(0).toUpperCase() + type.slice(1)}s</h4>` +
         data.map(item => `
-          <div class="option-item">
+          <div class="w-option-item">
             <span>${item.value}</span>
-            <div>
-              <button type="button" class="button button--small" onclick="editOption('${type}', ${item.id}, '${item.value}')">Edit</button>
-              <button type="button" class="button button--small button--danger" onclick="deleteOption('${type}', ${item.id})">Delete</button>
+            <div class="w-option-item__actions">
+              <button type="button" class="w-button w-button--small w-button--secondary" onclick="editOption('${type}', ${item.id}, '${item.value}')">Edit</button>
+              <button type="button" class="w-button w-button--small w-button--danger" onclick="deleteOption('${type}', ${item.id})">Delete</button>
             </div>
           </div>
         `).join('');
@@ -793,7 +1095,9 @@ function handleFormSubmit(event) {
 
 function handleEditSuccess(result) {
   showMessage('success', result.message);
-  window.location.href = adminHomeUrl;
+  setTimeout(() => {
+    window.location.href = adminHomeUrl;
+  }, 1500);
 }
 
 function handleCreateSuccess(result) {
@@ -807,14 +1111,23 @@ function handleCreateSuccess(result) {
         window.location.href = amcUrl + '?customerId=' + customerRefId;
       } else {
         showMessage('error', 'Could not retrieve customer reference ID for AMC navigation');
-        window.location.href = adminHomeUrl;
+        setTimeout(() => {
+          window.location.href = adminHomeUrl;
+        }, 2000);
       }
     } else {
       window.location.href = adminHomeUrl;
     }
-  }, 500);
+  }, 1500);
 }
 
 document.getElementById('customerForm').addEventListener('submit', handleFormSubmit);
+
+// Close modal when clicking outside
+document.getElementById('optionModal').addEventListener('click', function(e) {
+  if (e.target === this) {
+    closeModal();
+  }
+});
 </script>
 {% endblock %}
