@@ -2,6 +2,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const customerSelect = document.querySelector('select[name="customer"]');
     const siteField = document.querySelector('input[name="latitude"]');
     const jobField = document.querySelector('input[name="equipment_no"]');
+    const amcNameField = document.querySelector('input[name="amcname"]'); // Added for amcname
     const startDateInput = document.querySelector('input[name="start_date"]');
     const endDateInput = document.querySelector('input[name="end_date"]');
 
@@ -16,7 +17,7 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // ---- Auto-fetch Site Address & Job No ----
+    // ---- Auto-fetch Site Address, Job No, and AMC Name ----
     if (customerSelect) {
         customerSelect.addEventListener("change", async function () {
             const id = this.value;
@@ -29,6 +30,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 if (data.site_address && siteField) siteField.value = data.site_address;
                 if (data.job_no && jobField) jobField.value = data.job_no;
+                if (data.site_name && amcNameField) amcNameField.value = data.site_name; // Auto-fill amcname with site_name
 
             } catch (err) {
                 console.error("Failed to fetch customer info:", err);

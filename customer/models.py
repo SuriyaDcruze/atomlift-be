@@ -269,6 +269,9 @@ class CustomerViewSet(SnippetViewSet):
     )
     list_export = list_display
 
+    #edit_template_name = 'customer/add_customer_custom.html'
+    create_template_name = 'customer/add_customer_custom.html'
+
 
 class CustomerLicenseViewSet(SnippetViewSet):
     model = CustomerLicense

@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from datetime import timedelta
+from datetime import date
 from decimal import Decimal
 from wagtail.snippets.models import register_snippet
 from wagtail.snippets.views.snippets import SnippetViewSet, SnippetViewSetGroup
@@ -73,6 +74,12 @@ class AMC(models.Model):
     created = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
+        # Ensure date fields are date objects
+        if isinstance(self.start_date, str):
+            self.start_date = date.fromisoformat(self.start_date)
+        if isinstance(self.end_date, str):
+            self.end_date = date.fromisoformat(self.end_date)
+
         # Auto reference id
         if not self.reference_id:
             last_amc = AMC.objects.order_by("id").last()
@@ -179,6 +186,7 @@ class AMCViewSet(SnippetViewSet):
     icon = "calendar"
     menu_label = "All AMCs"
     inspect_view_enabled = True
+    create_template_name = 'amc/add_amc_custom.html'
 
     # 👇 Columns shown in admin list
     list_display = (

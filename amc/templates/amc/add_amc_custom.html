@@ -1,0 +1,744 @@
+{% extends "wagtailadmin/base.html" %}
+{% load static %}
+
+{% block bodyclass %}modal-view{% endblock %}
+
+{% block title %}{% if is_edit %}Edit AMC{% else %}Create AMC{% endif %}{% endblock %}
+
+{% block content %}
+<div class="nice-padding">
+  <header>
+    <div class="row">
+      <div class="col">
+        <h1 id="header-title">
+          {% if is_edit %}Edit AMC{% else %}Create AMC{% endif %}
+        </h1>
+      </div>
+      <div class="col">
+        <a href="{% url 'wagtailadmin_home' %}" class="button button--secondary">Back</a>
+      </div>
+    </div>
+  </header>
+</div>
+
+<div class="content-wrapper nice-padding">
+  <form id="amcForm" style="display: flex; flex-direction: column; gap: 1rem;">
+    <!-- AMC Details Tab -->
+    <div class="tabs">
+      <div class="tab-content">
+        <div class="section">
+          <h2 style="color: #2c3e50; font-size: 1.5rem; margin-bottom: 1rem;">Basic Details</h2>
+
+          <div class="field" style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <label for="customer" style="color: #2c3e50; font-weight: bold;">Customer *</label>
+            <select id="customer" name="customer" class="field__select" required onchange="fetchCustomerDetails()" style="padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;">
+              <option value="">Select Customer</option>
+              {% for customer in customers %}
+                <option value="{{ customer.id }}"
+                        data-job-no="{{ customer.job_no|default:'' }}"
+                        data-site-address="{{ customer.site_address|default:''|escapejs }}"
+                        {% if selected_customer and selected_customer.id == customer.id %}selected{% endif %}
+                        {% if is_edit and amc.customer.id == customer.id %}selected{% endif %}>
+                  {{ customer.site_name }}
+                  {% if customer.job_no %} ({{ customer.job_no }}){% endif %}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          {% if customer_id_param and selected_customer %}
+          <div class="notice info" style="background-color: #e7f3ff; border: 1px solid #b3d4fc; border-radius: 4px; padding: 1rem; margin-bottom: 1rem;">
+            <p><strong style="color: #2c3e50;">Lift Information Message</strong></p>
+            <p>If you haven't added Lifts, <a href="/dashboard/customers" target="_blank" style="color: #3498db;">click here</a> to add one. After adding, click to refresh.</p>
+          </div>
+          {% endif %}
+
+          <div class="field" style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <label for="reference_id" style="color: #2c3e50; font-weight: bold;">Reference ID</label>
+            <input
+              type="text"
+              id="reference_id"
+              name="reference_id"
+              value="{% if is_edit %}{{ amc.reference_id|default:'' }}{% endif %}"
+              class="field__input"
+              style="padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;"
+              readonly
+            />
+          </div>
+
+          <div class="field" style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <label for="amcname" style="color: #2c3e50; font-weight: bold;">AMC Pack Name</label>
+            <input
+              type="text"
+              id="amcname"
+              name="amcname"
+              value="{% if is_edit %}{{ amc.amcname }}{% endif %}"
+              class="field__input"
+              style="padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;"
+            />
+          </div>
+
+          <div class="field" style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <label for="invoice_frequency" style="color: #2c3e50; font-weight: bold;">Invoice Frequency</label>
+            <select id="invoice_frequency" name="invoice_frequency" class="field__select" style="padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;">
+              <option value="annually" {% if not is_edit or amc.invoice_frequency == 'annually' %}selected{% endif %}>Annually</option>
+              <option value="semi_annually" {% if is_edit and amc.invoice_frequency == 'semi_annually' %}selected{% endif %}>Semi Annually</option>
+              <option value="quarterly" {% if is_edit and amc.invoice_frequency == 'quarterly' %}selected{% endif %}>Quarterly</option>
+              <option value="monthly" {% if is_edit and amc.invoice_frequency == 'monthly' %}selected{% endif %}>Monthly</option>
+              <option value="per_service" {% if is_edit and amc.invoice_frequency == 'per_service' %}selected{% endif %}>Per Service</option>
+            </select>
+          </div>
+
+          <div class="field" style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <label for="amc_type" style="color: #2c3e50; font-weight: bold;">AMC Type</label>
+            <div style="display: flex; gap: 8px;">
+              <select id="amc_type" name="amc_type" class="field__select" style="padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; flex-grow: 1;">
+                <option value="">Select AMC Type</option>
+                {% for type in amc_types %}
+                  <option value="{{ type.id }}" {% if is_edit and amc.amc_type.id == type.id %}selected{% endif %}>
+                    {{ type.name }}
+                  </option>
+                {% endfor %}
+              </select>
+              <button type="button" class="button button--secondary" onclick="openModal('amc-type')" style="padding: 0.5rem 1rem; background: #ecf0f1; border: none; border-radius: 4px; cursor: pointer;">+</button>
+            </div>
+          </div>
+
+          <div class="field" style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <label for="payment_terms" style="color: #2c3e50; font-weight: bold;">Payment Terms</label>
+            <div style="display: flex; gap: 8px;">
+              <select id="payment_terms" name="payment_terms" class="field__select" style="padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; flex-grow: 1;">
+                <option value="">Select Payment Terms</option>
+                {% for term in payment_terms %}
+                  <option value="{{ term.id }}" {% if is_edit and amc.payment_terms.id == term.id %}selected{% endif %}>
+                    {{ term.name }}
+                  </option>
+                {% endfor %}
+              </select>
+              <button type="button" class="button button--secondary" onclick="openModal('payment-terms')" style="padding: 0.5rem 1rem; background: #ecf0f1; border: none; border-radius: 4px; cursor: pointer;">+</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Schedule & Location Tab -->
+    <div class="tabs">
+      <div class="tab-content">
+        <div class="section">
+          <h2 style="color: #2c3e50; font-size: 1.5rem; margin-bottom: 1rem;">Schedule & Location</h2>
+
+          <div class="field" style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <label for="start_date" style="color: #2c3e50; font-weight: bold;">Start Date *</label>
+            <input
+              type="date"
+              id="start_date"
+              name="start_date"
+              value="{% if is_edit %}{{ amc.start_date|date:'Y-m-d' }}{% endif %}"
+              class="field__input"
+              required
+              style="padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;"
+              onchange="setEndDate()"
+            />
+          </div>
+
+          <div class="field" style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <label for="end_date" style="color: #2c3e50; font-weight: bold;">End Date *</label>
+            <input
+              type="date"
+              id="end_date"
+              name="end_date"
+              value="{% if is_edit %}{{ amc.end_date|date:'Y-m-d' }}{% endif %}"
+              class="field__input"
+              required
+              style="padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;"
+            />
+          </div>
+
+          <div class="field" style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <label for="equipment_no" style="color: #2c3e50; font-weight: bold;">Equipment No</label>
+            <input
+              type="text"
+              id="equipment_no"
+              name="equipment_no"
+              value="{% if is_edit %}{{ amc.equipment_no }}{% endif %}"
+              class="field__input"
+              style="padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;"
+            />
+          </div>
+
+          <div class="field" style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <label for="latitude" style="color: #2c3e50; font-weight: bold;">Latitude</label>
+            <input
+              type="text"
+              id="latitude"
+              name="latitude"
+              value="{% if is_edit %}{{ amc.latitude }}{% endif %}"
+              class="field__input"
+              style="padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;"
+            />
+          </div>
+
+          <div class="field" style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <label for="notes" style="color: #2c3e50; font-weight: bold;">Notes</label>
+            <textarea
+              id="notes"
+              name="notes"
+              rows="3"
+              class="field__textarea"
+              style="padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;"
+            >{% if is_edit %}{{ amc.notes }}{% endif %}</textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contract & Pricing Tab -->
+    <div class="tabs">
+      <div class="tab-content">
+        <div class="section">
+          <h2 style="color: #2c3e50; font-size: 1.5rem; margin-bottom: 1rem;">Contract & Pricing</h2>
+
+          <div class="field" style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <div class="field__checkbox">
+              <input
+                type="checkbox"
+                id="is_generate_contract"
+                name="is_generate_contract"
+                {% if is_edit and amc.is_generate_contract %}checked{% endif %}
+                onchange="toggleContractFields()"
+                style="margin-right: 0.5rem;"
+              />
+              <label for="is_generate_contract" style="color: #2c3e50; font-weight: bold;">Generate Contract Now</label>
+            </div>
+          </div>
+
+          <div id="contractFields" style="display: {% if is_edit and amc.is_generate_contract %}block{% else %}none{% endif %}; margin-top: 1rem;">
+            <div class="section">
+              <h2 style="color: #2c3e50; font-size: 1.5rem; margin-bottom: 1rem;">Contract Details</h2>
+
+              <div class="field" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <label for="no_of_services" style="color: #2c3e50; font-weight: bold;">No of Services</label>
+                <input
+                  type="number"
+                  id="no_of_services"
+                  name="no_of_services"
+                  value="{% if is_edit %}{{ amc.no_of_services|default:'12' }}{% endif %}"
+                  class="field__input"
+                  style="padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;"
+                />
+              </div>
+
+              <div class="field" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <label for="amc_service_item" style="color: #2c3e50; font-weight: bold;">Select AMC Service Item</label>
+                <select id="amc_service_item" name="amc_service_item" class="field__select" style="padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;">
+                  <option value="">Select Item</option>
+                  {% for item in items %}
+                    <option value="{{ item.id }}" {% if is_edit and amc.amc_service_item.id == item.id %}selected{% endif %}>
+                      {{ item.name }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <div class="field" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <label for="price" style="color: #2c3e50; font-weight: bold;">Price</label>
+                <input
+                  type="number"
+                  id="price"
+                  name="price"
+                  value="{% if is_edit %}{{ amc.price|default:'0.00' }}{% endif %}"
+                  class="field__input"
+                  step="0.01"
+                  style="padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;"
+                  onchange="calculateTotal()"
+                />
+              </div>
+
+              <div class="field" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <label for="no_of_lifts" style="color: #2c3e50; font-weight: bold;">No of Lifts</label>
+                <input
+                  type="number"
+                  id="no_of_lifts"
+                  name="no_of_lifts"
+                  value="{% if is_edit %}{{ amc.no_of_lifts|default:'0' }}{% endif %}"
+                  class="field__input"
+                  style="padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;"
+                  onchange="calculateTotal()"
+                />
+              </div>
+
+              <div class="field" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <label for="gst_percentage" style="color: #2c3e50; font-weight: bold;">GST Percentage</label>
+                <input
+                  type="number"
+                  id="gst_percentage"
+                  name="gst_percentage"
+                  value="{% if is_edit %}{{ amc.gst_percentage|default:'0.00' }}{% endif %}"
+                  class="field__input"
+                  step="0.01"
+                  style="padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;"
+                  onchange="calculateTotal()"
+                />
+              </div>
+
+              <div class="field" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <label for="total" style="color: #2c3e50; font-weight: bold;">Total</label>
+                <input
+                  type="number"
+                  id="total"
+                  name="total"
+                  value="{% if is_edit %}{{ amc.total|default:'0.00' }}{% endif %}"
+                  class="field__input"
+                  readonly
+                  style="padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;"
+                  step="0.01"
+                />
+              </div>
+
+              <div class="field" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <label for="contract_amount" style="color: #2c3e50; font-weight: bold;">Contract Amount</label>
+                <input
+                  type="number"
+                  id="contract_amount"
+                  name="contract_amount"
+                  value="{% if is_edit %}{{ amc.contract_amount|default:'0.00' }}{% endif %}"
+                  class="field__input"
+                  readonly
+                  style="padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;"
+                  step="0.01"
+                />
+              </div>
+
+              <div class="field" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <label for="total_amount_paid" style="color: #2c3e50; font-weight: bold;">Total Amount Paid</label>
+                <input
+                  type="number"
+                  id="total_amount_paid"
+                  name="total_amount_paid"
+                  value="{% if is_edit %}{{ amc.total_amount_paid|default:'0.00' }}{% endif %}"
+                  class="field__input"
+                  step="0.01"
+                  style="padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;"
+                  min="0"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="field" style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <label for="status" style="color: #2c3e50; font-weight: bold;">Status</label>
+            <input
+              type="text"
+              id="status"
+              name="status"
+              value="{% if is_edit %}{{ amc.status }}{% endif %}"
+              class="field__input"
+              readonly
+              style="padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;"
+            />
+          </div>
+
+          <div class="field" style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <label for="created" style="color: #2c3e50; font-weight: bold;">Created</label>
+            <input
+              type="text"
+              id="created"
+              name="created"
+              value="{% if is_edit %}{{ amc.created|date:'Y-m-d H:i' }}{% endif %}"
+              class="field__input"
+              readonly
+              style="padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="actions" style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #ddd; display: flex; justify-content: flex-end; gap: 1rem;">
+      <button type="submit" class="button button--primary" style="background-color: #27ae60; color: white; padding: 0.5rem 1rem; border: none; border-radius: 4px; cursor: pointer;">
+        {% if is_edit %}Update AMC{% else %}Create AMC{% endif %}
+      </button>
+      <a href="{% url 'wagtailadmin_home' %}" class="button button--secondary" style="background-color: #ecf0f1; color: #2c3e50; padding: 0.5rem 1rem; text-decoration: none; border-radius: 4px;">Cancel</a>
+    </div>
+  </form>
+</div>
+
+<!-- Modal for adding new options -->
+<div id="optionModal" class="modal" style="display: none;">
+  <div class="modal__overlay" onclick="closeModal()"></div>
+  <div class="modal__content">
+    <h3 id="modalTitle">Add New Option</h3>
+    <input type="text" id="modalInput" class="field__input" placeholder="Enter value" style="padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; width: 100%; margin-bottom: 1rem;" />
+    <div class="modal__actions">
+      <button type="button" class="button button--secondary" onclick="closeModal()" style="background-color: #ecf0f1; color: #2c3e50; padding: 0.5rem 1rem; border: none; border-radius: 4px; cursor: pointer;">Cancel</button>
+      <button type="button" class="button button--primary" onclick="saveOption()" style="background-color: #27ae60; color: white; padding: 0.5rem 1rem; border: none; border-radius: 4px; cursor: pointer;">Save</button>
+    </div>
+    <div id="existingOptions" class="existing-options"></div>
+  </div>
+</div>
+
+<style>
+  .section {
+    margin-bottom: 2rem;
+  }
+
+  .field {
+    margin-bottom: 1rem;
+  }
+
+  .notice {
+    background-color: #e7f3ff;
+    border: 1px solid #b3d4fc;
+    border-radius: 4px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .notice.info {
+    background-color: #e7f3ff;
+    border-color: #b3d4fc;
+  }
+
+  .notice p {
+    margin: 0;
+  }
+
+  .modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+
+  .modal__overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .modal__content {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    width: 400px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  }
+
+  .existing-options {
+    margin-top: 1rem;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .option-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem;
+    border-bottom: 1px solid #eee;
+  }
+
+  .modal__actions {
+    margin-top: 1rem;
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+  }
+
+  .tabs {
+    display: flex;
+    flex-direction: column;
+  }
+</style>
+
+<script>
+let currentModalType = '';
+{% if is_edit %}
+const isEditAMC = true;
+const submitAMCUrl = "{% url 'edit_amc_custom' amc.id %}";
+{% else %}
+const isEditAMC = false;
+const submitAMCUrl = "{% url 'add_amc_custom' %}";
+{% endif %}
+const adminHomeUrlAMC = "{% url 'wagtailadmin_home' %}";
+
+function fetchCustomerDetails() {
+  const customerSelect = document.getElementById('customer');
+  const selectedOption = customerSelect.options[customerSelect.selectedIndex];
+
+  if (selectedOption.value) {
+    const jobNo = selectedOption.getAttribute('data-job-no');
+    const siteAddress = selectedOption.getAttribute('data-site-address');
+
+    console.log('Selected customer data:', { jobNo, siteAddress });
+
+    const equipmentNoInput = document.getElementById('equipment_no');
+    if (jobNo && equipmentNoInput.value === '') {
+      equipmentNoInput.value = jobNo;
+      showMessage('success', `Equipment number auto-populated with job number: ${jobNo}`);
+    }
+
+    const latitudeInput = document.getElementById('latitude');
+    if (siteAddress && siteAddress.trim() !== '') {
+      latitudeInput.value = siteAddress;
+      showMessage('info', `Site Address populated: ${siteAddress}`);
+    }
+  }
+}
+
+function setEndDate() {
+  const startDateInput = document.getElementById('start_date');
+  const endDateInput = document.getElementById('end_date');
+
+  if (startDateInput.value) {
+    const startDate = new Date(startDateInput.value);
+    const endDate = new Date(startDate);
+    endDate.setFullYear(endDate.getFullYear() + 1);
+
+    endDateInput.value = endDate.toISOString().split('T')[0];
+  }
+}
+
+function calculateTotal() {
+  const price = parseFloat(document.getElementById('price').value) || 0;
+  const lifts = parseInt(document.getElementById('no_of_lifts').value) || 0;
+  const gst = parseFloat(document.getElementById('gst_percentage').value) || 0;
+
+  const calculatedTotal = price * lifts * (1 + gst / 100);
+  document.getElementById('total').value = calculatedTotal.toFixed(2);
+  document.getElementById('contract_amount').value = calculatedTotal.toFixed(2);
+}
+
+function toggleContractFields() {
+  const isChecked = document.getElementById('is_generate_contract').checked;
+  const contractFields = document.getElementById('contractFields');
+  const amcServiceItem = document.getElementById('amc_service_item');
+
+  if (isChecked) {
+    contractFields.style.display = 'block';
+    amcServiceItem.setAttribute('required', 'required');
+  } else {
+    contractFields.style.display = 'none';
+    amcServiceItem.removeAttribute('required');
+  }
+}
+
+function openModal(type) {
+  currentModalType = type;
+  const modal = document.getElementById('optionModal');
+  const modalTitle = document.getElementById('modalTitle');
+
+  modalTitle.textContent = `Add New ${type.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}`;
+
+  loadExistingOptions(type);
+  modal.style.display = 'flex';
+}
+
+function closeModal() {
+  document.getElementById('optionModal').style.display = 'none';
+  document.getElementById('modalInput').value = '';
+}
+
+function loadExistingOptions(type) {
+  let apiUrl = '';
+  if (type === 'amc-type') {
+    apiUrl = '/api/amc/amc-types/';
+  } else if (type === 'payment-terms') {
+    apiUrl = '/api/amc/payment-terms/';
+  }
+
+  fetch(apiUrl)
+    .then(response => response.json())
+    .then(data => {
+      const container = document.getElementById('existingOptions');
+      container.innerHTML = `<h4>Existing ${type.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}s</h4>` +
+        data.map(item => `
+          <div class="option-item">
+            <span>${item.name}</span>
+            <div>
+              <button type="button" class="button button--small" onclick="editOption('${type}', ${item.id}, '${item.name}')">Edit</button>
+              <button type="button" class="button button--small button--danger" onclick="deleteOption('${type}', ${item.id})">Delete</button>
+            </div>
+          </div>
+        `).join('');
+    });
+}
+
+function saveOption() {
+  const value = document.getElementById('modalInput').value.trim();
+  if (!value) return;
+
+  let apiUrl = '';
+  const data = {};
+  if (currentModalType === 'amc-type') {
+    apiUrl = '/api/amc/amc-types/';
+    data.name = value;
+  } else if (currentModalType === 'payment-terms') {
+    apiUrl = '/api/amc/payment-terms/';
+    data.name = value;
+  }
+
+  fetch(apiUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCsrfToken()
+    },
+    body: JSON.stringify(data)
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      const select = document.getElementById(currentModalType.split('-').join('_'));
+      const option = new Option(value, data.id);
+      select.appendChild(option);
+      select.value = data.id;
+
+      closeModal();
+      showMessage('success', `${currentModalType.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())} added successfully`);
+    } else {
+      showMessage('error', data.error);
+    }
+  });
+}
+
+function editOption(type, id, currentValue) {
+  const newValue = prompt(`Edit ${type.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}:`, currentValue);
+  if (newValue && newValue.trim() && newValue !== currentValue) {
+    let apiUrl = '';
+    if (type === 'amc-type') {
+      apiUrl = `/api/amc/amc-types/${id}/`;
+    } else if (type === 'payment-terms') {
+      apiUrl = `/api/amc/payment-terms/${id}/`;
+    }
+
+    fetch(apiUrl, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: JSON.stringify({ name: newValue.trim() })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        loadExistingOptions(type);
+        const select = document.getElementById(type.split('-').join('_'));
+        const option = select.querySelector(`option[value="${id}"]`);
+        if (option) {
+          option.textContent = newValue.trim();
+        }
+        showMessage('success', `${type.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())} updated successfully`);
+      } else {
+        showMessage('error', data.error);
+      }
+    });
+  }
+}
+
+function deleteOption(type, id) {
+  if (!confirm(`Are you sure you want to delete this ${type}?`)) return;
+
+  let apiUrl = '';
+  if (type === 'amc-type') {
+    apiUrl = `/api/amc/amc-types/${id}/`;
+  } else if (type === 'payment-terms') {
+    apiUrl = `/api/amc/payment-terms/${id}/`;
+  }
+
+  fetch(apiUrl, {
+    method: 'DELETE',
+    headers: {
+      'X-CSRFToken': getCsrfToken()
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      loadExistingOptions(type);
+      const select = document.getElementById(type.split('-').join('_'));
+      const option = select.querySelector(`option[value="${id}"]`);
+      if (option) {
+        option.remove();
+      }
+      showMessage('success', `${type.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())} deleted successfully`);
+    } else {
+      showMessage('error', data.error);
+    }
+  });
+}
+
+function getCsrfToken() {
+  const token = document.querySelector('[name=csrfmiddlewaretoken]');
+  return token ? token.value : '';
+}
+
+function showMessage(type, message) {
+  alert(message);
+}
+
+function handleAMCFormSubmit(event) {
+  event.preventDefault();
+
+  const formData = new FormData(event.target);
+  const data = Object.fromEntries(formData.entries());
+
+  data.is_generate_contract = data.is_generate_contract === 'on';
+
+  if (!data.customer || !data.start_date || !data.end_date) {
+    showMessage('error', 'Please fill in all required fields (Customer, Start Date, End Date)');
+    return;
+  }
+
+  if (data.is_generate_contract && !data.amc_service_item) {
+    showMessage('error', 'Please select an AMC Service Item when generating contract');
+    return;
+  }
+
+  fetch(submitAMCUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCsrfToken()
+    },
+    body: JSON.stringify(data)
+  })
+  .then(response => response.json())
+  .then(function(result) {
+    if (result.success) {
+      showMessage('success', result.message);
+      if (result.amc && result.amc.redirect) {
+        window.location.href = adminHomeUrlAMC;
+      }
+    } else {
+      showMessage('error', result.error);
+    }
+  })
+  .catch(function(error) {
+    console.error('Error:', error);
+    showMessage('error', 'An error occurred while saving the AMC');
+  });
+}
+
+document.getElementById('amcForm').addEventListener('submit', handleAMCFormSubmit);
+
+document.addEventListener('DOMContentLoaded', function() {
+  toggleContractFields();
+
+  const customerSelect = document.getElementById('customer');
+  if (customerSelect.value) {
+    fetchCustomerDetails();
+  }
+});
+</script>
+{% endblock %}
