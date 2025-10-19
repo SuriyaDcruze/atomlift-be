@@ -885,12 +885,13 @@ def manage_floorids(request, pk=None):
     elif request.method == 'POST':
         try:
             data = json.loads(request.body)
-            floorid = FloorID.objects.create(value=data['value'])
-            return JsonResponse({
-                'success': True,
-                'id': floorid.id,
-                'value': floorid.value
-            })
+            value = (data.get('value') or '').strip()
+            if not value:
+                return JsonResponse({'success': False, 'error': 'Value is required'}, status=400)
+            if FloorID.objects.filter(value=value).exists():
+                return JsonResponse({'success': False, 'error': 'Floor ID already exists'}, status=400)
+            floorid = FloorID.objects.create(value=value)
+            return JsonResponse({'success': True, 'id': floorid.id, 'value': floorid.value})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
@@ -904,7 +905,12 @@ def manage_floorids_detail(request, pk):
 
         if request.method == 'PUT':
             data = json.loads(request.body)
-            floorid.value = data['value']
+            value = (data.get('value') or '').strip()
+            if not value:
+                return JsonResponse({'success': False, 'error': 'Value is required'}, status=400)
+            if FloorID.objects.filter(value=value).exclude(pk=pk).exists():
+                return JsonResponse({'success': False, 'error': 'Floor ID already exists'}, status=400)
+            floorid.value = value
             floorid.save()
             return JsonResponse({'success': True, 'message': 'Floor ID updated'})
 
@@ -926,12 +932,13 @@ def manage_brands(request, pk=None):
     elif request.method == 'POST':
         try:
             data = json.loads(request.body)
-            brand = Brand.objects.create(value=data['value'])
-            return JsonResponse({
-                'success': True,
-                'id': brand.id,
-                'value': brand.value
-            })
+            value = (data.get('value') or '').strip()
+            if not value:
+                return JsonResponse({'success': False, 'error': 'Value is required'}, status=400)
+            if Brand.objects.filter(value=value).exists():
+                return JsonResponse({'success': False, 'error': 'Brand already exists'}, status=400)
+            brand = Brand.objects.create(value=value)
+            return JsonResponse({'success': True, 'id': brand.id, 'value': brand.value})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
@@ -945,7 +952,12 @@ def manage_brands_detail(request, pk):
 
         if request.method == 'PUT':
             data = json.loads(request.body)
-            brand.value = data['value']
+            value = (data.get('value') or '').strip()
+            if not value:
+                return JsonResponse({'success': False, 'error': 'Value is required'}, status=400)
+            if Brand.objects.filter(value=value).exclude(pk=pk).exists():
+                return JsonResponse({'success': False, 'error': 'Brand already exists'}, status=400)
+            brand.value = value
             brand.save()
             return JsonResponse({'success': True, 'message': 'Brand updated'})
 
@@ -967,12 +979,13 @@ def manage_lifttypes(request, pk=None):
     elif request.method == 'POST':
         try:
             data = json.loads(request.body)
-            lifttype = LiftType.objects.create(value=data['value'])
-            return JsonResponse({
-                'success': True,
-                'id': lifttype.id,
-                'value': lifttype.value
-            })
+            value = (data.get('value') or '').strip()
+            if not value:
+                return JsonResponse({'success': False, 'error': 'Value is required'}, status=400)
+            if LiftType.objects.filter(value=value).exists():
+                return JsonResponse({'success': False, 'error': 'Lift type already exists'}, status=400)
+            lifttype = LiftType.objects.create(value=value)
+            return JsonResponse({'success': True, 'id': lifttype.id, 'value': lifttype.value})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
@@ -986,7 +999,12 @@ def manage_lifttypes_detail(request, pk):
 
         if request.method == 'PUT':
             data = json.loads(request.body)
-            lifttype.value = data['value']
+            value = (data.get('value') or '').strip()
+            if not value:
+                return JsonResponse({'success': False, 'error': 'Value is required'}, status=400)
+            if LiftType.objects.filter(value=value).exclude(pk=pk).exists():
+                return JsonResponse({'success': False, 'error': 'Lift type already exists'}, status=400)
+            lifttype.value = value
             lifttype.save()
             return JsonResponse({'success': True, 'message': 'Lift type updated'})
 
@@ -1008,12 +1026,13 @@ def manage_machinetypes(request, pk=None):
     elif request.method == 'POST':
         try:
             data = json.loads(request.body)
-            machinetype = MachineType.objects.create(value=data['value'])
-            return JsonResponse({
-                'success': True,
-                'id': machinetype.id,
-                'value': machinetype.value
-            })
+            value = (data.get('value') or '').strip()
+            if not value:
+                return JsonResponse({'success': False, 'error': 'Value is required'}, status=400)
+            if MachineType.objects.filter(value=value).exists():
+                return JsonResponse({'success': False, 'error': 'Machine type already exists'}, status=400)
+            machinetype = MachineType.objects.create(value=value)
+            return JsonResponse({'success': True, 'id': machinetype.id, 'value': machinetype.value})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
@@ -1027,7 +1046,12 @@ def manage_machinetypes_detail(request, pk):
 
         if request.method == 'PUT':
             data = json.loads(request.body)
-            machinetype.value = data['value']
+            value = (data.get('value') or '').strip()
+            if not value:
+                return JsonResponse({'success': False, 'error': 'Value is required'}, status=400)
+            if MachineType.objects.filter(value=value).exclude(pk=pk).exists():
+                return JsonResponse({'success': False, 'error': 'Machine type already exists'}, status=400)
+            machinetype.value = value
             machinetype.save()
             return JsonResponse({'success': True, 'message': 'Machine type updated'})
 
@@ -1049,12 +1073,13 @@ def manage_machinebrands(request, pk=None):
     elif request.method == 'POST':
         try:
             data = json.loads(request.body)
-            machinebrand = MachineBrand.objects.create(value=data['value'])
-            return JsonResponse({
-                'success': True,
-                'id': machinebrand.id,
-                'value': machinebrand.value
-            })
+            value = (data.get('value') or '').strip()
+            if not value:
+                return JsonResponse({'success': False, 'error': 'Value is required'}, status=400)
+            if MachineBrand.objects.filter(value=value).exists():
+                return JsonResponse({'success': False, 'error': 'Machine brand already exists'}, status=400)
+            machinebrand = MachineBrand.objects.create(value=value)
+            return JsonResponse({'success': True, 'id': machinebrand.id, 'value': machinebrand.value})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
@@ -1068,7 +1093,12 @@ def manage_machinebrands_detail(request, pk):
 
         if request.method == 'PUT':
             data = json.loads(request.body)
-            machinebrand.value = data['value']
+            value = (data.get('value') or '').strip()
+            if not value:
+                return JsonResponse({'success': False, 'error': 'Value is required'}, status=400)
+            if MachineBrand.objects.filter(value=value).exclude(pk=pk).exists():
+                return JsonResponse({'success': False, 'error': 'Machine brand already exists'}, status=400)
+            machinebrand.value = value
             machinebrand.save()
             return JsonResponse({'success': True, 'message': 'Machine brand updated'})
 
@@ -1090,12 +1120,13 @@ def manage_doortypes(request, pk=None):
     elif request.method == 'POST':
         try:
             data = json.loads(request.body)
-            doortype = DoorType.objects.create(value=data['value'])
-            return JsonResponse({
-                'success': True,
-                'id': doortype.id,
-                'value': doortype.value
-            })
+            value = (data.get('value') or '').strip()
+            if not value:
+                return JsonResponse({'success': False, 'error': 'Value is required'}, status=400)
+            if DoorType.objects.filter(value=value).exists():
+                return JsonResponse({'success': False, 'error': 'Door type already exists'}, status=400)
+            doortype = DoorType.objects.create(value=value)
+            return JsonResponse({'success': True, 'id': doortype.id, 'value': doortype.value})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
@@ -1109,7 +1140,12 @@ def manage_doortypes_detail(request, pk):
 
         if request.method == 'PUT':
             data = json.loads(request.body)
-            doortype.value = data['value']
+            value = (data.get('value') or '').strip()
+            if not value:
+                return JsonResponse({'success': False, 'error': 'Value is required'}, status=400)
+            if DoorType.objects.filter(value=value).exclude(pk=pk).exists():
+                return JsonResponse({'success': False, 'error': 'Door type already exists'}, status=400)
+            doortype.value = value
             doortype.save()
             return JsonResponse({'success': True, 'message': 'Door type updated'})
 
@@ -1131,12 +1167,13 @@ def manage_doorbrands(request, pk=None):
     elif request.method == 'POST':
         try:
             data = json.loads(request.body)
-            doorbrand = DoorBrand.objects.create(value=data['value'])
-            return JsonResponse({
-                'success': True,
-                'id': doorbrand.id,
-                'value': doorbrand.value
-            })
+            value = (data.get('value') or '').strip()
+            if not value:
+                return JsonResponse({'success': False, 'error': 'Value is required'}, status=400)
+            if DoorBrand.objects.filter(value=value).exists():
+                return JsonResponse({'success': False, 'error': 'Door brand already exists'}, status=400)
+            doorbrand = DoorBrand.objects.create(value=value)
+            return JsonResponse({'success': True, 'id': doorbrand.id, 'value': doorbrand.value})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
@@ -1150,7 +1187,12 @@ def manage_doorbrands_detail(request, pk):
 
         if request.method == 'PUT':
             data = json.loads(request.body)
-            doorbrand.value = data['value']
+            value = (data.get('value') or '').strip()
+            if not value:
+                return JsonResponse({'success': False, 'error': 'Value is required'}, status=400)
+            if DoorBrand.objects.filter(value=value).exclude(pk=pk).exists():
+                return JsonResponse({'success': False, 'error': 'Door brand already exists'}, status=400)
+            doorbrand.value = value
             doorbrand.save()
             return JsonResponse({'success': True, 'message': 'Door brand updated'})
 
@@ -1172,12 +1214,13 @@ def manage_controllerbrands(request, pk=None):
     elif request.method == 'POST':
         try:
             data = json.loads(request.body)
-            controllerbrand = ControllerBrand.objects.create(value=data['value'])
-            return JsonResponse({
-                'success': True,
-                'id': controllerbrand.id,
-                'value': controllerbrand.value
-            })
+            value = (data.get('value') or '').strip()
+            if not value:
+                return JsonResponse({'success': False, 'error': 'Value is required'}, status=400)
+            if ControllerBrand.objects.filter(value=value).exists():
+                return JsonResponse({'success': False, 'error': 'Controller brand already exists'}, status=400)
+            controllerbrand = ControllerBrand.objects.create(value=value)
+            return JsonResponse({'success': True, 'id': controllerbrand.id, 'value': controllerbrand.value})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
@@ -1191,7 +1234,12 @@ def manage_controllerbrands_detail(request, pk):
 
         if request.method == 'PUT':
             data = json.loads(request.body)
-            controllerbrand.value = data['value']
+            value = (data.get('value') or '').strip()
+            if not value:
+                return JsonResponse({'success': False, 'error': 'Value is required'}, status=400)
+            if ControllerBrand.objects.filter(value=value).exclude(pk=pk).exists():
+                return JsonResponse({'success': False, 'error': 'Controller brand already exists'}, status=400)
+            controllerbrand.value = value
             controllerbrand.save()
             return JsonResponse({'success': True, 'message': 'Controller brand updated'})
 
@@ -1213,12 +1261,13 @@ def manage_cabins(request, pk=None):
     elif request.method == 'POST':
         try:
             data = json.loads(request.body)
-            cabin = Cabin.objects.create(value=data['value'])
-            return JsonResponse({
-                'success': True,
-                'id': cabin.id,
-                'value': cabin.value
-            })
+            value = (data.get('value') or '').strip()
+            if not value:
+                return JsonResponse({'success': False, 'error': 'Value is required'}, status=400)
+            if Cabin.objects.filter(value=value).exists():
+                return JsonResponse({'success': False, 'error': 'Cabin already exists'}, status=400)
+            cabin = Cabin.objects.create(value=value)
+            return JsonResponse({'success': True, 'id': cabin.id, 'value': cabin.value})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
@@ -1232,7 +1281,12 @@ def manage_cabins_detail(request, pk):
 
         if request.method == 'PUT':
             data = json.loads(request.body)
-            cabin.value = data['value']
+            value = (data.get('value') or '').strip()
+            if not value:
+                return JsonResponse({'success': False, 'error': 'Value is required'}, status=400)
+            if Cabin.objects.filter(value=value).exclude(pk=pk).exists():
+                return JsonResponse({'success': False, 'error': 'Cabin already exists'}, status=400)
+            cabin.value = value
             cabin.save()
             return JsonResponse({'success': True, 'message': 'Cabin updated'})
 

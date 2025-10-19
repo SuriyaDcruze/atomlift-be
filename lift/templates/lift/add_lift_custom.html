@@ -610,7 +610,7 @@ body {
                 <select id="floor_id" name="floor_id" class="form-input form-select">
                   <option value="">Loading floor IDs...</option>
                 </select>
-                
+                <button type="button" onclick="openModal('floorid')">+</button>
               </div>
             </div>
 
@@ -620,7 +620,7 @@ body {
                 <select id="brand" name="brand" class="form-input form-select" required>
                   <option value="">Loading brands...</option>
                 </select>
-                
+                <button type="button" onclick="openModal('brand')">+</button>
               </div>
             </div>
 
@@ -630,7 +630,7 @@ body {
                 <select id="lift_type" name="lift_type" class="form-input form-select" required>
                   <option value="">Loading lift types...</option>
                 </select>
-                
+                <button type="button" onclick="openModal('lifttype')">+</button>
               </div>
             </div>
 
@@ -640,7 +640,7 @@ body {
                 <select id="machine_type" name="machine_type" class="form-input form-select" required>
                   <option value="">Loading machine types...</option>
                 </select>
-                
+                <button type="button" onclick="openModal('machinetype')">+</button>
               </div>
             </div>
 
@@ -650,7 +650,7 @@ body {
                 <select id="machine_brand" name="machine_brand" class="form-input form-select">
                   <option value="">Loading machine brands...</option>
                 </select>
-                
+                <button type="button" onclick="openModal('machinebrand')">+</button>
               </div>
             </div>
 
@@ -660,7 +660,7 @@ body {
                 <select id="door_type" name="door_type" class="form-input form-select" required>
                   <option value="">Loading door types...</option>
                 </select>
-                
+                <button type="button" onclick="openModal('doortype')">+</button>
               </div>
             </div>
 
@@ -670,7 +670,7 @@ body {
                 <select id="door_brand" name="door_brand" class="form-input form-select">
                   <option value="">Loading door brands...</option>
                 </select>
-                
+                <button type="button" onclick="openModal('doorbrand')">+</button>
               </div>
             </div>
 
@@ -680,7 +680,7 @@ body {
                 <select id="controller_brand" name="controller_brand" class="form-input form-select">
                   <option value="">Loading controller brands...</option>
                 </select>
-                
+                <button type="button" onclick="openModal('controllerbrand')">+</button>
               </div>
             </div>
 
@@ -690,7 +690,7 @@ body {
                 <select id="cabin" name="cabin" class="form-input form-select">
                   <option value="">Loading cabins...</option>
                 </select>
-                
+                <button type="button" onclick="openModal('cabin')">+</button>
               </div>
             </div>
 
@@ -772,6 +772,33 @@ body {
 
 <script>
 let currentModalType = '';
+// Map modal type keys to their corresponding select element IDs and friendly labels
+const typeToSelectId = {
+  floorid: 'floor_id',
+  brand: 'brand',
+  lifttype: 'lift_type',
+  machinetype: 'machine_type',
+  machinebrand: 'machine_brand',
+  doortype: 'door_type',
+  doorbrand: 'door_brand',
+  controllerbrand: 'controller_brand',
+  cabin: 'cabin'
+};
+
+function titleCaseFromType(type) {
+  const map = {
+    floorid: 'Floor ID',
+    brand: 'Brand',
+    lifttype: 'Lift Type',
+    machinetype: 'Machine Type',
+    machinebrand: 'Machine Brand',
+    doortype: 'Door Type',
+    doorbrand: 'Door Brand',
+    controllerbrand: 'Controller Brand',
+    cabin: 'Cabin'
+  };
+  return map[type] || (type.charAt(0).toUpperCase() + type.slice(1));
+}
 var isEditMode = {% if is_edit %}true{% else %}false{% endif %};
 var submitUrl = "{% if is_edit %}{% url 'edit_lift_custom' lift.lift_code %}{% else %}{% url 'add_lift_custom' %}{% endif %}";
 var adminHomeUrl = "{% url 'wagtailadmin_home' %}";
@@ -1066,7 +1093,7 @@ function openModal(type) {
   var modal = document.getElementById('optionModal');
   var modalTitle = document.getElementById('modalTitle');
 
-  modalTitle.textContent = 'Add New ' + type.charAt(0).toUpperCase() + type.slice(1);
+  modalTitle.textContent = 'Add New ' + titleCaseFromType(type);
 
   loadExistingOptions(type);
   modal.classList.add('active');
@@ -1107,13 +1134,14 @@ function saveOption() {
   .then(function(response) { return response.json(); })
   .then(function(data) {
     if (data.success) {
-      var select = document.getElementById(currentModalType);
+      var selectId = typeToSelectId[currentModalType] || currentModalType;
+      var select = document.getElementById(selectId);
       var option = new Option(value, data.id);
       select.appendChild(option);
       select.value = data.id;
 
       closeModal();
-      showMessage('success', currentModalType.charAt(0).toUpperCase() + currentModalType.slice(1) + ' added successfully');
+      showMessage('success', titleCaseFromType(currentModalType) + ' added successfully');
     } else {
       showMessage('error', data.error);
     }
@@ -1135,12 +1163,13 @@ function editOption(type, id, currentValue) {
     .then(function(data) {
       if (data.success) {
         loadExistingOptions(type);
-        var select = document.getElementById(type);
+        var selectId = typeToSelectId[type] || type;
+        var select = document.getElementById(selectId);
         var option = select.querySelector('option[value="' + id + '"]');
         if (option) {
           option.textContent = newValue.trim();
         }
-        showMessage('success', type.charAt(0).toUpperCase() + type.slice(1) + ' updated successfully');
+        showMessage('success', titleCaseFromType(type) + ' updated successfully');
       } else {
         showMessage('error', data.error);
       }
@@ -1161,12 +1190,13 @@ function deleteOption(type, id) {
   .then(function(data) {
     if (data.success) {
       loadExistingOptions(type);
-      var select = document.getElementById(type);
+      var selectId = typeToSelectId[type] || type;
+      var select = document.getElementById(selectId);
       var option = select.querySelector('option[value="' + id + '"]');
       if (option) {
         option.remove();
       }
-      showMessage('success', type.charAt(0).toUpperCase() + type.slice(1) + ' deleted successfully');
+      showMessage('success', titleCaseFromType(type) + ' deleted successfully');
     } else {
       showMessage('error', data.error);
     }
