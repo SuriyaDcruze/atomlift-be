@@ -669,7 +669,7 @@ body {
                 <select id="province_state" name="province_state" class="form-input form-select">
                   <option value="">Loading states...</option>
                 </select>
-               
+                <button type="button" onclick="openModal('state')">+</button>
               </div>
             </div>
 
@@ -688,7 +688,7 @@ body {
                 <select id="routes" name="routes" class="form-input form-select">
                   <option value="">Loading routes...</option>
                 </select>
-                
+                <button type="button" onclick="openModal('route')">+</button>
               </div>
             </div>
 
@@ -698,7 +698,7 @@ body {
                 <select id="branch" name="branch" class="form-input form-select">
                   <option value="">Loading branches...</option>
                 </select>
-               
+                <button type="button" onclick="openModal('branch')">+</button>
               </div>
             </div>
 
@@ -1001,7 +1001,8 @@ function openModal(type) {
   var modal = document.getElementById('optionModal');
   var modalTitle = document.getElementById('modalTitle');
 
-  modalTitle.textContent = 'Add New ' + type.charAt(0).toUpperCase() + type.slice(1);
+  const titleMap = { state: 'State', route: 'Route', branch: 'Branch' };
+  modalTitle.textContent = 'Add New ' + (titleMap[type] || (type.charAt(0).toUpperCase() + type.slice(1)));
 
   loadExistingOptions(type);
   modal.classList.add('active');
@@ -1013,7 +1014,8 @@ function closeModal() {
 }
 
 function loadExistingOptions(type) {
-  fetch('api/customer/' + type + 's/')
+  const listEndpoint = type === 'state' ? 'states' : (type === 'route' ? 'routes' : 'branches');
+  fetch('/customer/api/customer/' + listEndpoint + '/')
     .then(function(response) { return response.json(); })
     .then(function(data) {
       var container = document.getElementById('existingOptions');
@@ -1031,7 +1033,8 @@ function saveOption() {
   var value = document.getElementById('modalInput').value.trim();
   if (!value) return;
 
-  fetch('/api/customer/' + currentModalType + 's/', {
+  const createEndpoint = currentModalType === 'state' ? 'states/create' : (currentModalType === 'route' ? 'routes/create' : 'branches/create');
+  fetch('/customer/api/customer/' + createEndpoint + '/', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -1042,7 +1045,8 @@ function saveOption() {
   .then(function(response) { return response.json(); })
   .then(function(data) {
     if (data.success) {
-      var select = document.getElementById(currentModalType);
+      var selectId = currentModalType === 'state' ? 'province_state' : (currentModalType === 'route' ? 'routes' : 'branch');
+      var select = document.getElementById(selectId);
       var option = new Option(value, data.id);
       select.appendChild(option);
       select.value = data.id;
@@ -1058,7 +1062,8 @@ function saveOption() {
 function editOption(type, id, currentValue) {
   var newValue = prompt('Edit ' + type.charAt(0).toUpperCase() + type.slice(1) + ':', currentValue);
   if (newValue && newValue.trim() && newValue !== currentValue) {
-    fetch('/api/customer/' + type + 's/' + id + '/', {
+    const updateEndpoint = type === 'state' ? 'states' : (type === 'route' ? 'routes' : 'branches');
+    fetch('/customer/api/customer/' + updateEndpoint + '/' + id + '/', {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -1070,7 +1075,8 @@ function editOption(type, id, currentValue) {
     .then(function(data) {
       if (data.success) {
         loadExistingOptions(type);
-        var select = document.getElementById(type);
+        var selectId = type === 'state' ? 'province_state' : (type === 'route' ? 'routes' : 'branch');
+        var select = document.getElementById(selectId);
         var option = select.querySelector('option[value="' + id + '"]');
         if (option) {
           option.textContent = newValue.trim();
@@ -1086,7 +1092,8 @@ function editOption(type, id, currentValue) {
 function deleteOption(type, id) {
   if (!confirm('Are you sure you want to delete this ' + type + '?')) return;
 
-  fetch('/api/customer/' + type + 's/' + id + '/', {
+  const deleteEndpoint = type === 'state' ? 'states' : (type === 'route' ? 'routes' : 'branches');
+  fetch('/customer/api/customer/' + deleteEndpoint + '/' + id + '/delete/', {
     method: 'DELETE',
     headers: {
       'X-CSRFToken': getCsrfToken()
@@ -1096,7 +1103,8 @@ function deleteOption(type, id) {
   .then(function(data) {
     if (data.success) {
       loadExistingOptions(type);
-      var select = document.getElementById(type);
+      var selectId = type === 'state' ? 'province_state' : (type === 'route' ? 'routes' : 'branch');
+      var select = document.getElementById(selectId);
       var option = select.querySelector('option[value="' + id + '"]');
       if (option) {
         option.remove();
