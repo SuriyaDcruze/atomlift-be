@@ -668,18 +668,9 @@ body {
               <label class="form-label">State</label>
               <div class="form-select-addon">
                 <select id="province_state" name="province_state" class="form-input form-select">
-                  <option value="">Select State</option>
-                  {% for state in states %}
-                  <option value="{{ state.id }}" {% if is_edit and customer.province_state.id == state.id %}selected{% endif %}>
-                    {{ state.value }}
-                  </option>
-                  {% endfor %}
+                  <option value="">Loading states...</option>
                 </select>
-                <button type="button" class="form-select-addon-button" onclick="openModal('state')">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 5v14M5 12h14"></path>
-                  </svg>
-                </button>
+               
               </div>
             </div>
 
@@ -696,19 +687,9 @@ body {
               <label class="form-label">Route</label>
               <div class="form-select-addon">
                 <select id="routes" name="routes" class="form-input form-select">
-                  <option value="">Select Route</option>
-                  {% for route in routes %}
-                  <option value="{{ route.id }}" {% if is_edit and customer.routes.id == route.id %}selected{% endif %}>
-                    {{ route.value }}
-                  </option>
-                  {% endfor %}
+                  <option value="">Loading routes...</option>
                 </select>
-                <button type="button" class="form-select-addon-button" onclick="openModal('routes')">
-                  {% load static %}
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 5v14M5 12h14"></path>
-                  </svg>
-                </button>
+                
               </div>
             </div>
 
@@ -716,19 +697,9 @@ body {
               <label class="form-label">Branch</label>
               <div class="form-select-addon">
                 <select id="branch" name="branch" class="form-input form-select">
-                  <option value="">Select Branch</option>
-                  {% for branch in branches %}
-                  <option value="{{ branch.id }}" {% if is_edit and customer.branch.id == branch.id %}selected{% endif %}>
-                    {{ branch.value }}
-                  </option>
-                  {% endfor %}
+                  <option value="">Loading branches...</option>
                 </select>
-                <button type="button" class="form-select-addon-button" onclick="openModal('branch')">
-                  {% load static %}
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 5v14M5 12h14"></path>
-                  </svg>
-                </button>
+               
               </div>
             </div>
 
@@ -910,7 +881,111 @@ document.addEventListener('DOMContentLoaded', function() {
       officeAddressField.disabled = true;
     }
   }
+
+  // Load states, routes, and branches dynamically on page load
+  loadStatesDropdown();
+  loadRoutesDropdown();
+  loadBranchesDropdown();
 });
+
+function loadStatesDropdown() {
+  {% if is_edit and customer.province_state %}
+  var currentStateId = {{ customer.province_state.id }};
+  {% else %}
+  var currentStateId = null;
+  {% endif %}
+
+  fetch('/customer/api/customer/states/')
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+      var stateSelect = document.getElementById('province_state');
+      stateSelect.innerHTML = '<option value="">Select State</option>';
+
+      data.forEach(function(state) {
+        var option = document.createElement('option');
+        option.value = state.id;
+        option.textContent = state.value;
+
+        // If editing, select the current state
+        if (currentStateId && state.id === currentStateId) {
+          option.selected = true;
+        }
+
+        stateSelect.appendChild(option);
+      });
+    })
+    .catch(function(error) {
+      console.error('Error loading states:', error);
+      var stateSelect = document.getElementById('province_state');
+      stateSelect.innerHTML = '<option value="">Error loading states</option>';
+    });
+}
+
+function loadRoutesDropdown() {
+  {% if is_edit and customer.routes %}
+  var currentRouteId = {{ customer.routes.id }};
+  {% else %}
+  var currentRouteId = null;
+  {% endif %}
+
+  fetch('/customer/api/customer/routes/')
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+      var routeSelect = document.getElementById('routes');
+      routeSelect.innerHTML = '<option value="">Select Route</option>';
+
+      data.forEach(function(route) {
+        var option = document.createElement('option');
+        option.value = route.id;
+        option.textContent = route.value;
+
+        // If editing, select the current route
+        if (currentRouteId && route.id === currentRouteId) {
+          option.selected = true;
+        }
+
+        routeSelect.appendChild(option);
+      });
+    })
+    .catch(function(error) {
+      console.error('Error loading routes:', error);
+      var routeSelect = document.getElementById('routes');
+      routeSelect.innerHTML = '<option value="">Error loading routes</option>';
+    });
+}
+
+function loadBranchesDropdown() {
+  {% if is_edit and customer.branch %}
+  var currentBranchId = {{ customer.branch.id }};
+  {% else %}
+  var currentBranchId = null;
+  {% endif %}
+
+  fetch('/customer/api/customer/branches/')
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+      var branchSelect = document.getElementById('branch');
+      branchSelect.innerHTML = '<option value="">Select Branch</option>';
+
+      data.forEach(function(branch) {
+        var option = document.createElement('option');
+        option.value = branch.id;
+        option.textContent = branch.value;
+
+        // If editing, select the current branch
+        if (currentBranchId && branch.id === currentBranchId) {
+          option.selected = true;
+        }
+
+        branchSelect.appendChild(option);
+      });
+    })
+    .catch(function(error) {
+      console.error('Error loading branches:', error);
+      var branchSelect = document.getElementById('branch');
+      branchSelect.innerHTML = '<option value="">Error loading branches</option>';
+    });
+}
 
 function openModal(type) {
   currentModalType = type;
@@ -929,7 +1004,7 @@ function closeModal() {
 }
 
 function loadExistingOptions(type) {
-  fetch('/api/customer/' + type + 's/')
+  fetch('api/customer/' + type + 's/')
     .then(function(response) { return response.json(); })
     .then(function(data) {
       var container = document.getElementById('existingOptions');
