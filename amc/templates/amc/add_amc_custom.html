@@ -541,12 +541,7 @@ body {
                 <label class="form-label">AMC Type</label>
                 <div class="form-select-addon">
                   <select id="amc_type" name="amc_type" class="form-input form-select">
-                    <option value="">Select AMC Type</option>
-                    {% for type in amc_types %}
-                    <option value="{{ type.id }}" {% if is_edit and amc.amc_type.id == type.id %}selected{% endif %}>
-                      {{ type.name }}
-                    </option>
-                    {% endfor %}
+                    <option value="">Loading AMC types...</option>
                   </select>
                   <button type="button" class="form-select-addon-button" onclick="openModal('amc-type')">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -913,9 +908,9 @@ function closeModal() {
 function loadExistingOptions(type) {
   let apiUrl = '';
   if (type === 'amc-type') {
-    apiUrl = '/api/amc/amc-types/';
+    apiUrl = '/amc/amc/api/amc/amc-types/';
   } else if (type === 'payment-terms') {
-    apiUrl = '/api/amc/payment-terms/';
+    apiUrl = '/amc/api/amc/payment-terms/';
   }
 
   fetch(apiUrl)
@@ -942,7 +937,7 @@ function saveOption() {
   let apiUrl = '';
   const data = {};
   if (currentModalType === 'amc-type') {
-    apiUrl = '/api/amc/amc-types/';
+    apiUrl = '/amc/api/amc/amc-types/';
     data.name = value;
   } else if (currentModalType === 'payment-terms') {
     apiUrl = '/api/amc/payment-terms/';
@@ -978,7 +973,7 @@ function editOption(type, id, currentValue) {
   if (newValue && newValue.trim() && newValue !== currentValue) {
     let apiUrl = '';
     if (type === 'amc-type') {
-      apiUrl = `/api/amc/amc-types/${id}/`;
+      apiUrl = `/amc/api/amc/amc-types/${id}/`;
     } else if (type === 'payment-terms') {
       apiUrl = `/api/amc/payment-terms/${id}/`;
     }
@@ -1013,7 +1008,7 @@ function deleteOption(type, id) {
 
   let apiUrl = '';
   if (type === 'amc-type') {
-    apiUrl = `/api/amc/amc-types/${id}/`;
+    apiUrl = `/amc/api/amc/amc-types/${id}/`;
   } else if (type === 'payment-terms') {
     apiUrl = `/api/amc/payment-terms/${id}/`;
   }
@@ -1068,8 +1063,9 @@ function showMessage(type, message) {
 document.addEventListener('DOMContentLoaded', function() {
   toggleContractFields();
 
-  // Load customers dynamically on page load
+  // Load customers and AMC types dynamically on page load
   loadCustomersDropdown();
+  loadAMCTypesDropdown();
 
   document.getElementById('amcForm').addEventListener('submit', handleAMCFormSubmit);
 });
@@ -1116,6 +1112,39 @@ function loadCustomersDropdown() {
       console.error('Error loading customers:', error);
       var customerSelect = document.getElementById('customer');
       customerSelect.innerHTML = '<option value="">Error loading customers</option>';
+    });
+}
+
+function loadAMCTypesDropdown() {
+  {% if is_edit and amc.amc_type %}
+  var currentAMCTypeId = {{ amc.amc_type.id }};
+  {% else %}
+  var currentAMCTypeId = null;
+  {% endif %}
+
+  fetch('/amc/api/amc/amc-types/')
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+      var amcTypeSelect = document.getElementById('amc_type');
+      amcTypeSelect.innerHTML = '<option value="">Select AMC Type</option>';
+
+      data.forEach(function(amcType) {
+        var option = document.createElement('option');
+        option.value = amcType.id;
+        option.textContent = amcType.name;
+
+        // If editing, select the current AMC type
+        if (currentAMCTypeId && amcType.id === currentAMCTypeId) {
+          option.selected = true;
+        }
+
+        amcTypeSelect.appendChild(option);
+      });
+    })
+    .catch(function(error) {
+      console.error('Error loading AMC types:', error);
+      var amcTypeSelect = document.getElementById('amc_type');
+      amcTypeSelect.innerHTML = '<option value="">Error loading AMC types</option>';
     });
 }
 
