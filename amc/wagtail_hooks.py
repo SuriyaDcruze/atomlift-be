@@ -154,7 +154,7 @@ def add_amc_custom(request):
         'selected_customer': selected_customer,
         'customer_id_param': customer_id,
     }
-    return render(request, 'amc/add_amc_custom.html', context)
+    return render(request, 'amc/edit_amc_custom.html', context)
 
 
 def edit_amc_custom(request, pk):
@@ -217,7 +217,7 @@ def edit_amc_custom(request, pk):
         'payment_terms': PaymentTerms.objects.all(),
         'items': Item.objects.all(),
     }
-    return render(request, 'amc/add_amc_custom.html', context)
+    return render(request, 'amc/edit_amc_custom.html', context)
 
 
 # API endpoints

@@ -18,25 +18,23 @@ body {
 }
 
 .w-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 50;
-  padding: 1rem;
+  /* Align with Add page: render as normal container, not overlay */
+  position: static;
+  inset: auto;
+  background-color: transparent;
+  display: block;
+  padding: 0;
 }
 
 .w-modal-content {
   background: white;
   border-radius: 0.75rem;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.15);
   width: 100%;
-  max-width: 64rem;
-  max-height: 90vh;
+  max-width: 72rem;
+  margin: 2rem auto;
+  max-height: none;
   overflow: visible;
-  z-index: 50;
   display: flex;
   flex-direction: column;
 }
@@ -62,8 +60,8 @@ body {
 
 .w-modal-body {
   padding: 1.5rem;
-  max-height: 70vh;
-  overflow-y: auto;
+  max-height: none;
+  overflow: visible;
 }
 
 .form-grid {
@@ -460,7 +458,7 @@ body {
   }
 
   .w-modal-content {
-    max-height: 95vh;
+    margin: 1rem auto;
   }
 
   .option-modal-dialog {
@@ -503,11 +501,11 @@ body {
               <input
                 type="text"
                 id="reference_id"
-                name="reference_id"
                 class="form-input"
-                value="{% if is_edit %}{{ quotation.reference_id }}{% endif %}"
+                value="{{ quotation.reference_id }}"
                 readonly
               />
+              <p class="form-help">Auto-generated reference ID</p>
             </div>
 
             <div class="form-group">
@@ -523,10 +521,10 @@ body {
               <label class="form-label">Quotation Type<span class="form-required">*</span></label>
               <select id="type" name="type" class="form-input form-select" required>
                 <option value="">Select Quotation Type</option>
-                <option value="Parts/Peripheral Quotation" {% if is_edit and quotation.type == "Parts/Peripheral Quotation" %}selected{% endif %}>Parts/Peripheral Quotation</option>
-                <option value="Repair" {% if is_edit and quotation.type == "Repair" %}selected{% endif %}>Repair</option>
-                <option value="AMC Renewal Quotation" {% if is_edit and quotation.type == "AMC Renewal Quotation" %}selected{% endif %}>AMC Renewal Quotation</option>
-                <option value="AMC" {% if is_edit and quotation.type == "AMC" %}selected{% endif %}>AMC</option>
+                <option value="Parts/Peripheral Quotation">Parts/Peripheral Quotation</option>
+                <option value="Repair">Repair</option>
+                <option value="AMC Renewal Quotation">AMC Renewal Quotation</option>
+                <option value="AMC">AMC</option>
               </select>
             </div>
 
@@ -541,9 +539,11 @@ body {
 
             <div class="form-group">
               <label class="form-label">Sales/Service Executive</label>
-              <select id="sales_service_executive" name="sales_service_executive" class="form-input form-select">
-                <option value="">Loading executives...</option>
-              </select>
+              <div class="form-select-addon">
+                <select id="sales_service_executive" name="sales_service_executive" class="form-input form-select">
+                  <option value="">Loading executives...</option>
+                </select>
+              </div>
             </div>
 
             <div class="form-group">
@@ -553,9 +553,9 @@ body {
                 id="year_of_make"
                 name="year_of_make"
                 class="form-input"
-                value="{% if is_edit %}{{ quotation.year_of_make }}{% endif %}"
                 placeholder="e.g., 2023"
                 maxlength="4"
+                value="{{ quotation.year_of_make }}"
               />
             </div>
 
@@ -566,7 +566,7 @@ body {
                 id="date"
                 name="date"
                 class="form-input"
-                value="{% if is_edit %}{{ quotation.date|date:'Y-m-d' }}{% endif %}"
+                value="{{ quotation.date|date:'Y-m-d' }}"
               />
               <p class="form-help">Leave empty to use current date</p>
             </div>
@@ -575,14 +575,17 @@ body {
           <!-- Right Column -->
           <div class="form-column">
             <!-- Associated Lifts -->
-            <h3 class="form-section-title">Associated Lifts</h3>
+            <h3 class="form-section-title">Associated Lift</h3>
 
             <div class="form-group">
-              <label class="form-label">Select Lift<span class="form-required">*</span></label>
-              <select id="lift" name="lift" class="form-input form-select" required>
-                <option value="">Loading lifts...</option>
-              </select>
-              <p class="form-help">Select a lift for this quotation</p>
+              <label class="form-label">Lift<span class="form-required">*</span></label>
+              <div class="form-select-addon">
+                <select id="lift" name="lift" class="form-input form-select" required>
+                  <option value="">Loading lifts...</option>
+                </select>
+              </div>
+              <p id="lifts-error" class="form-error-message" style="display:none;"></p>
+              <p class="form-help">Select one lift for this quotation</p>
             </div>
 
             <!-- Remarks & Attachments -->
@@ -596,7 +599,7 @@ body {
                 class="form-input form-textarea"
                 rows="3"
                 placeholder="Enter any remarks..."
-              >{% if is_edit %}{{ quotation.remark }}{% endif %}</textarea>
+              >{{ quotation.remark }}</textarea>
             </div>
 
             <div class="form-group">
@@ -607,7 +610,7 @@ body {
                 class="form-input form-textarea"
                 rows="3"
                 placeholder="Enter additional remarks..."
-              >{% if is_edit %}{{ quotation.other_remark }}{% endif %}</textarea>
+              >{{ quotation.other_remark }}</textarea>
             </div>
 
             <div class="form-group">
@@ -619,9 +622,6 @@ body {
                 class="form-input"
                 accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
               />
-              {% if is_edit and quotation.uploads_files %}
-              <p class="form-help">Current file: <a href="{{ quotation.uploads_files.url }}" target="_blank">{{ quotation.uploads_files.name }}</a></p>
-              {% endif %}
             </div>
           </div>
         </div>
@@ -679,9 +679,8 @@ var adminHomeUrl = "{% url 'wagtailadmin_home' %}";
 var currentCustomerId = {% if is_edit and quotation.customer %}{{ quotation.customer.id }}{% else %}null{% endif %};
 var currentAmcTypeId = {% if is_edit and quotation.amc_type %}{{ quotation.amc_type.id }}{% else %}null{% endif %};
 var currentExecutiveId = {% if is_edit and quotation.sales_service_executive %}{{ quotation.sales_service_executive.id }}{% else %}null{% endif %};
-{% with first_lift=quotation.lifts.all.0 %}
-var currentLiftId = {% if is_edit and first_lift %}{{ first_lift.id }}{% else %}null{% endif %};
-{% endwith %}
+var currentLiftId = {% if is_edit and quotation.lifts.first %}{{ quotation.lifts.first.id }}{% else %}null{% endif %};
+var currentType = '{{ quotation.type|escapejs }}';
 
 document.addEventListener('DOMContentLoaded', function() {
   // Load various dropdowns dynamically on page load
@@ -689,6 +688,12 @@ document.addEventListener('DOMContentLoaded', function() {
   loadAmcTypes();
   loadExecutives();
   loadLifts();
+
+  // Set current type after options exist
+  var typeSelect = document.getElementById('type');
+  if (currentType) {
+    typeSelect.value = currentType;
+  }
 });
 
 function loadCustomers() {
@@ -755,7 +760,7 @@ function loadExecutives() {
       data.forEach(function(item) {
         var option = document.createElement('option');
         option.value = item.id;
-        option.textContent = item.full_name;
+        option.textContent = item.name || item.username;
 
         // If editing, select the current executive
         if (currentExecutiveId && item.id === currentExecutiveId) {
@@ -782,13 +787,10 @@ function loadLifts() {
       data.forEach(function(lift) {
         var option = document.createElement('option');
         option.value = lift.id;
-        option.textContent = lift.name + ' - ' + lift.reference_id + ' (' + lift.brand + ')';
-
-        // If editing, select the current lift
+        option.textContent = lift.name + ' (' + lift.reference_id + (lift.brand ? ' - ' + lift.brand : '') + ')';
         if (currentLiftId && lift.id === currentLiftId) {
           option.selected = true;
         }
-
         select.appendChild(option);
       });
     })
@@ -849,7 +851,7 @@ function createFormData() {
     }
   }
   
-  // Handle single lift selection
+  // Add selected lift
   var selectedLift = document.getElementById('lift').value;
   if (selectedLift) {
     formData.append('lifts', selectedLift);
@@ -863,9 +865,10 @@ function handleFormSubmit(event) {
 
   var customer = document.getElementById('customer').value;
   var type = document.getElementById('type').value;
+  var lift = document.getElementById('lift').value;
   
-  if (!customer || !type) {
-    showMessage('error', 'Please fill in all required fields (Customer, Quotation Type)');
+  if (!customer || !type || !lift) {
+    showMessage('error', 'Please fill in all required fields (Customer, Quotation Type, Lift)');
     return;
   }
 

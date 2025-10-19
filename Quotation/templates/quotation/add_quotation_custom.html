@@ -18,7 +18,7 @@ body {
 }
 
 .w-modal-overlay {
-  /* Page-like layout: remove fixed overlay */
+  /* Match lift add page: render as page container, not overlay */
   position: static;
   inset: auto;
   background-color: transparent;
@@ -28,7 +28,7 @@ body {
 
 .w-modal-content {
   background: white;
-  border-radius: 0.5rem;
+  border-radius: 0.75rem;
   box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.15);
   width: 100%;
   max-width: 72rem;
@@ -87,7 +87,7 @@ body {
   font-size: 0.875rem;
   font-weight: 500;
   color: #374151;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.5rem;
 }
 
 .form-required {
@@ -95,10 +95,38 @@ body {
   margin-left: 0.25rem;
 }
 
-.form-input, .form-select, .form-textarea {
+.form-input {
   width: 100%;
-  padding: 0.625rem 1rem;
-  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  border: 1px solid #D1D5DB;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}
+
+.form-select {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  border: 1px solid #D1D5DB;
+  background: white;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.75rem center;
+  background-repeat: no-repeat;
+  background-size: 1rem;
+  padding-right: 2.5rem;
+}
+
+.form-textarea {
+  width: 100%;
+  min-height: 3rem;
+  resize: vertical;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
   border: 1px solid #D1D5DB;
   background: white;
   font-size: 0.875rem;
@@ -108,7 +136,8 @@ body {
 .form-input:focus, .form-select:focus, .form-textarea:focus {
   outline: none;
   border-color: #F97316;
-  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.5);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+  z-index: 1;
 }
 
 .form-input:disabled {
@@ -116,9 +145,37 @@ body {
   color: #6B7280;
 }
 
-.form-textarea {
-  min-height: 4.5rem;
-  resize: vertical;
+.form-select-addon {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.form-select-addon .form-select {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right: 0;
+}
+
+.form-select-addon button {
+  background: linear-gradient(to right, #3B82F6, #1D4ED8);
+  color: white;
+  border: 1px solid #D1D5DB;
+  border-left: 0;
+  border-top-right-radius: 0.375rem;
+  border-bottom-right-radius: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3rem;
+}
+
+.form-select-addon button:hover {
+  background: linear-gradient(to right, #2563EB, #1E40AF);
 }
 
 .form-select {
@@ -155,7 +212,7 @@ body {
   gap: 0.75rem;
   position: sticky;
   bottom: 0;
-  z-index: 1;
+  z-index: 10;
 }
 
 .btn {
@@ -322,6 +379,22 @@ body {
     transform: rotate(360deg);
   }
 }
+
+/* Responsive adjustments to match lift add page */
+@media (max-width: 768px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .w-modal-content {
+    margin: 1rem auto;
+  }
+
+  .toast {
+    min-width: 17.5rem;
+    max-width: 90vw;
+  }
+}
 </style>
 {% endblock %}
 
@@ -382,13 +455,13 @@ body {
               </select>
             </div>
 
-             <div class="form-group">
-               <label class="form-label">Sales/Service Executive</label>
-               <select id="sales_service_executive" name="sales_service_executive" class="form-select">
-                 <option value="">Loading executives...</option>
-               </select>
-               <p id="executive-error" class="form-error-message" style="display: none;"></p>
-             </div>
+            <div class="form-group">
+              <label class="form-label">Sales/Service Executive</label>
+              <select id="sales_service_executive" name="sales_service_executive" class="form-select">
+                <option value="">Select Executive</option>
+              </select>
+              <p id="executive-error" class="form-error-message" style="display: none;"></p>
+            </div>
           </div>
 
           <!-- Right Column -->
@@ -420,14 +493,14 @@ body {
               <p class="form-help">Leave empty to use current date</p>
             </div>
 
-             <div class="form-group">
-               <label class="form-label">Select Lift<span class="form-required">*</span></label>
-               <select id="lift" name="lift" class="form-select" required>
-                 <option value="">Loading lifts...</option>
-               </select>
-               <p id="lift-error" class="form-error-message" style="display: none;"></p>
-               <p class="form-help">Select a lift for this quotation</p>
-             </div>
+            <div class="form-group">
+              <label class="form-label">Lift<span class="form-required">*</span></label>
+              <select id="lift" name="lift" class="form-select" required>
+                <option value="">Loading lifts...</option>
+              </select>
+              <p id="lifts-error" class="form-error-message" style="display: none;"></p>
+              <p class="form-help">Select one lift</p>
+            </div>
 
             <div class="form-group">
               <label class="form-label">Remark</label>
@@ -580,28 +653,28 @@ function loadAmcTypes() {
     });
 }
 
- function loadExecutives() {
-   fetch('/quotation/api/executives/')
-     .then(response => {
-       if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-       return response.json();
-     })
-     .then(data => {
-       const select = document.getElementById('sales_service_executive');
-       select.innerHTML = '<option value="">Select Executive</option>';
-       data.forEach(item => {
-         const option = document.createElement('option');
-         option.value = item.id;
-         option.textContent = item.full_name;
-         select.appendChild(option);
-       });
-     })
-     .catch(error => {
-       console.error('Error loading executives:', error);
-       document.getElementById('sales_service_executive').innerHTML = '<option value="">Error loading executives</option>';
-       showMessage('error', 'Failed to load sales/service executives');
-     });
- }
+function loadExecutives() {
+  fetch('/quotation/api/executives/')
+    .then(response => {
+      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+      return response.json();
+    })
+    .then(data => {
+      const select = document.getElementById('sales_service_executive');
+      select.innerHTML = '<option value="">Select Executive</option>';
+      data.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.id;
+        option.textContent = item.name || item.username;
+        select.appendChild(option);
+      });
+    })
+    .catch(error => {
+      console.error('Error loading executives:', error);
+      document.getElementById('sales_service_executive').innerHTML = '<option value="">Error loading executives</option>';
+      showMessage('error', 'Failed to load sales/service executives');
+    });
+}
 
 function loadLifts() {
   fetch('/quotation/api/lifts/')
@@ -612,7 +685,7 @@ function loadLifts() {
       data.forEach(lift => {
         const option = document.createElement('option');
         option.value = lift.id;
-        option.textContent = `${lift.name} - ${lift.reference_id} (${lift.brand})`;
+        option.textContent = `${lift.name} (${lift.reference_id}${lift.brand ? ' - ' + lift.brand : ''})`;
         select.appendChild(option);
       });
     })
@@ -652,88 +725,87 @@ function showMessage(type, message) {
   }, type === 'success' ? 3000 : 5000);
 }
 
- function validateForm() {
-   let isValid = true;
-   const errors = {};
- 
-   const customer = document.getElementById('customer').value;
-   const type = document.getElementById('type').value;
-   const date = document.getElementById('date').value;
-   const lift = document.getElementById('lift').value;
- 
-   if (!customer) {
-     errors.customer = 'Customer is required';
-     document.getElementById('customer').classList.add('form-error');
-     document.getElementById('customer-error').textContent = errors.customer;
-     document.getElementById('customer-error').style.display = 'block';
-     isValid = false;
-   } else {
-     document.getElementById('customer').classList.remove('form-error');
-     document.getElementById('customer-error').style.display = 'none';
-   }
- 
-   if (!type) {
-     errors.type = 'Quotation type is required';
-     document.getElementById('type').classList.add('form-error');
-     document.getElementById('type-error').textContent = errors.type;
-     document.getElementById('type-error').style.display = 'block';
-     isValid = false;
-   } else {
-     document.getElementById('type').classList.remove('form-error');
-     document.getElementById('type-error').style.display = 'none';
-   }
- 
-   if (!date) {
-     errors.date = 'Date is required';
-     document.getElementById('date').classList.add('form-error');
-     document.getElementById('date-error').textContent = errors.date;
-     document.getElementById('date-error').style.display = 'block';
-     isValid = false;
-   } else {
-     document.getElementById('date').classList.remove('form-error');
-     document.getElementById('date-error').style.display = 'none';
-   }
- 
-   if (!lift) {
-     errors.lift = 'Lift selection is required';
-     document.getElementById('lift').classList.add('form-error');
-     document.getElementById('lift-error').textContent = errors.lift;
-     document.getElementById('lift-error').style.display = 'block';
-     isValid = false;
-   } else {
-     document.getElementById('lift').classList.remove('form-error');
-     document.getElementById('lift-error').style.display = 'none';
-   }
- 
-   return isValid;
- }
+function validateForm() {
+  let isValid = true;
+  const errors = {};
 
- function createFormData() {
-   const formData = new FormData();
-   formData.append('csrfmiddlewaretoken', getCsrfToken());
-   formData.append('reference_id', document.getElementById('reference_id').value);
- 
-   const elements = document.querySelectorAll('input:not([type=checkbox]):not([readonly]), select, textarea');
-   elements.forEach(element => {
-     if (element.name) {
-       if (element.type === 'file') {
-         Array.from(element.files).forEach(file => {
-           formData.append('uploads_files', file);
-         });
-       } else {
-         formData.append(element.name, element.value);
-       }
-     }
-   });
- 
-   // Handle single lift selection
-   const selectedLift = document.getElementById('lift').value;
-   if (selectedLift) {
-     formData.append('lifts', selectedLift);
-   }
- 
-   return formData;
- }
+  const customer = document.getElementById('customer').value;
+  const type = document.getElementById('type').value;
+  const date = document.getElementById('date').value;
+  const selectedLift = document.getElementById('lift').value;
+
+  if (!customer) {
+    errors.customer = 'Customer is required';
+    document.getElementById('customer').classList.add('form-error');
+    document.getElementById('customer-error').textContent = errors.customer;
+    document.getElementById('customer-error').style.display = 'block';
+    isValid = false;
+  } else {
+    document.getElementById('customer').classList.remove('form-error');
+    document.getElementById('customer-error').style.display = 'none';
+  }
+
+  if (!type) {
+    errors.type = 'Quotation type is required';
+    document.getElementById('type').classList.add('form-error');
+    document.getElementById('type-error').textContent = errors.type;
+    document.getElementById('type-error').style.display = 'block';
+    isValid = false;
+  } else {
+    document.getElementById('type').classList.remove('form-error');
+    document.getElementById('type-error').style.display = 'none';
+  }
+
+  if (!date) {
+    errors.date = 'Date is required';
+    document.getElementById('date').classList.add('form-error');
+    document.getElementById('date-error').textContent = errors.date;
+    document.getElementById('date-error').style.display = 'block';
+    isValid = false;
+  } else {
+    document.getElementById('date').classList.remove('form-error');
+    document.getElementById('date-error').style.display = 'none';
+  }
+
+  if (!selectedLift) {
+    errors.lifts = 'Lift is required';
+    document.getElementById('lift').classList.add('form-error');
+    document.getElementById('lifts-error').textContent = errors.lifts;
+    document.getElementById('lifts-error').style.display = 'block';
+    isValid = false;
+  } else {
+    document.getElementById('lift').classList.remove('form-error');
+    document.getElementById('lifts-error').style.display = 'none';
+  }
+
+  return isValid;
+}
+
+function createFormData() {
+  const formData = new FormData();
+  formData.append('csrfmiddlewaretoken', getCsrfToken());
+  formData.append('reference_id', document.getElementById('reference_id').value);
+
+  const elements = document.querySelectorAll('input:not([type=checkbox]):not([readonly]), select, textarea');
+  elements.forEach(element => {
+    if (element.name) {
+      if (element.type === 'file') {
+        Array.from(element.files).forEach(file => {
+          formData.append('uploads_files', file);
+        });
+      } else {
+        formData.append(element.name, element.value);
+      }
+    }
+  });
+
+  const selectedLift = document.getElementById('lift').value;
+  if (selectedLift) {
+    formData.append('lifts', selectedLift);
+  }
+
+  return formData;
+}
 
 function handleFormSubmit() {
   if (!validateForm()) {

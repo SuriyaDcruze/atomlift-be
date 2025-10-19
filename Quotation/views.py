@@ -83,14 +83,11 @@ def create_quotation(request):
             quotation.date = data.get('date')
             quotation.save()
         
-        # Add selected lift
-        lift_id = data.get('lifts', '')
-        if lift_id:
-            try:
-                lift = Lift.objects.get(id=lift_id)
-                quotation.lifts.add(lift)
-            except Lift.DoesNotExist:
-                pass
+        # Add selected lifts
+        lift_ids = data.get('lifts', '').split(',')
+        if lift_ids and lift_ids[0]:  # Check if not empty
+            lifts = Lift.objects.filter(id__in=lift_ids)
+            quotation.lifts.set(lifts)
         
         return JsonResponse({
             "success": True,
@@ -144,15 +141,13 @@ def update_quotation(request, reference_id):
         
         quotation.save()
         
-        # Update selected lift
-        lift_id = data.get('lifts', '')
-        quotation.lifts.clear()  # Clear existing lifts
-        if lift_id:
-            try:
-                lift = Lift.objects.get(id=lift_id)
-                quotation.lifts.add(lift)
-            except Lift.DoesNotExist:
-                pass
+        # Update selected lifts
+        lift_ids = data.get('lifts', '').split(',')
+        if lift_ids and lift_ids[0]:  # Check if not empty
+            lifts = Lift.objects.filter(id__in=lift_ids)
+            quotation.lifts.set(lifts)
+        else:
+            quotation.lifts.clear()
         
         return JsonResponse({
             "success": True,
@@ -179,6 +174,20 @@ def get_customers(request):
 
 
 @require_http_methods(["GET"])
+def get_quotations(request):
+    """Get existing quotations (minimal data for computing next reference id)"""
+    try:
+        quotations = Quotation.objects.all().only("reference_id").order_by("id")
+        data = [
+            {"reference_id": quotation.reference_id}
+            for quotation in quotations
+        ]
+        return JsonResponse(data, safe=False)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@require_http_methods(["GET"])
 def get_amc_types(request):
     """Get all AMC types"""
     try:
@@ -196,17 +205,13 @@ def get_amc_types(request):
 def get_executives(request):
     """Get all sales/service executives"""
     try:
-        executives = CustomUser.objects.filter(groups__name='employee').order_by('first_name', 'last_name')
-        data = [
-            {
-                "id": user.id, 
-                "username": user.username,
-                "first_name": user.first_name or "",
-                "last_name": user.last_name or "",
-                "full_name": f"{user.first_name or ''} {user.last_name or ''}".strip() or user.username
-            }
-            for user in executives
-        ]
+        executives = CustomUser.objects.filter(groups__name='employee').order_by('first_name', 'last_name', 'username')
+        data = []
+        for user in executives:
+            full_name = f"{user.first_name} {user.last_name}".strip()
+            if not full_name:
+                full_name = user.username
+            data.append({"id": user.id, "username": user.username, "name": full_name})
         return JsonResponse(data, safe=False)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
@@ -225,23 +230,6 @@ def get_lifts(request):
                 "brand": str(lift.brand) if lift.brand else "N/A"
             }
             for lift in lifts
-        ]
-        return JsonResponse(data, safe=False)
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
-
-
-@require_http_methods(["GET"])
-def get_quotations(request):
-    """Get all quotations for reference ID generation"""
-    try:
-        quotations = Quotation.objects.all().order_by('id')
-        data = [
-            {
-                "id": quotation.id,
-                "reference_id": quotation.reference_id
-            }
-            for quotation in quotations
         ]
         return JsonResponse(data, safe=False)
     except Exception as e:

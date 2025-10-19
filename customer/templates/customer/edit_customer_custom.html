@@ -1,0 +1,197 @@
+{% extends "wagtailadmin/base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+body { font-family: -apple-system,BlinkMacSystemFont,'Segoe UI','Roboto','Oxygen','Ubuntu','Cantarell',sans-serif; margin:0; padding:0; overflow-x:hidden; }
+.w-content-wrapper { background:#f5f5f5; min-height:calc(100vh - 4rem); padding:2rem; }
+.w-modal-overlay { position:static; inset:auto; background-color:transparent; display:block; padding:0; }
+.w-modal-content { background:#fff; border-radius:.75rem; box-shadow:0 10px 20px -10px rgba(0,0,0,.15); width:100%; max-width:72rem; margin:2rem auto; overflow:visible; display:flex; flex-direction:column; }
+.w-modal-header { background:linear-gradient(to right,#2D3A6B,#243158); padding:1.5rem; }
+.w-modal-title { margin:0; font-size:1.5rem; font-weight:bold; color:#fff; }
+.w-modal-subtitle { margin:0; color:#fff; font-size:.875rem; opacity:.9; }
+.w-modal-body { padding:1.5rem; }
+.form-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:1.5rem; }
+.form-section-title { font-size:1.125rem; font-weight:600; color:#374151; border-bottom:2px solid #E5E7EB; padding-bottom:.5rem; margin-bottom:1rem; }
+.form-group { margin-bottom:1rem; }
+.form-label { display:block; font-size:.875rem; font-weight:500; color:#374151; margin-bottom:.5rem; }
+.form-input { width:100%; padding:.5rem .75rem; border-radius:.375rem; border:1px solid #D1D5DB; box-shadow:0 1px 2px rgba(0,0,0,.05); font-size:.875rem; transition:all .2s; }
+.form-input:focus { outline:none; border-color:#F97316; box-shadow:0 0 0 3px rgba(249,115,22,.1); }
+.form-textarea { min-height:3rem; resize:vertical; padding:.5rem .75rem; }
+.form-select { appearance:none; background-image:url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e"); background-position:right .75rem center; background-repeat:no-repeat; background-size:1rem; padding-right:2.5rem; font-size:.875rem; }
+.form-checkbox-wrapper { display:flex; align-items:center; padding:.75rem; background:#F9FAFB; border-radius:.375rem; border:1px solid #D1D5DB; }
+.form-checkbox { margin-right:.5rem; }
+.form-help { font-size:.75rem; color:#6B7280; margin-top:.25rem; }
+.w-modal-footer { padding:1rem 1.5rem; background:#F9FAFB; border-top:1px solid #E5E7EB; display:flex; justify-content:flex-end; gap:.75rem; position:sticky; bottom:0; z-index:1; }
+.btn { padding:.625rem 1.25rem; border-radius:.375rem; font-size:.875rem; font-weight:500; border:none; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:.5rem; transition:all .2s; text-decoration:none; }
+.btn-secondary { background:#F3F4F6; color:#374151; border:1px solid #D1D5DB; }
+.btn-primary { background:linear-gradient(to right,#2D3A6B,#243158); color:#fff; }
+@media (max-width:768px){ .form-grid{grid-template-columns:1fr;} .w-modal-content{margin:1rem auto;} }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="w-content-wrapper">
+  <div class="w-modal-overlay">
+    <div class="w-modal-content">
+      <div class="w-modal-header">
+        <h2 class="w-modal-title">Edit Customer</h2>
+        <p class="w-modal-subtitle">Update customer details</p>
+      </div>
+      <div class="w-modal-body">
+        <div class="form-grid">
+          <div class="form-column">
+            <h3 class="form-section-title">Basic Information</h3>
+            <div class="form-group">
+              <label class="form-label">Reference ID</label>
+              <input type="text" id="reference_id" value="{{ customer.reference_id }}" class="form-input" readonly />
+              <p class="form-help">Auto-generated reference number</p>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Site ID<span class="form-required">*</span></label>
+              <input type="text" id="site_id" name="site_id" value="{{ customer.site_id }}" required class="form-input" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Site Name<span class="form-required">*</span></label>
+              <input type="text" id="site_name" name="site_name" value="{{ customer.site_name }}" required class="form-input" oninput="updateSiteName(this.value)" />
+              <p class="form-help">Site name will be auto-formatted with job number if provided</p>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Billing Name</label>
+              <input type="text" id="billing_name" name="billing_name" value="{{ customer.billing_name }}" class="form-input" />
+            </div>
+
+            <h3 class="form-section-title">Address Details</h3>
+            <div class="form-group">
+              <label class="form-label">Site Address<span class="form-required">*</span></label>
+              <textarea id="site_address" name="site_address" rows="3" class="form-input form-textarea" required>{{ customer.site_address }}</textarea>
+            </div>
+            <div class="form-group">
+              <div class="form-checkbox-wrapper">
+                <input type="checkbox" id="same_as_site_address" name="same_as_site_address" {% if customer.same_as_site_address %}checked{% endif %} class="form-checkbox" onchange="handleOfficeAddressSync()" />
+                <label class="form-checkbox-label" style="margin-bottom:0;">Same as Site Address</label>
+              </div>
+              <p class="form-help">Check this to automatically copy site address to office address</p>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Office Address</label>
+              <textarea id="office_address" name="office_address" rows="3" class="form-input form-textarea" {% if customer.same_as_site_address %}disabled{% endif %}>{{ customer.office_address }}</textarea>
+            </div>
+
+            <h3 class="form-section-title">Contact Information</h3>
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input type="email" id="email" name="email" value="{{ customer.email }}" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Phone</label>
+              <input type="tel" id="phone" name="phone" value="{{ customer.phone }}" class="form-input" maxlength="10" oninput="this.value=this.value.replace(/\D/g,'').slice(0,10)" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Mobile (SMS Notification)<span class="form-required">*</span></label>
+              <input type="tel" id="mobile" name="mobile" value="{{ customer.mobile }}" class="form-input" maxlength="10" oninput="this.value=this.value.replace(/\D/g,'').slice(0,10)" required pattern="\d{10}" title="Mobile number must be exactly 10 digits" />
+              <p class="form-help">10-digit mobile number for SMS notifications</p>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Contact Person Name</label>
+              <input type="text" id="contact_person_name" name="contact_person_name" value="{{ customer.contact_person_name }}" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Designation</label>
+              <input type="text" id="designation" name="designation" value="{{ customer.designation }}" class="form-input" />
+            </div>
+          </div>
+
+          <div class="form-column">
+            <h3 class="form-section-title">Organization Details</h3>
+            <div class="form-group">
+              <label class="form-label">Job No</label>
+              <input type="text" id="job_no" name="job_no" value="{{ customer.job_no }}" class="form-input" oninput="updateJobNo(this.value)" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">City</label>
+              <input type="text" id="city" name="city" value="{{ customer.city }}" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Pin Code</label>
+              <input type="text" id="pin_code" name="pin_code" value="{{ customer.pin_code }}" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">State</label>
+              <div class="form-select-addon">
+                <select id="province_state" name="province_state" class="form-input form-select">
+                  <option value="">Loading states...</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Sector</label>
+              <select id="sector" name="sector" class="form-input form-select">
+                <option value="">Select Sector</option>
+                <option value="government" {% if customer.sector == 'government' %}selected{% endif %}>Government</option>
+                <option value="private" {% if customer.sector == 'private' %}selected{% endif %}>Private</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Route</label>
+              <div class="form-select-addon">
+                <select id="routes" name="routes" class="form-input form-select">
+                  <option value="">Loading routes...</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Branch</label>
+              <div class="form-select-addon">
+                <select id="branch" name="branch" class="form-input form-select">
+                  <option value="">Loading branches...</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">GST Number</label>
+              <input type="text" id="gst_number" name="gst_number" value="{{ customer.gst_number }}" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">PAN Number</label>
+              <input type="text" id="pan_number" name="pan_number" value="{{ customer.pan_number }}" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Handover Date</label>
+              <input type="date" id="handover_date" name="handover_date" value="{{ customer.handover_date|date:'Y-m-d' }}" class="form-input" />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="w-modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="window.history.back();">Cancel</button>
+        <button type="button" id="submitBtn" class="btn btn-primary" onclick="handleFormSubmit({target: document.getElementById('customerForm')})">Update Customer</button>
+      </div>
+    </div>
+  </div>
+
+  <form id="customerForm" style="display:none;">
+    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+  </form>
+</div>
+
+<script>
+const submitUrl = "{% url 'edit_customer_custom' customer.id %}";
+const adminHomeUrl = "{% url 'wagtailadmin_home' %}";
+
+function updateSiteName(value){var jobNo=document.getElementById('job_no').value;if(jobNo){document.getElementById('site_name').value=value+' - '+jobNo;}}
+function updateJobNo(value){var siteName=document.getElementById('site_name').value;if(siteName&&siteName.indexOf(' - ')==-1){document.getElementById('site_name').value=siteName+' - '+value;}else if(siteName.indexOf(' - ')!==-1){var baseName=siteName.split(' - ')[0];document.getElementById('site_name').value=baseName+' - '+value;}}
+function handleOfficeAddressSync(){var same=document.getElementById('same_as_site_address').checked;var site=document.getElementById('site_address');var office=document.getElementById('office_address');if(same){office.value=site.value;office.disabled=true;}else{office.disabled=false;}}
+
+document.addEventListener('DOMContentLoaded',function(){loadStatesDropdown();loadRoutesDropdown();loadBranchesDropdown();});
+
+function loadStatesDropdown(){var currentStateId={% if customer.province_state %}{{ customer.province_state.id }}{% else %}null{% endif %};fetch('/customer/api/customer/states/').then(r=>r.json()).then(data=>{var sel=document.getElementById('province_state');sel.innerHTML='<option value="">Select State</option>';data.forEach(state=>{var o=document.createElement('option');o.value=state.id;o.textContent=state.value;if(currentStateId&&state.id===currentStateId){o.selected=true;}sel.appendChild(o);});}).catch(()=>{document.getElementById('province_state').innerHTML='<option value="">Error loading states</option>';});}
+function loadRoutesDropdown(){var currentRouteId={% if customer.routes %}{{ customer.routes.id }}{% else %}null{% endif %};fetch('/customer/api/customer/routes/').then(r=>r.json()).then(data=>{var sel=document.getElementById('routes');sel.innerHTML='<option value="">Select Route</option>';data.forEach(route=>{var o=document.createElement('option');o.value=route.id;o.textContent=route.value;if(currentRouteId&&route.id===currentRouteId){o.selected=true;}sel.appendChild(o);});}).catch(()=>{document.getElementById('routes').innerHTML='<option value="">Error loading routes</option>';});}
+function loadBranchesDropdown(){var currentBranchId={% if customer.branch %}{{ customer.branch.id }}{% else %}null{% endif %};fetch('/customer/api/customer/branches/').then(r=>r.json()).then(data=>{var sel=document.getElementById('branch');sel.innerHTML='<option value="">Select Branch</option>';data.forEach(branch=>{var o=document.createElement('option');o.value=branch.id;o.textContent=branch.value;if(currentBranchId&&branch.id===currentBranchId){o.selected=true;}sel.appendChild(o);});}).catch(()=>{document.getElementById('branch').innerHTML='<option value="">Error loading branches</option>';});}
+
+function getCsrfToken(){var t=document.querySelector('[name=csrfmiddlewaretoken]');return t?t.value:''}
+function showMessage(type,message){alert(message)}
+function createFormData(){var els=document.querySelectorAll('input,select,textarea');var data={};for(var i=0;i<els.length;i++){var el=els[i];if(el.name){if(el.type==='checkbox'){data[el.name]=el.checked;}else{data[el.name]=el.value;}}}data.same_as_site_address=data.same_as_site_address||false;return data;}
+function handleFormSubmit(e){if(e)e.preventDefault();var data=createFormData();if(!data.site_id||!data.site_name||!data.mobile){showMessage('error','Please fill in all required fields (Site ID, Site Name, Mobile)');return;}if(data.mobile.length!==10){showMessage('error','Mobile number must be exactly 10 digits');return;}if(data.phone&&data.phone.length!==10){showMessage('error','Phone number must be exactly 10 digits');return;}var btn=document.getElementById('submitBtn');var txt=btn.textContent;btn.textContent='Saving...';btn.disabled=true;fetch(submitUrl,{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':getCsrfToken()},body:JSON.stringify(data)}).then(r=>r.json()).then(result=>{btn.textContent=txt;btn.disabled=false;if(result.success){window.location.href=adminHomeUrl;}else{showMessage('error',result.error||'Failed');}}).catch(()=>{btn.textContent=txt;btn.disabled=false;showMessage('error','An error occurred while saving the customer');});}
+</script>
+{% endblock %}
