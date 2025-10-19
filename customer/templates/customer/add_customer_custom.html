@@ -820,10 +820,10 @@ body {
 
 <script>
 let currentModalType = '';
-var isEditMode = {% if is_edit %}true{% else %}false{% endif %};
-var submitUrl = "{% if is_edit %}{% url 'edit_customer_custom' customer.id %}{% else %}{% url 'add_customer_custom' %}{% endif %}";
-var amcUrl = "{% url 'add_amc_custom' %}";
-var adminHomeUrl = "{% url 'wagtailadmin_home' %}";
+const isEditMode = {% if is_edit %}true{% else %}false{% endif %};
+const submitUrl = "{% if is_edit %}{% url 'edit_customer_custom' customer.id %}{% else %}{% url 'add_customer_custom' %}{% endif %}";
+const amcUrl = "/admin/amc/add-custom/";
+const adminHomeUrl = "{% url 'wagtailadmin_home' %}";
 
 function updateSiteName(value) {
   var jobNo = document.getElementById('job_no').value;
@@ -1215,21 +1215,14 @@ function handleCreateSuccess(result) {
   setTimeout(function() {
     var createAMC = confirm('Do you want to create an AMC for this customer?');
     if (createAMC) {
-      var customerRefId = result.customer.reference_id;
-      if (customerRefId) {
-        window.location.href = amcUrl + '?customerId=' + customerRefId;
-      } else {
-        showMessage('error', 'Could not retrieve customer reference ID for AMC navigation');
-        setTimeout(function() {
-          window.location.href = adminHomeUrl;
-        }, 2000);
-      }
+      // Store customer ID in session storage for AMC form to use
+      sessionStorage.setItem('recentCustomerId', result.customer.id);
+      window.location.href = '/admin/amc/add-custom/'; // Fixed URL
     } else {
       window.location.href = adminHomeUrl;
     }
   }, 1500);
 }
-
 // Add click event listener to submit button
 document.getElementById('submitBtn').addEventListener('click', handleFormSubmit);
 

@@ -1077,7 +1077,16 @@ function loadCustomersDropdown() {
   var currentCustomerId = null;
   {% endif %}
 
-  fetch('/admin/api/amc/customers/')  // Changed to correct Wagtail admin endpoint
+  // Check sessionStorage for recentCustomerId if not editing
+  if (!currentCustomerId) {
+    currentCustomerId = sessionStorage.getItem('recentCustomerId');
+    // Optionally clear it after use to prevent reuse on refresh
+    if (currentCustomerId) {
+      sessionStorage.removeItem('recentCustomerId');
+    }
+  }
+
+  fetch('/admin/api/amc/customers/')  // Updated URL with /admin/
     .then(function(response) { return response.json(); })
     .then(function(data) {
       var customerSelect = document.getElementById('customer');
@@ -1095,17 +1104,18 @@ function loadCustomersDropdown() {
         option.setAttribute('data-job-no', customer.job_no);
         option.setAttribute('data-site-address', customer.site_address);
 
-        // If editing, select the current customer
-        if (currentCustomerId && customer.id === currentCustomerId) {
+        // Select the current or recent customer
+        if (currentCustomerId && customer.id == currentCustomerId) {
           option.selected = true;
         }
 
         customerSelect.appendChild(option);
       });
 
-      // Trigger customer details fetch if a customer is pre-selected
+      // If a customer is pre-selected (edit or recent), trigger the change event to autofill fields
       if (currentCustomerId) {
-        fetchCustomerDetails();  // Assuming this function is defined elsewhere in the full file
+        var changeEvent = new Event('change');
+        customerSelect.dispatchEvent(changeEvent);
       }
     })
     .catch(function(error) {
@@ -1114,7 +1124,6 @@ function loadCustomersDropdown() {
       customerSelect.innerHTML = '<option value="">Error loading customers</option>';
     });
 }
-
 function loadAMCTypesDropdown() {
   {% if is_edit and amc.amc_type %}
   var currentAMCTypeId = {{ amc.amc_type.id }};

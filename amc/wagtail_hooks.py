@@ -309,7 +309,7 @@ def manage_payment_terms_detail(request, pk):
 def get_customers(request):
     """API for getting all customers"""
     customers = Customer.objects.all().values(
-        'id', 'reference_id', 'site_id', 'site_name', 'job_no'
+        'id', 'reference_id', 'site_id', 'site_name', 'job_no', 'site_address'
     )
     return JsonResponse(list(customers), safe=False)
 

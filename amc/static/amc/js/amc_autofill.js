@@ -2,7 +2,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const customerSelect = document.querySelector('select[name="customer"]');
     const siteField = document.querySelector('input[name="latitude"]');
     const jobField = document.querySelector('input[name="equipment_no"]');
-    const amcNameField = document.querySelector('input[name="amcname"]'); // Added for amcname
+    const amcNameField = document.querySelector('input[name="amcname"]');
     const startDateInput = document.querySelector('input[name="start_date"]');
     const endDateInput = document.querySelector('input[name="end_date"]');
 
@@ -24,14 +24,27 @@ document.addEventListener("DOMContentLoaded", function () {
             if (!id) return;
 
             try {
-                const resp = await fetch(`/admin/customer/customer/${id}/`);  // Changed to new admin endpoint
+                const resp = await fetch(`/admin/api/amc/customers/?id=${id}`);
                 if (!resp.ok) return;
-                const data = await resp.json();
+                const customers = await resp.json();
+                const customer = customers.find(c => c.id == id);
 
-                if (data.site_address && siteField) siteField.value = data.site_address;
-                if (data.job_no && jobField) jobField.value = data.job_no;
-                if (data.site_name && amcNameField) amcNameField.value = data.site_name; // Auto-fill amcname with site_name
+                if (customer) {
+                    // Auto-fill equipment number with job number if field is empty
+                    if (customer.job_no && jobField && jobField.value === '') {
+                        jobField.value = customer.job_no;
+                    }
 
+                    // Auto-fill latitude field with site address
+                    if (customer.site_address && siteField) {
+                        siteField.value = customer.site_address;
+                    }
+
+                    // Auto-fill AMC name with site name if field is empty
+                    if (customer.site_name && amcNameField && amcNameField.value === '') {
+                        amcNameField.value = customer.site_name;
+                    }
+                }
             } catch (err) {
                 console.error("Failed to fetch customer info:", err);
             }

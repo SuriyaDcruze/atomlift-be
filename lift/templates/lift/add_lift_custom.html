@@ -1,0 +1,1263 @@
+{% extends "wagtailadmin/base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+/* Modern Tailwind-like styles for Wagtail admin */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+.w-content-wrapper {
+  background: #f5f5f5;
+  min-height: calc(100vh - 4rem);
+  padding: 2rem;
+}
+
+.w-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 1rem;
+}
+
+.w-modal-content {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  width: 100%;
+  max-width: 64rem;
+  max-height: 90vh;
+  overflow: visible;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+}
+
+.w-modal-header {
+  background: linear-gradient(to right, #2D3A6B, #243158);
+  padding: 1.5rem;
+}
+
+.w-modal-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: white;
+}
+
+.w-modal-subtitle {
+  margin: 0;
+  color: white;
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
+
+.w-modal-body {
+  padding: 1.5rem;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.form-section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 2px solid #E5E7EB;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.form-required {
+  color: #EF4444;
+  margin-left: 0.25rem;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  border: 1px solid #D1D5DB;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #F97316;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+  z-index: 1;
+}
+
+.form-input:disabled {
+  background-color: #F9FAFB;
+  color: #6B7280;
+}
+
+.form-textarea {
+  min-height: 3rem;
+  resize: vertical;
+  padding: 0.5rem 0.75rem;
+}
+
+.form-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.75rem center;
+  background-repeat: no-repeat;
+  background-size: 1rem;
+  padding-right: 2.5rem;
+  font-size: 0.875rem;
+}
+
+.form-select-addon {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.form-select-addon .form-select {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right: 0;
+}
+
+.form-select-addon button {
+  background: linear-gradient(to right, #3B82F6, #1D4ED8);
+  color: white;
+  border: 1px solid #D1D5DB;
+  border-left: 0;
+  border-top-right-radius: 0.375rem;
+  border-bottom-right-radius: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3rem;
+}
+
+.form-select-addon button:hover {
+  background: linear-gradient(to right, #2563EB, #1E40AF);
+}
+
+.form-checkbox-wrapper {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  background: #F9FAFB;
+  border-radius: 0.375rem;
+  border: 1px solid #D1D5DB;
+}
+
+.form-checkbox {
+  margin-right: 0.5rem;
+}
+
+.form-checkbox-label {
+  margin: 0;
+  font-weight: normal !important;
+}
+
+.form-help {
+  font-size: 0.75rem;
+  color: #6B7280;
+  margin-top: 0.25rem;
+}
+
+  .w-modal-footer {
+    padding: 1rem 1.5rem;
+    background: #F9FAFB;
+    border-top: 1px solid #E5E7EB;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+  }
+
+.btn {
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.btn-secondary {
+  background: #F3F4F6;
+  color: #374151;
+  border: 1px solid #D1D5DB;
+}
+
+.btn-secondary:hover {
+  background: #E5E7EB;
+}
+
+.btn-primary {
+  background: linear-gradient(to right, #2D3A6B, #243158);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(to right, #213066, #182755);
+}
+
+.option-modal {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 1rem;
+}
+
+.option-modal.active {
+  display: flex;
+}
+
+.option-modal-dialog {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  width: 100%;
+  max-width: 42rem;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.option-modal-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.option-modal-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.option-modal-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+.option-modal-footer {
+  padding: 1.5rem;
+  background: #F9FAFB;
+  border-top: 1px solid #E5E7EB;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.option-list {
+  max-height: 20rem;
+  overflow-y: auto;
+  border: 1px solid #D1D5DB;
+  border-radius: 0.375rem;
+  margin-top: 1rem;
+}
+
+.option-table {
+  width: 100%;
+  font-size: 0.875rem;
+}
+
+.option-table thead {
+  background: #F3F4F6;
+}
+
+.option-table th {
+  padding: 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.option-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.toast-container {
+  position: fixed;
+  top: 1.25rem;
+  right: 1.25rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.toast {
+  background: white;
+  border-radius: 0.375rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  min-width: 20rem;
+  max-width: 31.25rem;
+  border-left: 4px solid;
+  animation: slideInRight 0.3s ease-out;
+}
+
+.toast--success {
+  border-left-color: #10B981;
+}
+
+.toast--error {
+  border-left-color: #EF4444;
+}
+
+.toast-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+}
+
+.toast-message {
+  flex: 1;
+  margin-right: 1rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6B7280;
+  padding: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.toast-close:hover {
+  color: #374151;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 10rem;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+  border-radius: 50%;
+  height: 2rem;
+  width: 2rem;
+  border: 2px solid #3B82F6;
+  border-top-color: transparent;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 768px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .w-modal-content {
+    max-height: 95vh;
+  }
+
+  .option-modal-dialog {
+    max-width: 95vw;
+  }
+
+  .toast {
+    min-width: 17.5rem;
+    max-width: 90vw;
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="w-content-wrapper">
+  <div class="w-modal-overlay">
+    <div class="w-modal-content">
+      <!-- Modal Header -->
+      <div class="w-modal-header">
+        <h2 class="w-modal-title">
+          {% if is_edit %}Edit Lift{% else %}Create New Lift{% endif %}
+        </h2>
+        <p class="w-modal-subtitle">
+          {% if is_edit %}Update lift details{% else %}Fill in all required fields (*) to add a lift{% endif %}
+        </p>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="w-modal-body">
+        {% if states|length >= 0 and routes|length >= 0 and branches|length >= 0 %}
+        <div class="form-grid">
+          <!-- Left Column -->
+          <div class="form-column">
+            <!-- Basic Information -->
+            <h3 class="form-section-title">Basic Information</h3>
+
+            <div class="form-group">
+              <label class="form-label">Reference ID</label>
+              <input
+                type="text"
+                value="{% if is_edit %}{{ lift.reference_id }}{% endif %}"
+                class="form-input"
+                readonly
+              />
+              <p class="form-help">Auto-generated reference ID</p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Lift Code</label>
+              <input
+                type="text"
+                id="lift_code"
+                name="lift_code"
+                value="{% if is_edit %}{{ lift.lift_code }}{% endif %}"
+                class="form-input"
+                placeholder="Enter custom lift code (optional)"
+              />
+              <p class="form-help">Optional custom code for the lift</p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">
+                Lift Name<span class="form-required">*</span>
+              </label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                value="{% if is_edit %}{{ lift.name }}{% endif %}"
+                required
+                class="form-input"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Price<span class="form-required">*</span></label>
+              <input
+                type="number"
+                id="price"
+                name="price"
+                step="0.01"
+                value="{% if is_edit %}{{ lift.price }}{% endif %}"
+                required
+                class="form-input"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Model<span class="form-required">*</span></label>
+              <input
+                type="text"
+                id="model"
+                name="model"
+                value="{% if is_edit %}{{ lift.model }}{% endif %}"
+                required
+                class="form-input"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">
+                Number of Passengers<span class="form-required">*</span>
+              </label>
+              <input
+                type="number"
+                id="no_of_passengers"
+                name="no_of_passengers"
+                value="{% if is_edit %}{{ lift.no_of_passengers }}{% endif %}"
+                required
+                class="form-input"
+                oninput="calculateLoadKg()"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Load (kg)</label>
+              <input
+                type="number"
+                id="load_kg"
+                name="load_kg"
+                value="{% if is_edit %}{{ lift.load_kg }}{% endif %}"
+                class="form-input"
+                readonly
+              />
+              <p class="form-help">Auto-calculated as 68 kg per passenger</p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Speed<span class="form-required">*</span></label>
+              <input
+                type="text"
+                id="speed"
+                name="speed"
+                value="{% if is_edit %}{{ lift.speed }}{% endif %}"
+                required
+                class="form-input"
+              />
+            </div>
+
+            <!-- License Details -->
+            <h3 class="form-section-title">License Details</h3>
+
+            <div class="form-group">
+              <label class="form-label">License No</label>
+              <input
+                type="text"
+                id="license_no"
+                name="license_no"
+                value="{% if is_edit %}{{ lift.license_no }}{% endif %}"
+                class="form-input"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">License Start Date</label>
+              <input
+                type="date"
+                id="license_start_date"
+                name="license_start_date"
+                value="{% if is_edit %}{{ lift.license_start_date|date:'Y-m-d' }}{% endif %}"
+                class="form-input"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">License End Date</label>
+              <input
+                type="date"
+                id="license_end_date"
+                name="license_end_date"
+                value="{% if is_edit %}{{ lift.license_end_date|date:'Y-m-d' }}{% endif %}"
+                class="form-input"
+              />
+            </div>
+          </div>
+
+          <!-- Right Column -->
+          <div class="form-column">
+            <!-- Lift Specifications -->
+            <h3 class="form-section-title">Lift Specifications</h3>
+
+            <div class="form-group">
+              <label class="form-label">Floor ID</label>
+              <div class="form-select-addon">
+                <select id="floor_id" name="floor_id" class="form-input form-select">
+                  <option value="">Loading floor IDs...</option>
+                </select>
+                
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Brand<span class="form-required">*</span></label>
+              <div class="form-select-addon">
+                <select id="brand" name="brand" class="form-input form-select" required>
+                  <option value="">Loading brands...</option>
+                </select>
+                
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Lift Type<span class="form-required">*</span></label>
+              <div class="form-select-addon">
+                <select id="lift_type" name="lift_type" class="form-input form-select" required>
+                  <option value="">Loading lift types...</option>
+                </select>
+                
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Machine Type<span class="form-required">*</span></label>
+              <div class="form-select-addon">
+                <select id="machine_type" name="machine_type" class="form-input form-select" required>
+                  <option value="">Loading machine types...</option>
+                </select>
+                
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Machine Brand</label>
+              <div class="form-select-addon">
+                <select id="machine_brand" name="machine_brand" class="form-input form-select">
+                  <option value="">Loading machine brands...</option>
+                </select>
+                
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Door Type<span class="form-required">*</span></label>
+              <div class="form-select-addon">
+                <select id="door_type" name="door_type" class="form-input form-select" required>
+                  <option value="">Loading door types...</option>
+                </select>
+                
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Door Brand</label>
+              <div class="form-select-addon">
+                <select id="door_brand" name="door_brand" class="form-input form-select">
+                  <option value="">Loading door brands...</option>
+                </select>
+                
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Controller Brand</label>
+              <div class="form-select-addon">
+                <select id="controller_brand" name="controller_brand" class="form-input form-select">
+                  <option value="">Loading controller brands...</option>
+                </select>
+                
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Cabin</label>
+              <div class="form-select-addon">
+                <select id="cabin" name="cabin" class="form-input form-select">
+                  <option value="">Loading cabins...</option>
+                </select>
+                
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Block</label>
+              <input
+                type="text"
+                id="block"
+                name="block"
+                value="{% if is_edit %}{{ lift.block }}{% endif %}"
+                class="form-input"
+              />
+            </div>
+          </div>
+        </div>
+        {% else %}
+        <div class="loading-spinner">
+          <div class="spinner"></div>
+          <span>Loading options...</span>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="w-modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="window.history.back();">Cancel</button>
+        <button
+          type="button"
+          id="submitBtn"
+          class="btn btn-primary"
+          onclick="handleFormSubmit({target: document.getElementById('liftForm')})"
+        >
+          {% if is_edit %}Update Lift{% else %}Create Lift{% endif %}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Option Modal -->
+  <div id="optionModal" class="option-modal">
+    <div class="option-modal-dialog">
+      <div class="option-modal-header">
+        <h3 class="option-modal-title" id="modalTitle">Add New Option</h3>
+      </div>
+      <div class="option-modal-body">
+        <div class="form-group">
+          <label class="form-label">Name</label>
+          <input type="text" id="modalInput" class="form-input" placeholder="Enter value" />
+        </div>
+        <div class="option-list" id="existingOptions"></div>
+      </div>
+      <div class="option-modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="saveOption()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden Form for Django CSRF -->
+  <form id="liftForm" style="display:none;">
+    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+  </form>
+
+  {% if messages %}
+  <div class="toast-container">
+    {% for message in messages %}
+    <div class="toast toast--{% if message.tags %}{{ message.tags }}{% else %}info{% endif %}">
+      <div class="toast-content">
+        <div class="toast-message">
+          {{ message }}
+        </div>
+        <button class="toast-close" onclick="this.parentElement.parentElement.remove()">×</button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<script>
+let currentModalType = '';
+var isEditMode = {% if is_edit %}true{% else %}false{% endif %};
+var submitUrl = "{% if is_edit %}{% url 'edit_lift_custom' lift.lift_code %}{% else %}{% url 'add_lift_custom' %}{% endif %}";
+var adminHomeUrl = "{% url 'wagtailadmin_home' %}";
+
+// Edit mode variables
+var currentFloorId = {% if is_edit and lift.floor_id %}{{ lift.floor_id.id }}{% else %}null{% endif %};
+var currentBrandId = {% if is_edit and lift.brand %}{{ lift.brand.id }}{% else %}null{% endif %};
+var currentLiftTypeId = {% if is_edit and lift.lift_type %}{{ lift.lift_type.id }}{% else %}null{% endif %};
+var currentMachineTypeId = {% if is_edit and lift.machine_type %}{{ lift.machine_type.id }}{% else %}null{% endif %};
+var currentMachineBrandId = {% if is_edit and lift.machine_brand %}{{ lift.machine_brand.id }}{% else %}null{% endif %};
+var currentDoorTypeId = {% if is_edit and lift.door_type %}{{ lift.door_type.id }}{% else %}null{% endif %};
+var currentDoorBrandId = {% if is_edit and lift.door_brand %}{{ lift.door_brand.id }}{% else %}null{% endif %};
+var currentControllerBrandId = {% if is_edit and lift.controller_brand %}{{ lift.controller_brand.id }}{% else %}null{% endif %};
+var currentCabinId = {% if is_edit and lift.cabin %}{{ lift.cabin.id }}{% else %}null{% endif %};
+
+function calculateLoadKg() {
+  var passengers = document.getElementById('no_of_passengers').value;
+  if (passengers) {
+    var loadKg = passengers * 68;
+    document.getElementById('load_kg').value = loadKg;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Load various dropdowns dynamically on page load
+  loadFloorIDs();
+  loadBrands();
+  loadLiftTypes();
+  loadMachineTypes();
+  loadMachineBrands();
+  loadDoorTypes();
+  loadDoorBrands();
+  loadControllerBrands();
+  loadCabins();
+});
+
+function loadFloorIDs() {
+  fetch('/lift/api/lift/floorids/')
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+      var select = document.getElementById('floor_id');
+      select.innerHTML = '<option value="">Select Floor ID</option>';
+
+      data.forEach(function(item) {
+        var option = document.createElement('option');
+        option.value = item.id;
+        option.textContent = item.value;
+
+        // If editing, select the current floor_id
+        if (currentFloorId && item.id === currentFloorId) {
+          option.selected = true;
+        }
+
+        select.appendChild(option);
+      });
+    })
+    .catch(function(error) {
+      console.error('Error loading floor IDs:', error);
+      var select = document.getElementById('floor_id');
+      select.innerHTML = '<option value="">Error loading floor IDs</option>';
+    });
+}
+
+function loadBrands() {
+  fetch('/lift/api/lift/brands/')
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+      var select = document.getElementById('brand');
+      select.innerHTML = '<option value="">Select Brand</option>';
+
+      data.forEach(function(item) {
+        var option = document.createElement('option');
+        option.value = item.id;
+        option.textContent = item.value;
+
+        // If editing, select the current brand
+        if (currentBrandId && item.id === currentBrandId) {
+          option.selected = true;
+        }
+
+        select.appendChild(option);
+      });
+    })
+    .catch(function(error) {
+      console.error('Error loading brands:', error);
+      var select = document.getElementById('brand');
+      select.innerHTML = '<option value="">Error loading brands</option>';
+    });
+}
+
+function loadLiftTypes() {
+  fetch('/lift/api/lift/lifttypes/')
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+      var select = document.getElementById('lift_type');
+      select.innerHTML = '<option value="">Select Lift Type</option>';
+
+      data.forEach(function(item) {
+        var option = document.createElement('option');
+        option.value = item.id;
+        option.textContent = item.value;
+
+        // If editing, select the current lift_type
+        if (currentLiftTypeId && item.id === currentLiftTypeId) {
+          option.selected = true;
+        }
+
+        select.appendChild(option);
+      });
+    })
+    .catch(function(error) {
+      console.error('Error loading lift types:', error);
+      var select = document.getElementById('lift_type');
+      select.innerHTML = '<option value="">Error loading lift types</option>';
+    });
+}
+
+function loadMachineTypes() {
+  fetch('/lift/api/lift/machinetypes/')
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+      var select = document.getElementById('machine_type');
+      select.innerHTML = '<option value="">Select Machine Type</option>';
+
+      data.forEach(function(item) {
+        var option = document.createElement('option');
+        option.value = item.id;
+        option.textContent = item.value;
+
+        // If editing, select the current machine_type
+        if (currentMachineTypeId && item.id === currentMachineTypeId) {
+          option.selected = true;
+        }
+
+        select.appendChild(option);
+      });
+    })
+    .catch(function(error) {
+      console.error('Error loading machine types:', error);
+      var select = document.getElementById('machine_type');
+      select.innerHTML = '<option value="">Error loading machine types</option>';
+    });
+}
+
+function loadMachineBrands() {
+  fetch('/lift/api/lift/machinebrands/')
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+      var select = document.getElementById('machine_brand');
+      select.innerHTML = '<option value="">Select Machine Brand</option>';
+
+      data.forEach(function(item) {
+        var option = document.createElement('option');
+        option.value = item.id;
+        option.textContent = item.value;
+
+        // If editing, select the current machine_brand
+        if (currentMachineBrandId && item.id === currentMachineBrandId) {
+          option.selected = true;
+        }
+
+        select.appendChild(option);
+      });
+    })
+    .catch(function(error) {
+      console.error('Error loading machine brands:', error);
+      var select = document.getElementById('machine_brand');
+      select.innerHTML = '<option value="">Error loading machine brands</option>';
+    });
+}
+
+function loadDoorTypes() {
+  fetch('/lift/api/lift/doortypes/')
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+      var select = document.getElementById('door_type');
+      select.innerHTML = '<option value="">Select Door Type</option>';
+
+      data.forEach(function(item) {
+        var option = document.createElement('option');
+        option.value = item.id;
+        option.textContent = item.value;
+
+        // If editing, select the current door_type
+        if (currentDoorTypeId && item.id === currentDoorTypeId) {
+          option.selected = true;
+        }
+
+        select.appendChild(option);
+      });
+    })
+    .catch(function(error) {
+      console.error('Error loading door types:', error);
+      var select = document.getElementById('door_type');
+      select.innerHTML = '<option value="">Error loading door types</option>';
+    });
+}
+
+function loadDoorBrands() {
+  fetch('/lift/api/lift/doorbrands/')
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+      var select = document.getElementById('door_brand');
+      select.innerHTML = '<option value="">Select Door Brand</option>';
+
+      data.forEach(function(item) {
+        var option = document.createElement('option');
+        option.value = item.id;
+        option.textContent = item.value;
+
+        // If editing, select the current door_brand
+        if (currentDoorBrandId && item.id === currentDoorBrandId) {
+          option.selected = true;
+        }
+
+        select.appendChild(option);
+      });
+    })
+    .catch(function(error) {
+      console.error('Error loading door brands:', error);
+      var select = document.getElementById('door_brand');
+      select.innerHTML = '<option value="">Error loading door brands</option>';
+    });
+}
+
+function loadControllerBrands() {
+  fetch('/lift/api/lift/controllerbrands/')
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+      var select = document.getElementById('controller_brand');
+      select.innerHTML = '<option value="">Select Controller Brand</option>';
+
+      data.forEach(function(item) {
+        var option = document.createElement('option');
+        option.value = item.id;
+        option.textContent = item.value;
+
+        // If editing, select the current controller_brand
+        if (currentControllerBrandId && item.id === currentControllerBrandId) {
+          option.selected = true;
+        }
+
+        select.appendChild(option);
+      });
+    })
+    .catch(function(error) {
+      console.error('Error loading controller brands:', error);
+      var select = document.getElementById('controller_brand');
+      select.innerHTML = '<option value="">Error loading controller brands</option>';
+    });
+}
+
+function loadCabins() {
+  fetch('/lift/api/lift/cabins/')
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+      var select = document.getElementById('cabin');
+      select.innerHTML = '<option value="">Select Cabin</option>';
+
+      data.forEach(function(item) {
+        var option = document.createElement('option');
+        option.value = item.id;
+        option.textContent = item.value;
+
+        // If editing, select the current cabin
+        if (currentCabinId && item.id === currentCabinId) {
+          option.selected = true;
+        }
+
+        select.appendChild(option);
+      });
+    })
+    .catch(function(error) {
+      console.error('Error loading cabins:', error);
+      var select = document.getElementById('cabin');
+      select.innerHTML = '<option value="">Error loading cabins</option>';
+    });
+}
+
+function openModal(type) {
+  currentModalType = type;
+  var modal = document.getElementById('optionModal');
+  var modalTitle = document.getElementById('modalTitle');
+
+  modalTitle.textContent = 'Add New ' + type.charAt(0).toUpperCase() + type.slice(1);
+
+  loadExistingOptions(type);
+  modal.classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('optionModal').classList.remove('active');
+  document.getElementById('modalInput').value = '';
+}
+
+function loadExistingOptions(type) {
+  fetch('/lift/api/lift/' + type + 's/')
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+      var container = document.getElementById('existingOptions');
+      container.innerHTML = '<table class="option-table"><thead><tr><th>Name</th><th>Actions</th></tr></thead><tbody>' +
+        data.map(function(item) {
+          return '<tr><td>' + item.value + '</td><td>' +
+            '<button type="button" class="btn btn-secondary" style="margin-right: 0.25rem; padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="editOption(\'' + type + '\', ' + item.id + ', \'' + item.value + '\')">Edit</button>' +
+            '<button type="button" class="btn-danger" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background: #EF4444; color: white; border: none; border-radius: 0.25rem; cursor: pointer;" onclick="deleteOption(\'' + type + '\', ' + item.id + ')">Delete</button>' +
+          '</td></tr>';
+        }).join('') + '</tbody></table>';
+    });
+}
+
+function saveOption() {
+  var value = document.getElementById('modalInput').value.trim();
+  if (!value) return;
+
+  fetch('/lift/api/lift/' + currentModalType + 's/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCsrfToken()
+    },
+    body: JSON.stringify({ value: value })
+  })
+  .then(function(response) { return response.json(); })
+  .then(function(data) {
+    if (data.success) {
+      var select = document.getElementById(currentModalType);
+      var option = new Option(value, data.id);
+      select.appendChild(option);
+      select.value = data.id;
+
+      closeModal();
+      showMessage('success', currentModalType.charAt(0).toUpperCase() + currentModalType.slice(1) + ' added successfully');
+    } else {
+      showMessage('error', data.error);
+    }
+  });
+}
+
+function editOption(type, id, currentValue) {
+  var newValue = prompt('Edit ' + type.charAt(0).toUpperCase() + type.slice(1) + ':', currentValue);
+  if (newValue && newValue.trim() && newValue !== currentValue) {
+    fetch('/lift/api/lift/' + type + 's/' + id + '/', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: JSON.stringify({ value: newValue.trim() })
+    })
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+      if (data.success) {
+        loadExistingOptions(type);
+        var select = document.getElementById(type);
+        var option = select.querySelector('option[value="' + id + '"]');
+        if (option) {
+          option.textContent = newValue.trim();
+        }
+        showMessage('success', type.charAt(0).toUpperCase() + type.slice(1) + ' updated successfully');
+      } else {
+        showMessage('error', data.error);
+      }
+    });
+  }
+}
+
+function deleteOption(type, id) {
+  if (!confirm('Are you sure you want to delete this ' + type + '?')) return;
+
+  fetch('/lift/api/lift/' + type + 's/' + id + '/', {
+    method: 'DELETE',
+    headers: {
+      'X-CSRFToken': getCsrfToken()
+    }
+  })
+  .then(function(response) { return response.json(); })
+  .then(function(data) {
+    if (data.success) {
+      loadExistingOptions(type);
+      var select = document.getElementById(type);
+      var option = select.querySelector('option[value="' + id + '"]');
+      if (option) {
+        option.remove();
+      }
+      showMessage('success', type.charAt(0).toUpperCase() + type.slice(1) + ' deleted successfully');
+    } else {
+      showMessage('error', data.error);
+    }
+  });
+}
+
+function getCsrfToken() {
+  var token = document.querySelector('[name=csrfmiddlewaretoken]');
+  return token ? token.value : '';
+}
+
+function showMessage(type, message) {
+  var toast = document.createElement('div');
+  toast.className = 'toast toast--' + type;
+  toast.innerHTML = '<div class="toast-content">' +
+    '<span class="toast-message">' + message + '</span>' +
+    '<button class="toast-close" onclick="this.parentElement.parentElement.remove()">×</button>' +
+  '</div>';
+
+  var toastContainer = document.querySelector('.toast-container');
+  if (!toastContainer) {
+    toastContainer = document.createElement('div');
+    toastContainer.className = 'toast-container';
+    document.getElementsByClassName('w-content-wrapper')[0].appendChild(toastContainer);
+  }
+
+  toastContainer.appendChild(toast);
+
+  setTimeout(function() {
+    if (toast.parentElement) {
+      toast.remove();
+    }
+  }, type === 'success' ? 3000 : 5000);
+}
+
+function createFormData() {
+  var elements = document.querySelectorAll('input, select, textarea');
+  var data = {};
+  for (var i = 0; i < elements.length; i++) {
+    var element = elements[i];
+    if (element.name) {
+      data[element.name] = element.value;
+    }
+  }
+  return data;
+}
+
+function handleFormSubmit(event) {
+  if (event) event.preventDefault();
+
+  var data = createFormData();
+
+  if (!data.name || !data.price || !data.model || !data.no_of_passengers || !data.speed || !data.brand || !data.lift_type || !data.machine_type || !data.door_type) {
+    showMessage('error', 'Please fill in all required fields (Name, Price, Model, No. of Passengers, Speed, Brand, Lift Type, Machine Type, Door Type)');
+    return;
+  }
+
+  var submitButton = document.getElementById('submitBtn');
+  var originalText = submitButton.textContent;
+  submitButton.textContent = 'Saving...';
+  submitButton.disabled = true;
+
+  fetch(submitUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCsrfToken()
+    },
+    body: JSON.stringify(data)
+  })
+  .then(function(response) { return response.json(); })
+  .then(function(result) {
+    submitButton.textContent = originalText;
+    submitButton.disabled = false;
+
+    if (result.success) {
+      showMessage('success', result.message);
+      setTimeout(function() {
+        window.location.href = adminHomeUrl;
+      }, 1500);
+    } else {
+      showMessage('error', result.error);
+    }
+  })
+  .catch(function(error) {
+    submitButton.textContent = originalText;
+    submitButton.disabled = false;
+    console.error('Error:', error);
+    showMessage('error', 'An error occurred while saving the lift');
+  });
+}
+
+// Add click event listener to submit button
+document.getElementById('submitBtn').addEventListener('click', handleFormSubmit);
+
+// Close modal when clicking outside
+document.getElementById('optionModal').addEventListener('click', function(e) {
+  if (e.target === this) {
+    closeModal();
+  }
+});
+</script>
+{% endblock %}

@@ -2,6 +2,8 @@ from django.db import models
 from wagtail.admin.panels import FieldPanel
 from wagtail.snippets.models import register_snippet
 from wagtail.snippets.views.snippets import SnippetViewSet, SnippetViewSetGroup
+from django.urls import reverse
+from django.shortcuts import redirect
 
 
 # ======================================================
@@ -76,7 +78,8 @@ class Cabin(models.Model):
 # ======================================================
 
 class Lift(models.Model):
-    lift_code = models.CharField(max_length=10, unique=True)
+    reference_id = models.CharField(max_length=20, unique=True, editable=False, null=False, blank=False)
+    lift_code = models.CharField(max_length=10, unique=True, blank=True, null=True)
     name = models.CharField(max_length=100)
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     floor_id = models.ForeignKey(FloorID, on_delete=models.SET_NULL, null=True)
@@ -98,6 +101,7 @@ class Lift(models.Model):
     license_end_date = models.DateField(blank=True, null=True)
 
     panels = [
+        FieldPanel("reference_id"),
         FieldPanel("lift_code"),
         FieldPanel("name"),
         FieldPanel("price"),
@@ -121,14 +125,26 @@ class Lift(models.Model):
     ]
 
     def save(self, *args, **kwargs):
+        if not self.reference_id:
+            # Generate reference ID in format: LIFT-YYYY-NNNN
+            import datetime
+            year = datetime.datetime.now().year
+            # Get the count of lifts created this year and add 1
+            count = Lift.objects.filter(
+                reference_id__startswith=f'LIFT-{year}-'
+            ).count() + 1
+            self.reference_id = f'LIFT-{year}-{count:04d}'
+
         if self.no_of_passengers and (self.load_kg is None or self.load_kg == 0):
             self.load_kg = int(self.no_of_passengers) * 68
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.lift_code} - {self.name}"
+        if self.lift_code:
+            return f"{self.lift_code} - {self.name}"
+        else:
+            return f"{self.reference_id} - {self.name}"
 
-    # 👇 Custom display field for Wagtail list
     def passengers_display(self):
         return f"{self.no_of_passengers} Persons"
     passengers_display.short_description = "No. of Passengers"
@@ -144,9 +160,18 @@ class LiftViewSet(SnippetViewSet):
     menu_label = "Lifts"
     inspect_view_enabled = True
 
-    # 👇 Table columns in admin list view
+    def get_form_class(self):
+        from django.forms import ModelForm
+
+        class LiftForm(ModelForm):
+            class Meta:
+                model = Lift
+                exclude = ('reference_id',)
+
+        return LiftForm
+
     list_display = (
-        "id",
+        "reference_id",
         "lift_code",
         "passengers_display",
         "brand",
@@ -160,6 +185,7 @@ class LiftViewSet(SnippetViewSet):
     list_export = list_display
 
     search_fields = (
+        "reference_id",
         "lift_code",
         "brand__value",
         "lift_type__value",
@@ -175,6 +201,21 @@ class LiftViewSet(SnippetViewSet):
         "door_type",
         "floor_id",
     )
+
+    def get_add_url(self):
+        return reverse("add_lift_custom")
+
+    def get_edit_url(self, instance):
+        # Use reference_id if lift_code is not available
+        identifier = instance.lift_code if instance.lift_code else instance.reference_id
+        return reverse("edit_lift_custom", args=(identifier,))
+
+    def add_view(self, request):
+        return redirect(self.get_add_url())
+
+    def edit_view(self, request, pk):
+        instance = self.model.objects.get(pk=pk)
+        return redirect(self.get_edit_url(instance))
 
 
 # ============== Other snippet ViewSets ==============
@@ -251,9 +292,9 @@ class LiftGroup(SnippetViewSetGroup):
         CabinViewSet,
     )
     menu_icon = "cog"
-    menu_label = "Lift "
+    menu_label = "Lift"
     menu_name = "lift"
-    menu_order = 1 
+    menu_order = 1
 
 
 register_snippet(LiftGroup)
