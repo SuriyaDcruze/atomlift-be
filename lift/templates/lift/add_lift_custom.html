@@ -18,25 +18,23 @@ body {
 }
 
 .w-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 50;
-  padding: 1rem;
+  /* Render as a normal page container rather than a modal overlay */
+  position: static;
+  inset: auto;
+  background-color: transparent;
+  display: block;
+  padding: 0;
 }
 
 .w-modal-content {
   background: white;
   border-radius: 0.75rem;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.15);
   width: 100%;
-  max-width: 64rem;
-  max-height: 90vh;
+  max-width: 72rem;
+  margin: 2rem auto;
+  max-height: none;
   overflow: visible;
-  z-index: 50;
   display: flex;
   flex-direction: column;
 }
@@ -62,8 +60,8 @@ body {
 
 .w-modal-body {
   padding: 1.5rem;
-  max-height: 70vh;
-  overflow-y: auto;
+  max-height: none;
+  overflow: visible;
 }
 
 .form-grid {
@@ -200,9 +198,9 @@ body {
     display: flex;
     justify-content: flex-end;
     gap: 0.75rem;
-    position: sticky;
+    position: sticky; /* stays visible at the bottom of the card while scrolling */
     bottom: 0;
-    z-index: 10;
+    z-index: 1;
   }
 
 .btn {
@@ -422,7 +420,7 @@ body {
   }
 
   .w-modal-content {
-    max-height: 95vh;
+    margin: 1rem auto;
   }
 
   .option-modal-dialog {
