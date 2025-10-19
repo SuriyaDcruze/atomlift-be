@@ -133,6 +133,18 @@ def get_cabins(request):
         return JsonResponse({"error": str(e)}, status=500)
 
 
+@require_http_methods(["GET"])
+def get_next_lift_reference(request):
+    """Return the next Lift reference ID (predicted) e.g., LIFT-YYYY-0001"""
+    try:
+        import datetime
+        year = datetime.datetime.now().year
+        count = Lift.objects.filter(reference_id__startswith=f"LIFT-{year}-").count() + 1
+        next_ref = f"LIFT-{year}-{count:04d}"
+        return JsonResponse({"reference_id": next_ref})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
 # CRUD operations for dropdown options
 @csrf_exempt
 @require_http_methods(["POST"])

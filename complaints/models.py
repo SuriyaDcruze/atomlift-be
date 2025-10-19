@@ -1,4 +1,6 @@
 from django.db import models
+from django.urls import reverse
+from django.shortcuts import redirect
 from django.utils import timezone
 from wagtail.snippets.views.snippets import SnippetViewSet, SnippetViewSetGroup
 from wagtail.snippets.models import register_snippet
@@ -169,6 +171,20 @@ class ComplaintViewSet(SnippetViewSet):
         "customer__site_name",
         "message",
     )
+
+    # Use custom add/edit pages
+    def get_add_url(self):
+        return reverse("add_complaint_custom")
+
+    def get_edit_url(self, instance):
+        return reverse("edit_complaint_custom", args=(instance.reference,))
+
+    def add_view(self, request):
+        return redirect(self.get_add_url())
+
+    def edit_view(self, request, pk):
+        instance = self.model.objects.get(pk=pk)
+        return redirect(self.get_edit_url(instance))
 
 
 

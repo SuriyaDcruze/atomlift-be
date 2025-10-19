@@ -1,0 +1,1078 @@
+{% extends "wagtailadmin/base.html" %}
+
+{% load static %}
+
+{% block extra_css %}
+<style>
+/* Modern Tailwind-like styles for Wagtail admin */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+.w-content-wrapper {
+  background: #f5f5f5;
+  min-height: calc(100vh - 4rem);
+  padding: 2rem;
+}
+
+.w-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 1rem;
+}
+
+.w-modal-content {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  width: 100%;
+  max-width: 64rem;
+  max-height: 90vh;
+  overflow: visible;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+}
+
+.w-modal-header {
+  background: linear-gradient(to right, #2D3A6B, #243158);
+  padding: 1.5rem;
+}
+
+.w-modal-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: white;
+}
+
+.w-modal-subtitle {
+  margin: 0;
+  color: white;
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
+
+.w-modal-body {
+  padding: 1.5rem;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.form-section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 2px solid #E5E7EB;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.25rem;
+}
+
+.form-required {
+  color: #EF4444;
+  margin-left: 0.25rem;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.375rem;
+  border: 1px solid #D1D5DB;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #F97316;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+  z-index: 1;
+}
+
+.form-input:disabled {
+  background-color: #F9FAFB;
+  color: #6B7280;
+}
+
+.form-textarea {
+  min-height: 3rem;
+  resize: vertical;
+  padding: 0.625rem 0.75rem;
+}
+
+.form-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.75rem center;
+  background-repeat: no-repeat;
+  background-size: 1rem;
+  padding-right: 2.5rem;
+  font-size: 0.875rem;
+}
+
+.form-select-addon {
+  display: flex;
+  align-items: stretch;
+  position: relative;
+}
+
+.form-select-addon .form-select {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right: 0;
+}
+
+.form-select-addon button {
+  background: linear-gradient(to right, #3B82F6, #1D4ED8);
+  color: white;
+  border: 1px solid #D1D5DB;
+  border-left: 0;
+  border-top-right-radius: 0.375rem;
+  border-bottom-right-radius: 0.375rem;
+  padding: 0 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.5rem;
+}
+
+.form-select-addon button:hover {
+  background: linear-gradient(to right, #2563EB, #1E40AF);
+}
+
+.form-radio-group {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.form-radio-option {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background: #F9FAFB;
+  border: 1px solid #D1D5DB;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.form-radio-option input[type="radio"] {
+  margin-right: 0.5rem;
+}
+
+.form-radio-option:hover {
+  background: #F3F4F6;
+}
+
+.form-radio-option.selected {
+  background: #EBF4FF;
+  border-color: #3B82F6;
+}
+
+.form-error {
+  font-size: 0.75rem;
+  color: #EF4444;
+  margin-top: 0.25rem;
+}
+
+.w-modal-footer {
+  padding: 1rem 1.5rem;
+  background: #F9FAFB;
+  border-top: 1px solid #E5E7EB;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+}
+
+.btn {
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.btn-secondary {
+  background: #F3F4F6;
+  color: #374151;
+  border: 1px solid #D1D5DB;
+}
+
+.btn-secondary:hover {
+  background: #E5E7EB;
+}
+
+.btn-primary {
+  background: linear-gradient(to right, #2D3A6B, #243158);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(to right, #213066, #182755);
+}
+
+.btn-primary:disabled {
+  background: linear-gradient(to right, #4B5A8F, #3C4A7A);
+  cursor: not-allowed;
+}
+
+.option-modal {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 1rem;
+}
+
+.option-modal.active {
+  display: flex;
+}
+
+.option-modal-dialog {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  width: 100%;
+  max-width: 48rem;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.option-modal-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.option-modal-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.option-modal-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+.option-modal-footer {
+  padding: 1rem 1.5rem;
+  background: #F9FAFB;
+  border-top: 1px solid #E5E7EB;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.option-list {
+  max-height: 20rem;
+  overflow-y: auto;
+  border: 1px solid #D1D5DB;
+  border-radius: 0.375rem;
+}
+
+.option-table {
+  width: 100%;
+  font-size: 0.875rem;
+}
+
+.option-table thead {
+  background: #F3F4F6;
+}
+
+.option-table th {
+  padding: 0.75rem;
+  text-align: left;
+  font-weight: 500;
+  color: #374151;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.option-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.option-table .btn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.option-table .btn-edit {
+  color: #3B82F6;
+}
+
+.option-table .btn-edit:hover {
+  color: #2563EB;
+}
+
+.option-table .btn-delete {
+  color: #EF4444;
+}
+
+.option-table .btn-delete:hover {
+  color: #DC2626;
+}
+
+.toast-container {
+  position: fixed;
+  bottom: 1.25rem;
+  right: 1.25rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.toast {
+  background: white;
+  border-radius: 0.375rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  min-width: 20rem;
+  max-width: 31.25rem;
+  border-left: 4px solid;
+  animation: slideInRight 0.3s ease-out;
+}
+
+.toast--success {
+  border-left-color: #10B981;
+}
+
+.toast--error {
+  border-left-color: #EF4444;
+}
+
+.toast-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+}
+
+.toast-message {
+  flex: 1;
+  margin-right: 1rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.toast-message strong {
+  font-weight: 600;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6B7280;
+  padding: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.toast-close:hover {
+  color: #374151;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 10rem;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+  border-radius: 50%;
+  height: 2rem;
+  width: 2rem;
+  border: 2px solid #3B82F6;
+  border-top-color: transparent;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 768px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .w-modal-content {
+    max-height: 95vh;
+  }
+
+  .option-modal-dialog {
+    max-width: 95vw;
+  }
+
+  .toast {
+    min-width: 17.5rem;
+    max-width: 90vw;
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="w-content-wrapper">
+  <div class="w-modal-overlay">
+    <div class="w-modal-content">
+      <!-- Modal Header -->
+      <div class="w-modal-header">
+        <h2 class="w-modal-title">
+          {% if is_edit %}Edit Item{% else %}Create New Item{% endif %}
+        </h2>
+        <p class="w-modal-subtitle">
+          Fill in all required fields (*) to {% if is_edit %}update{% else %}add{% endif %} an item
+        </p>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="w-modal-body">
+        {% if types|length >= 0 and makes|length >= 0 and units|length >= 0 %}
+        <form id="itemForm">
+          <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+          <div class="form-grid">
+            <!-- Left Column -->
+            <div class="form-column">
+              <h3 class="form-section-title">Essential Information</h3>
+
+              <div class="form-group">
+                <label class="form-label">Item Number</label>
+                <input
+                  type="text"
+                  value="{% if is_edit %}{{ item.item_number }}{% endif %}"
+                  class="form-input"
+                  readonly
+                />
+                <p class="form-help">Auto-generated item number</p>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">
+                  Name<span class="form-required">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="name"
+                  name="name"
+                  value="{% if is_edit %}{{ item.name }}{% endif %}"
+                  required
+                  class="form-input"
+                />
+                <p id="nameError" class="form-error" style="display: none;"></p>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Make</label>
+                <div class="form-select-addon">
+                  <select id="make" name="make" class="form-input form-select">
+                    <option value="">Loading makes...</option>
+                  </select>
+                  <button type="button" onclick="openModal('make')">+</button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Model</label>
+                <input
+                  type="text"
+                  id="model"
+                  name="model"
+                  value="{% if is_edit %}{{ item.model }}{% endif %}"
+                  class="form-input"
+                />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Type</label>
+                <div class="form-select-addon">
+                  <select id="type" name="type" class="form-input form-select">
+                    <option value="">Loading types...</option>
+                  </select>
+                  <button type="button" onclick="openModal('type')">+</button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Capacity</label>
+                <input
+                  type="text"
+                  id="capacity"
+                  name="capacity"
+                  value="{% if is_edit %}{{ item.capacity }}{% endif %}"
+                  class="form-input"
+                />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Threshold Quantity</label>
+                <input
+                  type="number"
+                  id="threshold_qty"
+                  name="threshold_qty"
+                  value="{% if is_edit %}{{ item.threshold_qty }}{% else %}0{% endif %}"
+                  class="form-input"
+                />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">
+                  Sale Price<span class="form-required">*</span>
+                </label>
+                <input
+                  type="number"
+                  id="sale_price"
+                  name="sale_price"
+                  step="0.01"
+                  value="{% if is_edit %}{{ item.sale_price }}{% endif %}"
+                  required
+                  class="form-input"
+                />
+                <p id="salePriceError" class="form-error" style="display: none;"></p>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Service Type</label>
+                <div class="form-radio-group">
+                  <label class="form-radio-option {% if not is_edit or item.service_type == 'Goods' %}selected{% endif %}">
+                    <input
+                      type="radio"
+                      name="service_type"
+                      value="Goods"
+                      {% if not is_edit or item.service_type == 'Goods' %}checked{% endif %}
+                    />
+                    Goods
+                  </label>
+                  <label class="form-radio-option {% if is_edit and item.service_type == 'Services' %}selected{% endif %}">
+                    <input
+                      type="radio"
+                      name="service_type"
+                      value="Services"
+                      {% if is_edit and item.service_type == 'Services' %}checked{% endif %}
+                    />
+                    Services
+                  </label>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Tax Preference</label>
+                <div class="form-radio-group">
+                  <label class="form-radio-option {% if not is_edit or item.tax_preference == 'Taxable' %}selected{% endif %}">
+                    <input
+                      type="radio"
+                      name="tax_preference"
+                      value="Taxable"
+                      {% if not is_edit or item.tax_preference == 'Taxable' %}checked{% endif %}
+                    />
+                    Taxable
+                  </label>
+                  <label class="form-radio-option {% if is_edit and item.tax_preference == 'Non-Taxable' %}selected{% endif %}">
+                    <input
+                      type="radio"
+                      name="tax_preference"
+                      value="Non-Taxable"
+                      {% if is_edit and item.tax_preference == 'Non-Taxable' %}checked{% endif %}
+                    />
+                    Non-Taxable
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="form-column">
+              <h3 class="form-section-title">Additional Details</h3>
+
+              <div class="form-group">
+                <label class="form-label">Unit</label>
+                <div class="form-select-addon">
+                  <select id="unit" name="unit" class="form-input form-select">
+                    <option value="">Loading units...</option>
+                  </select>
+                  <button type="button" onclick="openModal('unit')">+</button>
+                </div>
+              </div>
+
+              <div class="form-group" id="sac_code_group" style="display: none;">
+                <label class="form-label">SAC Code</label>
+                <input
+                  type="text"
+                  id="sac_code"
+                  name="sac_code"
+                  value="{% if is_edit %}{{ item.sac_code }}{% endif %}"
+                  class="form-input"
+                />
+              </div>
+
+              <div class="form-group" id="igst_group" style="display: none;">
+                <label class="form-label">IGST (%)</label>
+                <input
+                  type="number"
+                  id="igst"
+                  name="igst"
+                  step="0.01"
+                  value="{% if is_edit %}{{ item.igst }}{% endif %}"
+                  class="form-input"
+                />
+              </div>
+
+              <div class="form-group" id="gst_group" style="display: none;">
+                <label class="form-label">GST (%)</label>
+                <input
+                  type="number"
+                  id="gst"
+                  name="gst"
+                  step="0.01"
+                  value="{% if is_edit %}{{ item.gst }}{% endif %}"
+                  class="form-input"
+                />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Description</label>
+                <textarea
+                  id="description"
+                  name="description"
+                  class="form-input form-textarea"
+                >{% if is_edit %}{{ item.description }}{% endif %}</textarea>
+              </div>
+            </div>
+          </div>
+        </form>
+        {% else %}
+        <div class="loading-spinner">
+          <div class="spinner"></div>
+          <span>Loading options...</span>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="w-modal-footer">
+        <div class="flex gap-3">
+          <button type="button" class="btn btn-secondary" onclick="handleCancel()">Cancel</button>
+          <button
+            type="button"
+            id="submitBtn"
+            class="btn btn-primary"
+            onclick="handleFormSubmit()"
+          >
+            {% if is_edit %}Update Item{% else %}Create Item{% endif %}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Option Modal -->
+  <div id="optionModal" class="option-modal">
+    <div class="option-modal-dialog">
+      <div class="option-modal-header">
+        <h3 class="option-modal-title" id="modalTitle">Add New Option</h3>
+      </div>
+      <div class="option-modal-body">
+        <div class="form-group">
+          <label class="form-label">Name</label>
+          <input
+            type="text"
+            id="modalInput"
+            class="form-input"
+            placeholder="Enter value"
+          />
+          <p id="modalError" class="form-error" style="display: none;"></p>
+        </div>
+        <div class="option-list" id="existingOptions">
+          <table class="option-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th class="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="optionTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="option-modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        <button
+          type="button"
+          id="saveOptionBtn"
+          class="btn btn-primary"
+          onclick="saveOption()"
+        >
+          Save
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+</div>
+
+<script>
+let currentModalType = '';
+let currentEditId = null;
+const isEditMode = {% if is_edit %}true{% else %}false{% endif %};
+const submitUrl = "{% if is_edit %}{% url 'edit_item_custom' item.item_number %}{% else %}{% url 'add_item_custom' %}{% endif %}";
+const adminHomeUrl = "{% url 'wagtailadmin_home' %}";
+
+const currentMakeId = {% if is_edit and item.make %}{{ item.make.id }}{% else %}null{% endif %};
+const currentTypeId = {% if is_edit and item.type %}{{ item.type.id }}{% else %}null{% endif %};
+const currentUnitId = {% if is_edit and item.unit %}{{ item.unit.id }}{% else %}null{% endif %};
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadMakes();
+  loadTypes();
+  loadUnits();
+  setupRadioButtonInteractions();
+  updateFieldVisibility();
+});
+
+function setupRadioButtonInteractions() {
+  const serviceTypeRadios = document.querySelectorAll('input[name="service_type"]');
+  const taxPrefRadios = document.querySelectorAll('input[name="tax_preference"]');
+
+  serviceTypeRadios.forEach(radio => radio.addEventListener('change', updateFieldVisibility));
+  taxPrefRadios.forEach(radio => radio.addEventListener('change', updateFieldVisibility));
+}
+
+function updateFieldVisibility() {
+  const serviceType = document.querySelector('input[name="service_type"]:checked')?.value;
+  const taxPref = document.querySelector('input[name="tax_preference"]:checked')?.value;
+
+  document.getElementById('sac_code_group').style.display = taxPref === 'Taxable' || serviceType === 'Services' ? 'block' : 'none';
+  document.getElementById('igst_group').style.display = taxPref === 'Taxable' ? 'block' : 'none';
+  document.getElementById('gst_group').style.display = serviceType === 'Goods' && taxPref === 'Taxable' ? 'block' : 'none';
+
+  document.querySelectorAll('.form-radio-option').forEach(option => {
+    const radio = option.querySelector('input[type="radio"]');
+    option.classList.toggle('selected', radio.checked);
+  });
+}
+
+async function fetchOptions(endpoint, selectId, currentId) {
+  try {
+    const response = await fetch(`/items/api/${endpoint}/`, {
+      headers: { 'X-CSRFToken': getCsrfToken() }
+    });
+    if (!response.ok) throw new Error(`Failed to load ${endpoint}`);
+    const data = await response.json();
+    const select = document.getElementById(selectId);
+    select.innerHTML = '<option value="">Select ' + selectId.charAt(0).toUpperCase() + selectId.slice(1) + '</option>';
+    data.forEach(item => {
+      const option = document.createElement('option');
+      option.value = item.id;
+      option.textContent = item.value;
+      if (currentId && item.id === currentId) option.selected = true;
+      select.appendChild(option);
+    });
+  } catch (error) {
+    console.error(`Error loading ${endpoint}:`, error);
+    document.getElementById(selectId).innerHTML = `<option value="">Error loading ${selectId}s</option>`;
+  }
+}
+
+function loadMakes() { fetchOptions('makes', 'make', currentMakeId); }
+function loadTypes() { fetchOptions('types', 'type', currentTypeId); }
+function loadUnits() { fetchOptions('units', 'unit', currentUnitId); }
+
+function openModal(type, editId = null, editValue = '') {
+  currentModalType = type;
+  currentEditId = editId;
+  const modal = document.getElementById('optionModal');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalInput = document.getElementById('modalInput');
+  const saveBtn = document.getElementById('saveOptionBtn');
+
+  modalTitle.textContent = editId ? `Edit ${type.charAt(0).toUpperCase() + type.slice(1)}` : `Add New ${type.charAt(0).toUpperCase() + type.slice(1)}`;
+  modalInput.value = editValue;
+  saveBtn.textContent = editId ? `Update ${type.charAt(0).toUpperCase() + type.slice(1)}` : `Add ${type.charAt(0).toUpperCase() + type.slice(1)}`;
+  saveBtn.disabled = !editValue.trim();
+  modal.classList.add('active');
+  loadExistingOptions(type);
+}
+
+function closeModal() {
+  document.getElementById('optionModal').classList.remove('active');
+  document.getElementById('modalInput').value = '';
+  document.getElementById('modalError').style.display = 'none';
+  currentEditId = null;
+}
+
+async function loadExistingOptions(type) {
+  try {
+    const response = await fetch(`/items/api/${type}s/`, {
+      headers: { 'X-CSRFToken': getCsrfToken() }
+    });
+    if (!response.ok) throw new Error(`Failed to load ${type}s`);
+    const data = await response.json();
+    const tbody = document.getElementById('optionTableBody');
+    tbody.innerHTML = data.length ? data.map(item => `
+      <tr>
+        <td>${item.value}</td>
+        <td class="text-right">
+          <button type="button" class="btn btn-edit" onclick="openModal('${type}', ${item.id}, '${item.value.replace(/'/g, "\\'")}')">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+          </button>
+          <button type="button" class="btn btn-delete" onclick="deleteOption('${type}', ${item.id})">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-4h4M7 7h10m-9 3v8m4-8v8m4-8v8" />
+            </svg>
+          </button>
+        </td>
+      </tr>
+    `).join('') : `<tr><td colspan="2" class="text-center text-gray-500">No ${type}s found</td></tr>`;
+  } catch (error) {
+    console.error(`Error loading ${type}s:`, error);
+    document.getElementById('optionTableBody').innerHTML = `<tr><td colspan="2" class="text-center text-gray-500">Error loading ${type}s</td></tr>`;
+  }
+}
+
+async function saveOption() {
+  const value = document.getElementById('modalInput').value.trim();
+  const modalError = document.getElementById('modalError');
+  if (!value) {
+    modalError.textContent = `Please enter a ${currentModalType}`;
+    modalError.style.display = 'block';
+    return;
+  }
+
+  try {
+    const method = currentEditId ? 'PUT' : 'POST';
+    const url = currentEditId ? `/items/api/${currentModalType}s/${currentEditId}/` : `/items/api/${currentModalType}s/`;
+    const response = await fetch(url, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: JSON.stringify({ value })
+    });
+    const data = await response.json();
+    if (data.success) {
+      const select = document.getElementById(currentModalType);
+      if (!currentEditId) {
+        const option = new Option(data.value, data.id);
+        select.appendChild(option);
+        select.value = data.id;
+      } else {
+        const option = select.querySelector(`option[value="${currentEditId}"]`);
+        if (option) option.textContent = data.value;
+      }
+      closeModal();
+      showMessage('success', `${currentModalType.charAt(0).toUpperCase() + currentModalType.slice(1)} ${currentEditId ? 'updated' : 'added'} successfully`);
+      loadExistingOptions(currentModalType);
+      fetchOptions(`${currentModalType}s`, currentModalType, select.value);
+    } else {
+      modalError.textContent = data.error || `Failed to ${currentEditId ? 'update' : 'add'} ${currentModalType}`;
+      modalError.style.display = 'block';
+    }
+  } catch (error) {
+    console.error(`Error ${currentEditId ? 'updating' : 'adding'} ${currentModalType}:`, error);
+    modalError.textContent = `Failed to ${currentEditId ? 'update' : 'add'} ${currentModalType}`;
+    modalError.style.display = 'block';
+  }
+}
+
+async function deleteOption(type, id) {
+  if (!confirm(`Are you sure you want to delete this ${type}?`)) return;
+
+  try {
+    const response = await fetch(`/items/api/${type}s/${id}/`, {
+      method: 'DELETE',
+      headers: { 'X-CSRFToken': getCsrfToken() }
+    });
+    const data = await response.json();
+    if (data.success) {
+      const select = document.getElementById(type);
+      const option = select.querySelector(`option[value="${id}"]`);
+      if (option) option.remove();
+      showMessage('success', `${type.charAt(0).toUpperCase() + type.slice(1)} deleted successfully`);
+      loadExistingOptions(type);
+      fetchOptions(`${type}s`, type, select.value);
+    } else {
+      showMessage('error', data.error || `Failed to delete ${type}`);
+    }
+  } catch (error) {
+    console.error(`Error deleting ${type}:`, error);
+    showMessage('error', `Failed to delete ${type}`);
+  }
+}
+
+function getCsrfToken() {
+  return document.querySelector('[name=csrfmiddlewaretoken]').value;
+}
+
+function showMessage(type, message, description = '') {
+  const toast = document.createElement('div');
+  toast.className = `toast toast--${type}`;
+  toast.innerHTML = `
+    <div class="toast-content">
+      <div class="toast-message">
+        <strong>${type.charAt(0).toUpperCase() + type.slice(1)}:</strong> ${message}
+        ${description ? `<div>${description}</div>` : ''}
+      </div>
+      <button class="toast-close" onclick="this.parentElement.parentElement.remove()">×</button>
+    </div>
+  `;
+  const toastContainer = document.getElementById('toastContainer');
+  toastContainer.appendChild(toast);
+  setTimeout(() => {
+    if (toast.parentElement) toast.remove();
+  }, type === 'success' ? 3000 : 5000);
+}
+
+function validateForm() {
+  const errors = {};
+  const name = document.getElementById('name').value.trim();
+  const salePrice = parseFloat(document.getElementById('sale_price').value);
+
+  if (!name) errors.name = 'Name is required';
+  if (isNaN(salePrice) || salePrice < 0) errors.salePrice = 'Sale Price cannot be negative';
+
+  document.getElementById('nameError').textContent = errors.name || '';
+  document.getElementById('nameError').style.display = errors.name ? 'block' : 'none';
+  document.getElementById('salePriceError').textContent = errors.salePrice || '';
+  document.getElementById('salePriceError').style.display = errors.salePrice ? 'block' : 'none';
+
+  return Object.keys(errors).length === 0;
+}
+
+function createFormData() {
+  const form = document.getElementById('itemForm');
+  const data = {};
+  new FormData(form).forEach((value, key) => {
+    if (key === 'threshold_qty') value = parseInt(value) || null;
+    if (key === 'sale_price' || key === 'igst' || key === 'gst') value = parseFloat(value) || null;
+    if (key === 'make' || key === 'type' || key === 'unit') value = value ? parseInt(value) : null;
+    data[key] = value;
+  });
+  return data;
+}
+
+async function handleFormSubmit() {
+  if (!validateForm()) return;
+
+  const submitButton = document.getElementById('submitBtn');
+  const originalText = submitButton.textContent;
+  submitButton.textContent = 'Saving...';
+  submitButton.disabled = true;
+
+  try {
+    const data = createFormData();
+    const response = await fetch(submitUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: JSON.stringify(data)
+    });
+    const result = await response.json();
+    submitButton.textContent = originalText;
+    submitButton.disabled = false;
+
+    if (result.success) {
+      showMessage('success', result.message || (isEditMode ? 'Item updated successfully' : 'Item created successfully'));
+      setTimeout(() => {
+        window.location.href = adminHomeUrl;
+      }, 2000);
+    } else {
+      showMessage('error', result.error || 'Failed to save item');
+    }
+  } catch (error) {
+    console.error('Error saving item:', error);
+    submitButton.textContent = originalText;
+    submitButton.disabled = false;
+    showMessage('error', 'An error occurred while saving the item');
+  }
+}
+
+function handleCancel() {
+  document.getElementById('itemForm').reset();
+  document.getElementById('nameError').style.display = 'none';
+  document.getElementById('salePriceError').style.display = 'none';
+  window.history.back();
+}
+
+document.getElementById('optionModal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('optionModal')) closeModal();
+});
+
+document.getElementById('modalInput').addEventListener('input', (e) => {
+  const saveBtn = document.getElementById('saveOptionBtn');
+  saveBtn.disabled = !e.target.value.trim();
+});
+</script>
+{% endblock %}

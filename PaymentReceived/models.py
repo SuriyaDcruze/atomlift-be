@@ -6,6 +6,8 @@ from django.forms.widgets import RadioSelect
 from wagtail.admin.panels import FieldPanel, MultiFieldPanel
 from wagtail.snippets.models import register_snippet
 from wagtail.snippets.views.snippets import SnippetViewSet, SnippetViewSetGroup
+from django.urls import reverse
+from django.shortcuts import redirect
 
 # Import related models
 from customer.models import Customer
@@ -98,6 +100,19 @@ class PaymentReceivedViewSet(SnippetViewSet):
         "payment_number", "customer", "invoice", "amount", "date",
         "payment_type", "tax_deducted"
     ]
+
+    def get_add_url(self):
+        return reverse("add_payment_received_custom")
+
+    def get_edit_url(self, instance):
+        return reverse("edit_payment_received_custom", args=(instance.payment_number,))
+
+    def add_view(self, request):
+        return redirect(self.get_add_url())
+
+    def edit_view(self, request, pk):
+        instance = self.model.objects.get(pk=pk)
+        return redirect(self.get_edit_url(instance))
 
 
 # ---------- SNIPPET GROUP ----------

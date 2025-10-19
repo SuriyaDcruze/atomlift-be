@@ -1,0 +1,43 @@
+{% extends "PaymentReceived/templates/payments/add_payment_received_custom.html" %}
+{% block content %}
+<div class="w-content-wrapper">
+  <div class="w-modal-overlay">
+    <div class="w-modal-content">
+      <div class="w-modal-header"><h2 class="w-modal-title">Edit Payment {{ payment.payment_number }}</h2></div>
+      <div class="w-modal-body">
+        <div class="form-grid">
+          <div>
+            <div class="form-group"><label class="form-label">Payment No</label><input id="payment_number" class="form-input" type="text" value="{{ payment.payment_number }}" readonly /></div>
+            <div class="form-group"><label class="form-label">Customer</label><select id="customer" class="form-select"></select></div>
+            <div class="form-group"><label class="form-label">Invoice</label><select id="invoice" class="form-select"></select></div>
+          </div>
+          <div>
+            <div class="form-group"><label class="form-label">Amount</label><input id="amount" class="form-input" type="number" step="0.01" value="{{ payment.amount }}" /></div>
+            <div class="form-group"><label class="form-label">Date</label><input id="date" class="form-input" type="date" value="{{ payment.date|date:'Y-m-d' }}" /></div>
+            <div class="form-group"><label class="form-label">Payment Type</label><select id="payment_type" class="form-select"><option value="cash" {% if payment.payment_type=='cash' %}selected{% endif %}>Cash</option><option value="bank_transfer" {% if payment.payment_type=='bank_transfer' %}selected{% endif %}>Bank Transfer</option></select></div>
+            <div class="form-group"><label class="form-label">Tax Deducted</label><select id="tax_deducted" class="form-select"><option value="no" {% if payment.tax_deducted=='no' %}selected{% endif %}>No Tax deducted</option><option value="yes_tds" {% if payment.tax_deducted=='yes_tds' %}selected{% endif %}>Yes, TDS (Income Tax)</option></select></div>
+          </div>
+        </div>
+      </div>
+      <div class="w-modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="window.history.back()">Cancel</button>
+        <button type="button" id="submitBtn" class="btn btn-primary">Update Payment</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function getCsrfToken(){var t=document.querySelector('[name=csrfmiddlewaretoken]');return t?t.value:''}
+function loadSelect(id,url,map,current){fetch(url).then(r=>r.json()).then(d=>{const s=document.getElementById(id);s.innerHTML='<option value="">Select</option>';d.forEach(i=>{const o=document.createElement('option');o.value=i.id;o.textContent=map?map(i):(i.site_name||i.number);if(current&&i.id==current){o.selected=true}s.appendChild(o);});});}
+document.addEventListener('DOMContentLoaded',function(){
+  loadSelect('customer','/payments/api/payments/customers/',null,{% if payment.customer %}{{ payment.customer.id }}{% else %}null{% endif %});
+  loadSelect('invoice','/payments/api/payments/invoices/',i=>i.number,{% if payment.invoice %}{{ payment.invoice.id }}{% else %}null{% endif %});
+  document.getElementById('submitBtn').addEventListener('click',function(){
+    const payload={customer:document.getElementById('customer').value,invoice:document.getElementById('invoice').value,amount:document.getElementById('amount').value,date:document.getElementById('date').value,payment_type:document.getElementById('payment_type').value,tax_deducted:document.getElementById('tax_deducted').value};
+    fetch('{% url "update_payment_received" payment.payment_number %}',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':getCsrfToken()},body:JSON.stringify(payload)}).then(r=>r.json()).then(res=>{if(res.success){window.location.href='{% url "wagtailadmin_home" %}'}else{alert(res.error||'Failed')}});
+  });
+});
+</script>
+{% endblock %}
+
+

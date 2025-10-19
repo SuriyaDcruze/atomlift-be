@@ -1,0 +1,911 @@
+{% extends "wagtailadmin/base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+/* Modern Tailwind-like styles for Wagtail admin */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+.w-content-wrapper {
+  background: #f5f5f5;
+  min-height: calc(100vh - 4rem);
+  padding: 2rem;
+}
+
+.w-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 1rem;
+}
+
+.w-modal-content {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  width: 100%;
+  max-width: 64rem;
+  max-height: 90vh;
+  overflow: visible;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+}
+
+.w-modal-header {
+  background: linear-gradient(to right, #2D3A6B, #243158);
+  padding: 1.5rem;
+}
+
+.w-modal-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: white;
+}
+
+.w-modal-subtitle {
+  margin: 0;
+  color: white;
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
+
+.w-modal-body {
+  padding: 1.5rem;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.form-section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 2px solid #E5E7EB;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.form-required {
+  color: #EF4444;
+  margin-left: 0.25rem;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  border: 1px solid #D1D5DB;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #F97316;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+  z-index: 1;
+}
+
+.form-input:disabled {
+  background-color: #F9FAFB;
+  color: #6B7280;
+}
+
+.form-textarea {
+  min-height: 3rem;
+  resize: vertical;
+  padding: 0.5rem 0.75rem;
+}
+
+.form-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.75rem center;
+  background-repeat: no-repeat;
+  background-size: 1rem;
+  padding-right: 2.5rem;
+  font-size: 0.875rem;
+}
+
+.form-select-addon {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.form-select-addon .form-select {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right: 0;
+}
+
+.form-select-addon button {
+  background: linear-gradient(to right, #3B82F6, #1D4ED8);
+  color: white;
+  border: 1px solid #D1D5DB;
+  border-left: 0;
+  border-top-right-radius: 0.375rem;
+  border-bottom-right-radius: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3rem;
+}
+
+.form-select-addon button:hover {
+  background: linear-gradient(to right, #2563EB, #1E40AF);
+}
+
+.form-checkbox-wrapper {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  background: #F9FAFB;
+  border-radius: 0.375rem;
+  border: 1px solid #D1D5DB;
+}
+
+.form-checkbox {
+  margin-right: 0.5rem;
+}
+
+.form-checkbox-label {
+  margin: 0;
+  font-weight: normal !important;
+}
+
+.form-help {
+  font-size: 0.75rem;
+  color: #6B7280;
+  margin-top: 0.25rem;
+}
+
+.w-modal-footer {
+  padding: 1rem 1.5rem;
+  background: #F9FAFB;
+  border-top: 1px solid #E5E7EB;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+}
+
+.btn {
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.btn-secondary {
+  background: #F3F4F6;
+  color: #374151;
+  border: 1px solid #D1D5DB;
+}
+
+.btn-secondary:hover {
+  background: #E5E7EB;
+}
+
+.btn-primary {
+  background: linear-gradient(to right, #2D3A6B, #243158);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(to right, #213066, #182755);
+}
+
+.option-modal {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 1rem;
+}
+
+.option-modal.active {
+  display: flex;
+}
+
+.option-modal-dialog {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  width: 100%;
+  max-width: 42rem;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.option-modal-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.option-modal-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.option-modal-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+.option-modal-footer {
+  padding: 1.5rem;
+  background: #F9FAFB;
+  border-top: 1px solid #E5E7EB;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.option-list {
+  max-height: 20rem;
+  overflow-y: auto;
+  border: 1px solid #D1D5DB;
+  border-radius: 0.375rem;
+  margin-top: 1rem;
+}
+
+.option-table {
+  width: 100%;
+  font-size: 0.875rem;
+}
+
+.option-table thead {
+  background: #F3F4F6;
+}
+
+.option-table th {
+  padding: 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.option-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.toast-container {
+  position: fixed;
+  top: 1.25rem;
+  right: 1.25rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.toast {
+  background: white;
+  border-radius: 0.375rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  min-width: 20rem;
+  max-width: 31.25rem;
+  border-left: 4px solid;
+  animation: slideInRight 0.3s ease-out;
+}
+
+.toast--success {
+  border-left-color: #10B981;
+}
+
+.toast--error {
+  border-left-color: #EF4444;
+}
+
+.toast-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+}
+
+.toast-message {
+  flex: 1;
+  margin-right: 1rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6B7280;
+  padding: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.toast-close:hover {
+  color: #374151;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 10rem;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+  border-radius: 50%;
+  height: 2rem;
+  width: 2rem;
+  border: 2px solid #3B82F6;
+  border-top-color: transparent;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.lift-selection {
+  max-height: 15rem;
+  overflow-y: auto;
+  border: 1px solid #D1D5DB;
+  border-radius: 0.375rem;
+  padding: 0.5rem;
+}
+
+.lift-item {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.lift-item:last-child {
+  border-bottom: none;
+}
+
+.lift-checkbox {
+  margin-right: 0.5rem;
+}
+
+.lift-info {
+  flex: 1;
+  font-size: 0.875rem;
+}
+
+.lift-name {
+  font-weight: 500;
+  color: #374151;
+}
+
+.lift-details {
+  color: #6B7280;
+  font-size: 0.75rem;
+}
+
+@media (max-width: 768px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .w-modal-content {
+    max-height: 95vh;
+  }
+
+  .option-modal-dialog {
+    max-width: 95vw;
+  }
+
+  .toast {
+    min-width: 17.5rem;
+    max-width: 90vw;
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="w-content-wrapper">
+  <div class="w-modal-overlay">
+    <div class="w-modal-content">
+      <!-- Modal Header -->
+      <div class="w-modal-header">
+        <h2 class="w-modal-title">
+          {% if is_edit %}Edit Quotation{% else %}Create New Quotation{% endif %}
+        </h2>
+        <p class="w-modal-subtitle">
+          {% if is_edit %}Update quotation details{% else %}Fill in all required fields (*) to add a quotation{% endif %}
+        </p>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="w-modal-body">
+        {% if customers|length >= 0 and amc_types|length >= 0 and users|length >= 0 and lifts|length >= 0 %}
+        <div class="form-grid">
+          <!-- Left Column -->
+          <div class="form-column">
+            <!-- Basic Information -->
+            <h3 class="form-section-title">Quotation Details</h3>
+
+            <div class="form-group">
+              <label class="form-label">Reference ID</label>
+              <input
+                type="text"
+                id="reference_id"
+                name="reference_id"
+                class="form-input"
+                value="{% if is_edit %}{{ quotation.reference_id }}{% endif %}"
+                readonly
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Customer<span class="form-required">*</span></label>
+              <div class="form-select-addon">
+                <select id="customer" name="customer" class="form-input form-select" required>
+                  <option value="">Loading customers...</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Quotation Type<span class="form-required">*</span></label>
+              <select id="type" name="type" class="form-input form-select" required>
+                <option value="">Select Quotation Type</option>
+                <option value="Parts/Peripheral Quotation" {% if is_edit and quotation.type == "Parts/Peripheral Quotation" %}selected{% endif %}>Parts/Peripheral Quotation</option>
+                <option value="Repair" {% if is_edit and quotation.type == "Repair" %}selected{% endif %}>Repair</option>
+                <option value="AMC Renewal Quotation" {% if is_edit and quotation.type == "AMC Renewal Quotation" %}selected{% endif %}>AMC Renewal Quotation</option>
+                <option value="AMC" {% if is_edit and quotation.type == "AMC" %}selected{% endif %}>AMC</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">AMC Type</label>
+              <div class="form-select-addon">
+                <select id="amc_type" name="amc_type" class="form-input form-select">
+                  <option value="">Loading AMC types...</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Sales/Service Executive</label>
+              <select id="sales_service_executive" name="sales_service_executive" class="form-input form-select">
+                <option value="">Loading executives...</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Year of Make</label>
+              <input
+                type="text"
+                id="year_of_make"
+                name="year_of_make"
+                class="form-input"
+                value="{% if is_edit %}{{ quotation.year_of_make }}{% endif %}"
+                placeholder="e.g., 2023"
+                maxlength="4"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Date</label>
+              <input
+                type="date"
+                id="date"
+                name="date"
+                class="form-input"
+                value="{% if is_edit %}{{ quotation.date|date:'Y-m-d' }}{% endif %}"
+              />
+              <p class="form-help">Leave empty to use current date</p>
+            </div>
+          </div>
+
+          <!-- Right Column -->
+          <div class="form-column">
+            <!-- Associated Lifts -->
+            <h3 class="form-section-title">Associated Lifts</h3>
+
+            <div class="form-group">
+              <label class="form-label">Select Lift<span class="form-required">*</span></label>
+              <select id="lift" name="lift" class="form-input form-select" required>
+                <option value="">Loading lifts...</option>
+              </select>
+              <p class="form-help">Select a lift for this quotation</p>
+            </div>
+
+            <!-- Remarks & Attachments -->
+            <h3 class="form-section-title">Remarks & Attachments</h3>
+
+            <div class="form-group">
+              <label class="form-label">Remark</label>
+              <textarea
+                id="remark"
+                name="remark"
+                class="form-input form-textarea"
+                rows="3"
+                placeholder="Enter any remarks..."
+              >{% if is_edit %}{{ quotation.remark }}{% endif %}</textarea>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Other Remark</label>
+              <textarea
+                id="other_remark"
+                name="other_remark"
+                class="form-input form-textarea"
+                rows="3"
+                placeholder="Enter additional remarks..."
+              >{% if is_edit %}{{ quotation.other_remark }}{% endif %}</textarea>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Upload Files</label>
+              <input
+                type="file"
+                id="uploads_files"
+                name="uploads_files"
+                class="form-input"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+              />
+              {% if is_edit and quotation.uploads_files %}
+              <p class="form-help">Current file: <a href="{{ quotation.uploads_files.url }}" target="_blank">{{ quotation.uploads_files.name }}</a></p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% else %}
+        <div class="loading-spinner">
+          <div class="spinner"></div>
+          <span>Loading options...</span>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="w-modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="window.history.back();">Cancel</button>
+        <button
+          type="button"
+          id="submitBtn"
+          class="btn btn-primary"
+          onclick="handleFormSubmit({target: document.getElementById('quotationForm')})"
+        >
+          {% if is_edit %}Update Quotation{% else %}Create Quotation{% endif %}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden Form for Django CSRF -->
+  <form id="quotationForm" style="display:none;" enctype="multipart/form-data">
+    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+  </form>
+
+  {% if messages %}
+  <div class="toast-container">
+    {% for message in messages %}
+    <div class="toast toast--{% if message.tags %}{{ message.tags }}{% else %}info{% endif %}">
+      <div class="toast-content">
+        <div class="toast-message">
+          {{ message }}
+        </div>
+        <button class="toast-close" onclick="this.parentElement.parentElement.remove()">×</button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<script>
+var isEditMode = {% if is_edit %}true{% else %}false{% endif %};
+// FIX: Use the correct endpoint for POST submissions ('create_quotation' or 'update_quotation')
+var submitUrl = "{% if is_edit %}{% url 'update_quotation' quotation.reference_id %}{% else %}{% url 'create_quotation' %}{% endif %}";
+var adminHomeUrl = "{% url 'wagtailadmin_home' %}";
+
+// Edit mode variables
+var currentCustomerId = {% if is_edit and quotation.customer %}{{ quotation.customer.id }}{% else %}null{% endif %};
+var currentAmcTypeId = {% if is_edit and quotation.amc_type %}{{ quotation.amc_type.id }}{% else %}null{% endif %};
+var currentExecutiveId = {% if is_edit and quotation.sales_service_executive %}{{ quotation.sales_service_executive.id }}{% else %}null{% endif %};
+{% with first_lift=quotation.lifts.all.0 %}
+var currentLiftId = {% if is_edit and first_lift %}{{ first_lift.id }}{% else %}null{% endif %};
+{% endwith %}
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Load various dropdowns dynamically on page load
+  loadCustomers();
+  loadAmcTypes();
+  loadExecutives();
+  loadLifts();
+});
+
+function loadCustomers() {
+  fetch('/quotation/api/customers/')
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+      var select = document.getElementById('customer');
+      select.innerHTML = '<option value="">Select Customer</option>';
+
+      data.forEach(function(item) {
+        var option = document.createElement('option');
+        option.value = item.id;
+        option.textContent = item.site_name;
+
+        // If editing, select the current customer
+        if (currentCustomerId && item.id === currentCustomerId) {
+          option.selected = true;
+        }
+
+        select.appendChild(option);
+      });
+    })
+    .catch(function(error) {
+      console.error('Error loading customers:', error);
+      var select = document.getElementById('customer');
+      select.innerHTML = '<option value="">Error loading customers</option>';
+    });
+}
+
+function loadAmcTypes() {
+  fetch('/quotation/api/amc-types/')
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+      var select = document.getElementById('amc_type');
+      select.innerHTML = '<option value="">Select AMC Type</option>';
+
+      data.forEach(function(item) {
+        var option = document.createElement('option');
+        option.value = item.id;
+        option.textContent = item.name;
+
+        // If editing, select the current AMC type
+        if (currentAmcTypeId && item.id === currentAmcTypeId) {
+          option.selected = true;
+        }
+
+        select.appendChild(option);
+      });
+    })
+    .catch(function(error) {
+      console.error('Error loading AMC types:', error);
+      var select = document.getElementById('amc_type');
+      select.innerHTML = '<option value="">Error loading AMC types</option>';
+    });
+}
+
+function loadExecutives() {
+  fetch('/quotation/api/executives/')
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+      var select = document.getElementById('sales_service_executive');
+      select.innerHTML = '<option value="">Select Executive</option>';
+
+      data.forEach(function(item) {
+        var option = document.createElement('option');
+        option.value = item.id;
+        option.textContent = item.full_name;
+
+        // If editing, select the current executive
+        if (currentExecutiveId && item.id === currentExecutiveId) {
+          option.selected = true;
+        }
+
+        select.appendChild(option);
+      });
+    })
+    .catch(function(error) {
+      console.error('Error loading executives:', error);
+      var select = document.getElementById('sales_service_executive');
+      select.innerHTML = '<option value="">Error loading executives</option>';
+    });
+}
+
+function loadLifts() {
+  fetch('/quotation/api/lifts/')
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+      var select = document.getElementById('lift');
+      select.innerHTML = '<option value="">Select Lift</option>';
+
+      data.forEach(function(lift) {
+        var option = document.createElement('option');
+        option.value = lift.id;
+        option.textContent = lift.name + ' - ' + lift.reference_id + ' (' + lift.brand + ')';
+
+        // If editing, select the current lift
+        if (currentLiftId && lift.id === currentLiftId) {
+          option.selected = true;
+        }
+
+        select.appendChild(option);
+      });
+    })
+    .catch(function(error) {
+      console.error('Error loading lifts:', error);
+      var select = document.getElementById('lift');
+      select.innerHTML = '<option value="">Error loading lifts</option>';
+    });
+}
+
+function getCsrfToken() {
+  var token = document.querySelector('[name=csrfmiddlewaretoken]');
+  return token ? token.value : '';
+}
+
+function showMessage(type, message) {
+  var toast = document.createElement('div');
+  toast.className = 'toast toast--' + type;
+  toast.innerHTML = '<div class="toast-content">' +
+    '<span class="toast-message">' + message + '</span>' +
+    '<button class="toast-close" onclick="this.parentElement.parentElement.remove()">×</button>' +
+  '</div>';
+
+  var toastContainer = document.querySelector('.toast-container');
+  if (!toastContainer) {
+    toastContainer = document.createElement('div');
+    toastContainer.className = 'toast-container';
+    document.getElementsByClassName('w-content-wrapper')[0].appendChild(toastContainer);
+  }
+
+  toastContainer.appendChild(toast);
+
+  setTimeout(function() {
+    if (toast.parentElement) {
+      toast.remove();
+    }
+  }, type === 'success' ? 3000 : 5000);
+}
+
+function createFormData() {
+  var formData = new FormData();
+  
+  // Add CSRF token
+  formData.append('csrfmiddlewaretoken', getCsrfToken());
+  
+  // Add form fields
+  var elements = document.querySelectorAll('input, select, textarea');
+  for (var i = 0; i < elements.length; i++) {
+    var element = elements[i];
+    if (element.name && element.type !== 'checkbox') {
+      if (element.type === 'file') {
+        if (element.files && element.files[0]) {
+          formData.append(element.name, element.files[0]);
+        }
+      } else {
+        formData.append(element.name, element.value);
+      }
+    }
+  }
+  
+  // Handle single lift selection
+  var selectedLift = document.getElementById('lift').value;
+  if (selectedLift) {
+    formData.append('lifts', selectedLift);
+  }
+  
+  return formData;
+}
+
+function handleFormSubmit(event) {
+  if (event) event.preventDefault();
+
+  var customer = document.getElementById('customer').value;
+  var type = document.getElementById('type').value;
+  
+  if (!customer || !type) {
+    showMessage('error', 'Please fill in all required fields (Customer, Quotation Type)');
+    return;
+  }
+
+  var submitButton = document.getElementById('submitBtn');
+  var originalText = submitButton.textContent;
+  submitButton.textContent = 'Saving...';
+  submitButton.disabled = true;
+
+  var formData = createFormData();
+
+  fetch(submitUrl, {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': getCsrfToken()
+    },
+    body: formData
+  })
+  .then(function(response) { return response.json(); })
+  .then(function(result) {
+    submitButton.textContent = originalText;
+    submitButton.disabled = false;
+
+    if (result.success) {
+      showMessage('success', result.message);
+      setTimeout(function() {
+        window.location.href = adminHomeUrl;
+      }, 1500);
+    } else {
+      showMessage('error', result.error);
+    }
+  })
+  .catch(function(error) {
+    submitButton.textContent = originalText;
+    submitButton.disabled = false;
+    console.error('Error:', error);
+    showMessage('error', 'An error occurred while saving the quotation');
+  });
+}
+
+// Add click event listener to submit button
+document.getElementById('submitBtn').addEventListener('click', handleFormSubmit);
+</script>
+{% endblock %}

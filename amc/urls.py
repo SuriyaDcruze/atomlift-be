@@ -15,6 +15,7 @@ urlpatterns = [
     # Consolidated detail endpoints (handles PUT/DELETE)
     path("api/amc/amc-types/<int:amc_type_id>/", views.amc_types_detail, name="amc_types_detail"),
     path("api/amc/payment-terms/<int:payment_term_id>/", views.payment_terms_detail, name="payment_terms_detail"),
+    path("api/amc/next-reference/", views.get_next_amc_reference, name="get_next_amc_reference"),
 ]
 
 # Serve media files in development

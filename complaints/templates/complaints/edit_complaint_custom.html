@@ -1,0 +1,113 @@
+{% extends "complaints/add_complaint_custom.html" %}
+{% block content %}
+<div class="w-content-wrapper">
+  <div class="w-modal-overlay">
+    <div class="w-modal-content">
+      <div class="w-modal-header">
+        <h2 class="w-modal-title">Edit Complaint</h2>
+        <p class="w-modal-subtitle">Update complaint ticket {{ complaint.reference }}</p>
+      </div>
+      <div class="w-modal-body">
+        <div class="form-grid">
+          <div>
+            <h3 class="form-section-title">Complaint Info</h3>
+            <div class="form-group">
+              <label class="form-label">Reference</label>
+              <input id="reference" class="form-input" type="text" value="{{ complaint.reference }}" readonly />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Type</label>
+              <select id="complaint_type" class="form-select"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Priority</label>
+              <select id="priority" class="form-select"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Date</label>
+              <input id="date" class="form-input" type="date" value="{{ complaint.date|date:'Y-m-d' }}" />
+            </div>
+          </div>
+          <div>
+            <h3 class="form-section-title">Customer & Assignment</h3>
+            <div class="form-group">
+              <label class="form-label">Customer</label>
+              <select id="customer" class="form-select"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Assign To</label>
+              <select id="assign_to" class="form-select"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Contact Person</label>
+              <input id="contact_person_name" class="form-input" type="text" value="{{ complaint.contact_person_name }}" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Mobile</label>
+              <input id="contact_person_mobile" class="form-input" type="text" value="{{ complaint.contact_person_mobile }}" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Block/Wing</label>
+              <input id="block_wing" class="form-input" type="text" value="{{ complaint.block_wing }}" />
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Subject</label>
+          <input id="subject" class="form-input" type="text" value="{{ complaint.subject }}" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Message</label>
+          <textarea id="message" class="form-textarea" rows="3">{{ complaint.message }}</textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Technician Remark</label>
+          <textarea id="technician_remark" class="form-textarea" rows="2">{{ complaint.technician_remark }}</textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Solution</label>
+          <textarea id="solution" class="form-textarea" rows="2">{{ complaint.solution }}</textarea>
+        </div>
+      </div>
+      <div class="w-modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="window.history.back()">Cancel</button>
+        <button type="button" id="submitBtn" class="btn btn-primary">Update Complaint</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function getCsrfToken(){var t=document.querySelector('[name=csrfmiddlewaretoken]');return t?t.value:''}
+function loadSelect(id,url,placeholder,current){fetch(url).then(r=>r.json()).then(d=>{const s=document.getElementById(id);s.innerHTML=`<option value="">Select</option>`;d.forEach(i=>{const o=document.createElement('option');o.value=i.id;o.textContent=i.name||i.site_name||i.full_name;if(current && i.id===current){o.selected=true} s.appendChild(o);});});}
+document.addEventListener('DOMContentLoaded',function(){
+  loadSelect('complaint_type','/complaints/api/complaints/types/', null, {% if complaint.complaint_type %}{{ complaint.complaint_type.id }}{% else %}null{% endif %});
+  loadSelect('priority','/complaints/api/complaints/priorities/', null, {% if complaint.priority %}{{ complaint.priority.id }}{% else %}null{% endif %});
+  loadSelect('customer','/complaints/api/complaints/customers/', null, {% if complaint.customer %}{{ complaint.customer.id }}{% else %}null{% endif %});
+  loadSelect('assign_to','/complaints/api/complaints/executives/', null, {% if complaint.assign_to %}{{ complaint.assign_to.id }}{% else %}null{% endif %});
+  document.getElementById('submitBtn').addEventListener('click',function(){
+    const payload={
+      complaint_type:document.getElementById('complaint_type').value,
+      date:document.getElementById('date').value,
+      customer:document.getElementById('customer').value,
+      assign_to:document.getElementById('assign_to').value,
+      priority:document.getElementById('priority').value,
+      contact_person_name:document.getElementById('contact_person_name').value,
+      contact_person_mobile:document.getElementById('contact_person_mobile').value,
+      block_wing:document.getElementById('block_wing').value,
+      subject:document.getElementById('subject').value,
+      message:document.getElementById('message').value,
+      technician_remark:document.getElementById('technician_remark').value,
+      solution:document.getElementById('solution').value,
+    };
+    fetch('{% url "update_complaint" complaint.reference %}',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':getCsrfToken()},body:JSON.stringify(payload)}).then(r=>r.json()).then(res=>{
+      if(res.success){window.location.href='{% url "wagtailadmin_home" %}'}
+      else{alert(res.error||'Failed');}
+    });
+  });
+});
+</script>
+{% endblock %}
+
+
+

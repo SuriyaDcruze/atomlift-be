@@ -55,6 +55,23 @@ def get_branches(request):
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 
+@require_http_methods(["GET"])
+def get_next_customer_reference(request):
+    """Return the next Customer reference ID e.g., CUST001"""
+    try:
+        last = Customer.objects.order_by('id').last()
+        if last and last.reference_id and last.reference_id.startswith('CUST'):
+            try:
+                next_id = int(last.reference_id.replace('CUST', '')) + 1
+            except ValueError:
+                next_id = 1
+        else:
+            next_id = 1
+        next_ref = f'CUST{next_id:03d}'
+        return JsonResponse({"reference_id": next_ref})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
 # CRUD operations for dropdown options
 @csrf_exempt
 @require_http_methods(["POST"])

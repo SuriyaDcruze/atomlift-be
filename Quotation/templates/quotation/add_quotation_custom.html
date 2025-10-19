@@ -1,0 +1,787 @@
+{% extends "wagtailadmin/base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+/* Tailwind-like styles matched to QuotationForm.jsx */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+.w-content-wrapper {
+  background: #f5f5f5;
+  min-height: calc(100vh - 4rem);
+  padding: 2rem;
+}
+
+.w-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 1rem;
+}
+
+.w-modal-content {
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  width: 100%;
+  max-width: 64rem;
+  max-height: 90vh;
+  overflow: visible;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+}
+
+.w-modal-header {
+  background: linear-gradient(to right, #2D3A6B, #243158);
+  padding: 1.5rem;
+  color: white;
+}
+
+.w-modal-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.w-modal-subtitle {
+  margin: 0;
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
+
+.w-modal-body {
+  padding: 1.5rem;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.form-section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 2px solid #E5E7EB;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.25rem;
+}
+
+.form-required {
+  color: #EF4444;
+  margin-left: 0.25rem;
+}
+
+.form-input, .form-select, .form-textarea {
+  width: 100%;
+  padding: 0.625rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid #D1D5DB;
+  background: white;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}
+
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  outline: none;
+  border-color: #F97316;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.5);
+}
+
+.form-input:disabled {
+  background-color: #F9FAFB;
+  color: #6B7280;
+}
+
+.form-textarea {
+  min-height: 4.5rem;
+  resize: vertical;
+}
+
+.form-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 1rem center;
+  background-repeat: no-repeat;
+  background-size: 1.25rem;
+  padding-right: 2.5rem;
+}
+
+.form-error {
+  border-color: #EF4444;
+}
+
+.form-error-message {
+  color: #EF4444;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.form-help {
+  font-size: 0.75rem;
+  color: #6B7280;
+  margin-top: 0.25rem;
+}
+
+.w-modal-footer {
+  padding: 1rem 1.5rem;
+  background: #F9FAFB;
+  border-top: 1px solid #E5E7EB;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+}
+
+.btn {
+  padding: 0.625rem 1.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-secondary {
+  background: white;
+  color: #374151;
+  border: 1px solid #D1D5DB;
+}
+
+.btn-secondary:hover {
+  background: #F3F4F6;
+}
+
+.btn-primary {
+  background: linear-gradient(to right, #2D3A6B, #243158);
+  color: white;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(to right, #213066, #182755);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toast-container {
+  position: fixed;
+  top: 1.25rem;
+  right: 1.25rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.toast {
+  background: white;
+  border-radius: 0.375rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  min-width: 20rem;
+  max-width: 31.25rem;
+  border-left: 4px solid;
+  animation: slideInRight 0.3s ease-out;
+}
+
+.toast--success {
+  border-left-color: #10B981;
+}
+
+.toast--error {
+  border-left-color: #EF4444;
+}
+
+.toast-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+}
+
+.toast-message {
+  flex: 1;
+  margin-right: 1rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6B7280;
+  padding: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.toast-close:hover {
+  color: #374151;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.lift-selection {
+  max-height: 150px;
+  overflow-y: auto;
+  border: 1px solid #D1D5DB;
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+}
+
+.lift-item {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.lift-item:last-child {
+  border-bottom: none;
+}
+
+.lift-checkbox {
+  margin-right: 0.5rem;
+}
+
+.lift-info {
+  flex: 1;
+}
+
+.lift-name {
+  font-weight: 500;
+  color: #374151;
+}
+
+.lift-details {
+  font-size: 0.75rem;
+  color: #6B7280;
+}
+
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 10rem;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+  border-radius: 50%;
+  height: 2rem;
+  width: 2rem;
+  border: 2px solid #3B82F6;
+  border-top-color: transparent;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="w-content-wrapper">
+  <div class="w-modal-overlay">
+    <div class="w-modal-content">
+      <!-- Modal Header -->
+      <div class="w-modal-header">
+        <h2 class="w-modal-title">Create New Quotation</h2>
+        <p class="w-modal-subtitle">Fill in all required fields (*) to add a quotation</p>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="w-modal-body">
+        {% if customers|length >= 0 and amc_types|length >= 0 and users|length >= 0 and lifts|length >= 0 %}
+        <div class="form-grid">
+          <!-- Left Column -->
+          <div class="space-y-4">
+            <h3 class="form-section-title">Quotation Details</h3>
+
+            <div class="form-group">
+              <label class="form-label">Reference ID</label>
+              <input
+                type="text"
+                id="reference_id"
+                name="reference_id"
+                class="form-input"
+                readonly
+              />
+              <p class="form-help">Auto-generated reference ID</p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Customer<span class="form-required">*</span></label>
+              <select id="customer" name="customer" class="form-select" required>
+                <option value="">Loading customers...</option>
+              </select>
+              <p id="customer-error" class="form-error-message" style="display: none;"></p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Quotation Type<span class="form-required">*</span></label>
+              <select id="type" name="type" class="form-select" required>
+                <option value="">Select Quotation Type</option>
+                <option value="Parts/Peripheral Quotation">Parts/Peripheral Quotation</option>
+                <option value="Repair">Repair</option>
+                <option value="AMC Renewal Quotation">AMC Renewal Quotation</option>
+                <option value="AMC">AMC</option>
+              </select>
+              <p id="type-error" class="form-error-message" style="display: none;"></p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">AMC Type</label>
+              <select id="amc_type" name="amc_type" class="form-select">
+                <option value="">Loading AMC types...</option>
+              </select>
+            </div>
+
+             <div class="form-group">
+               <label class="form-label">Sales/Service Executive</label>
+               <select id="sales_service_executive" name="sales_service_executive" class="form-select">
+                 <option value="">Loading executives...</option>
+               </select>
+               <p id="executive-error" class="form-error-message" style="display: none;"></p>
+             </div>
+          </div>
+
+          <!-- Right Column -->
+          <div class="space-y-4">
+            <h3 class="form-section-title">Additional Information</h3>
+
+            <div class="form-group">
+              <label class="form-label">Year of Make</label>
+              <input
+                type="text"
+                id="year_of_make"
+                name="year_of_make"
+                class="form-input"
+                placeholder="e.g., 2023"
+                maxlength="4"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Date<span class="form-required">*</span></label>
+              <input
+                type="date"
+                id="date"
+                name="date"
+                class="form-input"
+                required
+              />
+              <p id="date-error" class="form-error-message" style="display: none;"></p>
+              <p class="form-help">Leave empty to use current date</p>
+            </div>
+
+             <div class="form-group">
+               <label class="form-label">Select Lift<span class="form-required">*</span></label>
+               <select id="lift" name="lift" class="form-select" required>
+                 <option value="">Loading lifts...</option>
+               </select>
+               <p id="lift-error" class="form-error-message" style="display: none;"></p>
+               <p class="form-help">Select a lift for this quotation</p>
+             </div>
+
+            <div class="form-group">
+              <label class="form-label">Remark</label>
+              <textarea
+                id="remark"
+                name="remark"
+                class="form-textarea"
+                rows="3"
+                placeholder="Enter any remarks..."
+              ></textarea>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Other Remark</label>
+              <textarea
+                id="other_remark"
+                name="other_remark"
+                class="form-textarea"
+                rows="3"
+                placeholder="Enter additional remarks..."
+              ></textarea>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Upload Files</label>
+              <input
+                type="file"
+                id="uploads_files"
+                name="uploads_files"
+                class="form-input"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                multiple
+              />
+              <p class="form-help">Select files to upload</p>
+            </div>
+          </div>
+        </div>
+        {% else %}
+        <div class="loading-spinner">
+          <div class="spinner"></div>
+          <span>Loading options...</span>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="w-modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="window.history.back();">Cancel</button>
+        <button
+          type="button"
+          id="submitBtn"
+          class="btn btn-primary"
+        >
+          Create Quotation
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden Form for Django CSRF -->
+  <form id="quotationForm" style="display:none;" enctype="multipart/form-data">
+    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+  </form>
+
+  {% if messages %}
+  <div class="toast-container">
+    {% for message in messages %}
+    <div class="toast toast--{% if message.tags %}{{ message.tags }}{% else %}info{% endif %}">
+      <div class="toast-content">
+        <div class="toast-message">
+          {{ message }}
+        </div>
+        <button class="toast-close" onclick="this.parentElement.parentElement.remove()">×</button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<script>
+var isEditMode = false;
+var submitUrl = "{% url 'create_quotation' %}";
+var adminHomeUrl = "{% url 'wagtailadmin_home' %}";
+
+document.addEventListener('DOMContentLoaded', function() {
+  loadCustomers();
+  loadAmcTypes();
+  loadExecutives();
+  loadLifts();
+  document.getElementById('submitBtn').addEventListener('click', handleFormSubmit);
+  fetchNextReferenceId();
+});
+
+function fetchNextReferenceId() {
+  fetch('/quotation/api/quotations/')
+    .then(response => response.json())
+    .then(data => {
+      let nextId = 'ALQ1001';
+      if (data.length > 0) {
+        const numbers = data.map(q => parseInt(q.reference_id.replace('ALQ', '')) || 0);
+        const maxNum = Math.max(...numbers);
+        nextId = `ALQ${maxNum + 1}`;
+      }
+      document.getElementById('reference_id').value = nextId;
+    })
+    .catch(error => {
+      console.error('Error fetching next reference ID:', error);
+      showMessage('error', 'Failed to generate reference ID');
+    });
+}
+
+function loadCustomers() {
+  fetch('/quotation/api/customers/')
+    .then(response => response.json())
+    .then(data => {
+      const select = document.getElementById('customer');
+      select.innerHTML = '<option value="">Select Customer</option>';
+      data.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.id;
+        option.textContent = item.site_name;
+        select.appendChild(option);
+      });
+    })
+    .catch(error => {
+      console.error('Error loading customers:', error);
+      document.getElementById('customer').innerHTML = '<option value="">Error loading customers</option>';
+      showMessage('error', 'Failed to load customers');
+    });
+}
+
+function loadAmcTypes() {
+  fetch('/quotation/api/amc-types/')
+    .then(response => response.json())
+    .then(data => {
+      const select = document.getElementById('amc_type');
+      select.innerHTML = '<option value="">Select AMC Type</option>';
+      data.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.id;
+        option.textContent = item.name || `AMC-${item.id}`;
+        select.appendChild(option);
+      });
+    })
+    .catch(error => {
+      console.error('Error loading AMC types:', error);
+      document.getElementById('amc_type').innerHTML = '<option value="">Error loading AMC types</option>';
+      showMessage('error', 'Failed to load AMC types');
+    });
+}
+
+ function loadExecutives() {
+   fetch('/quotation/api/executives/')
+     .then(response => {
+       if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+       return response.json();
+     })
+     .then(data => {
+       const select = document.getElementById('sales_service_executive');
+       select.innerHTML = '<option value="">Select Executive</option>';
+       data.forEach(item => {
+         const option = document.createElement('option');
+         option.value = item.id;
+         option.textContent = item.full_name;
+         select.appendChild(option);
+       });
+     })
+     .catch(error => {
+       console.error('Error loading executives:', error);
+       document.getElementById('sales_service_executive').innerHTML = '<option value="">Error loading executives</option>';
+       showMessage('error', 'Failed to load sales/service executives');
+     });
+ }
+
+function loadLifts() {
+  fetch('/quotation/api/lifts/')
+    .then(response => response.json())
+    .then(data => {
+      const select = document.getElementById('lift');
+      select.innerHTML = '<option value="">Select Lift</option>';
+      data.forEach(lift => {
+        const option = document.createElement('option');
+        option.value = lift.id;
+        option.textContent = `${lift.name} - ${lift.reference_id} (${lift.brand})`;
+        select.appendChild(option);
+      });
+    })
+    .catch(error => {
+      console.error('Error loading lifts:', error);
+      document.getElementById('lift').innerHTML = '<option value="">Error loading lifts</option>';
+      showMessage('error', 'Failed to load lifts');
+    });
+}
+
+function getCsrfToken() {
+  const token = document.querySelector('[name=csrfmiddlewaretoken]');
+  return token ? token.value : '';
+}
+
+function showMessage(type, message) {
+  const toast = document.createElement('div');
+  toast.className = `toast toast--${type}`;
+  toast.innerHTML = `
+    <div class="toast-content">
+      <span class="toast-message">${message}</span>
+      <button class="toast-close" onclick="this.parentElement.parentElement.remove()">×</button>
+    </div>
+  `;
+
+  let toastContainer = document.querySelector('.toast-container');
+  if (!toastContainer) {
+    toastContainer = document.createElement('div');
+    toastContainer.className = 'toast-container';
+    document.querySelector('.w-content-wrapper').appendChild(toastContainer);
+  }
+
+  toastContainer.appendChild(toast);
+
+  setTimeout(() => {
+    if (toast.parentElement) toast.remove();
+  }, type === 'success' ? 3000 : 5000);
+}
+
+ function validateForm() {
+   let isValid = true;
+   const errors = {};
+ 
+   const customer = document.getElementById('customer').value;
+   const type = document.getElementById('type').value;
+   const date = document.getElementById('date').value;
+   const lift = document.getElementById('lift').value;
+ 
+   if (!customer) {
+     errors.customer = 'Customer is required';
+     document.getElementById('customer').classList.add('form-error');
+     document.getElementById('customer-error').textContent = errors.customer;
+     document.getElementById('customer-error').style.display = 'block';
+     isValid = false;
+   } else {
+     document.getElementById('customer').classList.remove('form-error');
+     document.getElementById('customer-error').style.display = 'none';
+   }
+ 
+   if (!type) {
+     errors.type = 'Quotation type is required';
+     document.getElementById('type').classList.add('form-error');
+     document.getElementById('type-error').textContent = errors.type;
+     document.getElementById('type-error').style.display = 'block';
+     isValid = false;
+   } else {
+     document.getElementById('type').classList.remove('form-error');
+     document.getElementById('type-error').style.display = 'none';
+   }
+ 
+   if (!date) {
+     errors.date = 'Date is required';
+     document.getElementById('date').classList.add('form-error');
+     document.getElementById('date-error').textContent = errors.date;
+     document.getElementById('date-error').style.display = 'block';
+     isValid = false;
+   } else {
+     document.getElementById('date').classList.remove('form-error');
+     document.getElementById('date-error').style.display = 'none';
+   }
+ 
+   if (!lift) {
+     errors.lift = 'Lift selection is required';
+     document.getElementById('lift').classList.add('form-error');
+     document.getElementById('lift-error').textContent = errors.lift;
+     document.getElementById('lift-error').style.display = 'block';
+     isValid = false;
+   } else {
+     document.getElementById('lift').classList.remove('form-error');
+     document.getElementById('lift-error').style.display = 'none';
+   }
+ 
+   return isValid;
+ }
+
+ function createFormData() {
+   const formData = new FormData();
+   formData.append('csrfmiddlewaretoken', getCsrfToken());
+   formData.append('reference_id', document.getElementById('reference_id').value);
+ 
+   const elements = document.querySelectorAll('input:not([type=checkbox]):not([readonly]), select, textarea');
+   elements.forEach(element => {
+     if (element.name) {
+       if (element.type === 'file') {
+         Array.from(element.files).forEach(file => {
+           formData.append('uploads_files', file);
+         });
+       } else {
+         formData.append(element.name, element.value);
+       }
+     }
+   });
+ 
+   // Handle single lift selection
+   const selectedLift = document.getElementById('lift').value;
+   if (selectedLift) {
+     formData.append('lifts', selectedLift);
+   }
+ 
+   return formData;
+ }
+
+function handleFormSubmit() {
+  if (!validateForm()) {
+    showMessage('error', 'Please fill in all required fields');
+    return;
+  }
+
+  const submitButton = document.getElementById('submitBtn');
+  const originalText = submitButton.textContent;
+  submitButton.textContent = 'Saving...';
+  submitButton.disabled = true;
+
+  const formData = createFormData();
+
+  fetch(submitUrl, {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': getCsrfToken()
+    },
+    body: formData
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+    return response.json();
+  })
+  .then(result => {
+    submitButton.textContent = originalText;
+    submitButton.disabled = false;
+
+    if (result.success) {
+      showMessage('success', result.message);
+      setTimeout(() => {
+        window.location.href = adminHomeUrl;
+      }, 1500);
+    } else {
+      showMessage('error', result.error);
+    }
+  })
+  .catch(error => {
+    submitButton.textContent = originalText;
+    submitButton.disabled = false;
+    console.error('Error:', error);
+    showMessage('error', 'An error occurred while saving the quotation');
+  });
+}
+</script>
+{% endblock %}

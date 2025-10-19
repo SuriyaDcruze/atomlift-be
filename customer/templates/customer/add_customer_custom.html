@@ -464,6 +464,7 @@ body {
               <label class="form-label">Reference ID</label>
               <input
                 type="text"
+                id="reference_id"
                 value="{% if is_edit %}{{ customer.reference_id }}{% endif %}"
                 class="form-input"
                 readonly
@@ -856,6 +857,16 @@ function handleOfficeAddressSync() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+  if (!isEditMode) {
+    fetch('/customer/api/customer/next-reference/')
+      .then(function(r){return r.json();})
+      .then(function(d){
+        if (d && d.reference_id) {
+          var ref = document.getElementById('reference_id');
+          if (ref) ref.value = d.reference_id;
+        }
+      });
+  }
   var sameAsSiteCheckbox = document.getElementById('same_as_site_address');
   var siteAddressField = document.getElementById('site_address');
   var officeAddressField = document.getElementById('office_address');

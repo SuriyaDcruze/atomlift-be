@@ -464,6 +464,7 @@ body {
               <label class="form-label">Reference ID</label>
               <input
                 type="text"
+                id="reference_id"
                 value="{% if is_edit %}{{ lift.reference_id }}{% endif %}"
                 class="form-input"
                 readonly
@@ -798,6 +799,16 @@ function calculateLoadKg() {
 
 document.addEventListener('DOMContentLoaded', function() {
   // Load various dropdowns dynamically on page load
+  if (!isEditMode) {
+    fetch('/lift/api/lift/next-reference/')
+      .then(function(r){return r.json();})
+      .then(function(d){
+        if (d && d.reference_id) {
+          var ref = document.getElementById('reference_id');
+          if (ref) ref.value = d.reference_id;
+        }
+      });
+  }
   loadFloorIDs();
   loadBrands();
   loadLiftTypes();

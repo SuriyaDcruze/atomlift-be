@@ -258,3 +258,19 @@ def get_customer_json(request, id):
         return JsonResponse(data)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+@require_http_methods(["GET"])
+def get_next_amc_reference(request):
+    """Return the next AMC reference ID e.g., AMC01, AMC02"""
+    try:
+        last_amc = AMC.objects.order_by("id").last()
+        last_id = 0
+        if last_amc and last_amc.reference_id and last_amc.reference_id.startswith("AMC"):
+            try:
+                last_id = int(last_amc.reference_id.replace("AMC", ""))
+            except ValueError:
+                last_id = 0
+        next_ref = f"AMC{str(last_id + 1).zfill(2)}"
+        return JsonResponse({"reference_id": next_ref})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)

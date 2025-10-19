@@ -11,6 +11,7 @@ urlpatterns = [
     path("api/customer/states/", views.get_states, name="get_states"),
     path("api/customer/routes/", views.get_routes, name="get_routes"),
     path("api/customer/branches/", views.get_branches, name="get_branches"),
+    path("api/customer/next-reference/", views.get_next_customer_reference, name="get_next_customer_reference"),
 
     # CRUD operations for states
     path("api/customer/states/", views.create_state, name="create_state"),

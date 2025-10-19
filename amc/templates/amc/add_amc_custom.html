@@ -1067,6 +1067,17 @@ document.addEventListener('DOMContentLoaded', function() {
   loadCustomersDropdown();
   loadAMCTypesDropdown();
 
+  if (!isEditAMC) {
+    fetch('/amc/api/amc/next-reference/')
+      .then(function(r){return r.json();})
+      .then(function(d){
+        if (d && d.reference_id) {
+          var ref = document.getElementById('reference_id');
+          if (ref) ref.value = d.reference_id;
+        }
+      });
+  }
+
   document.getElementById('amcForm').addEventListener('submit', handleAMCFormSubmit);
 });
 

@@ -1,0 +1,139 @@
+{% extends "wagtailadmin/base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+.w-content-wrapper{background:#f5f5f5;min-height:calc(100vh - 4rem);padding:2rem}
+.w-modal-overlay{position:fixed;inset:0;background-color:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:50;padding:1rem}
+.w-modal-content{background:#fff;border-radius:.75rem;box-shadow:0 25px 50px -12px rgba(0,0,0,.25);width:100%;max-width:64rem;max-height:90vh;overflow:auto;display:flex;flex-direction:column}
+.w-modal-header{background:linear-gradient(to right,#2D3A6B,#243158);padding:1.5rem;color:#fff}
+.w-modal-title{margin:0;font-size:1.25rem;font-weight:600}
+.w-modal-subtitle{margin:0;font-size:.875rem;opacity:.9}
+.w-modal-body{padding:1.5rem}
+.form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1.5rem}
+.form-section-title{font-weight:600;color:#374151;border-bottom:2px solid #E5E7EB;padding-bottom:.5rem;margin:.5rem 0 1rem}
+.form-group{margin-bottom:1rem}
+.form-label{display:block;font-size:.875rem;font-weight:500;color:#374151;margin-bottom:.25rem}
+.form-input,.form-select,.form-textarea{width:100%;padding:.625rem 1rem;border-radius:.5rem;border:1px solid #D1D5DB;background:#fff;font-size:.875rem}
+.w-modal-footer{padding:1rem 1.5rem;background:#F9FAFB;border-top:1px solid #E5E7EB;display:flex;justify-content:flex-end;gap:.75rem}
+.btn{padding:.625rem 1.25rem;border-radius:.5rem;font-size:.875rem;font-weight:500}
+.btn-primary{background:linear-gradient(to right,#2D3A6B,#243158);color:#fff}
+.btn-secondary{background:#F3F4F6;border:1px solid #D1D5DB}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="w-content-wrapper">
+  <div class="w-modal-overlay">
+    <div class="w-modal-content">
+      <div class="w-modal-header">
+        <h2 class="w-modal-title">Create New Complaint</h2>
+        <p class="w-modal-subtitle">Fill the details to create a complaint ticket</p>
+      </div>
+      <div class="w-modal-body">
+        <div class="form-grid">
+          <div>
+            <h3 class="form-section-title">Complaint Info</h3>
+            <div class="form-group">
+              <label class="form-label">Reference</label>
+              <input id="reference" class="form-input" type="text" readonly />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Type</label>
+              <select id="complaint_type" class="form-select"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Priority</label>
+              <select id="priority" class="form-select"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Date</label>
+              <input id="date" class="form-input" type="date" />
+            </div>
+          </div>
+          <div>
+            <h3 class="form-section-title">Customer & Assignment</h3>
+            <div class="form-group">
+              <label class="form-label">Customer</label>
+              <select id="customer" class="form-select"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Assign To</label>
+              <select id="assign_to" class="form-select"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Contact Person</label>
+              <input id="contact_person_name" class="form-input" type="text" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Mobile</label>
+              <input id="contact_person_mobile" class="form-input" type="text" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Block/Wing</label>
+              <input id="block_wing" class="form-input" type="text" />
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Subject</label>
+          <input id="subject" class="form-input" type="text" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Message</label>
+          <textarea id="message" class="form-textarea" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Technician Remark</label>
+          <textarea id="technician_remark" class="form-textarea" rows="2"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Solution</label>
+          <textarea id="solution" class="form-textarea" rows="2"></textarea>
+        </div>
+      </div>
+      <div class="w-modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="window.history.back()">Cancel</button>
+        <button type="button" id="submitBtn" class="btn btn-primary">Create Complaint</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function getCsrfToken(){var t=document.querySelector('[name=csrfmiddlewaretoken]');return t?t.value:''}
+function loadSelect(id,url,placeholder){fetch(url).then(r=>r.json()).then(d=>{const s=document.getElementById(id);s.innerHTML=`<option value="">Select</option>`;d.forEach(i=>{const o=document.createElement('option');o.value=i.id;o.textContent=i.name||i.site_name||i.full_name;s.appendChild(o);});});}
+document.addEventListener('DOMContentLoaded',function(){
+  fetch('/complaints/api/complaints/next-reference/').then(r=>r.json()).then(d=>{if(d.reference){document.getElementById('reference').value=d.reference}});
+  const today=new Date().toISOString().split('T')[0];document.getElementById('date').value=today;
+  loadSelect('complaint_type','/complaints/api/complaints/types/');
+  loadSelect('priority','/complaints/api/complaints/priorities/');
+  loadSelect('customer','/complaints/api/complaints/customers/');
+  loadSelect('assign_to','/complaints/api/complaints/executives/');
+  document.getElementById('customer').addEventListener('change',function(){const opt=this.options[this.selectedIndex];});
+  document.getElementById('submitBtn').addEventListener('click',function(){
+    const payload={
+      complaint_type:document.getElementById('complaint_type').value,
+      date:document.getElementById('date').value,
+      customer:document.getElementById('customer').value,
+      assign_to:document.getElementById('assign_to').value,
+      priority:document.getElementById('priority').value,
+      contact_person_name:document.getElementById('contact_person_name').value,
+      contact_person_mobile:document.getElementById('contact_person_mobile').value,
+      block_wing:document.getElementById('block_wing').value,
+      subject:document.getElementById('subject').value,
+      message:document.getElementById('message').value,
+      technician_remark:document.getElementById('technician_remark').value,
+      solution:document.getElementById('solution').value,
+    };
+    fetch('/complaints/create/',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':getCsrfToken()},body:JSON.stringify(payload)}).then(r=>r.json()).then(res=>{
+      if(res.success){window.location.href='{% url "wagtailadmin_home" %}'}
+      else{alert(res.error||'Failed');}
+    });
+  });
+});
+</script>
+{% endblock %}
+
+
+

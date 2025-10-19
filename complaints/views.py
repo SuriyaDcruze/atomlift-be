@@ -1,6 +1,8 @@
 # complaints/views.py
-from django.shortcuts import get_object_or_404
-from django.http import HttpResponse
+from django.shortcuts import get_object_or_404, render
+from django.http import HttpResponse, JsonResponse
+from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt
 from io import BytesIO
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
@@ -8,7 +10,9 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 import logging
 
-from .models import Complaint
+from .models import Complaint, ComplaintType, ComplaintPriority
+from customer.models import Customer
+from authentication.models import CustomUser
 
 logger = logging.getLogger(__name__)
 
@@ -124,3 +128,135 @@ def download_complaint_pdf(request, pk):
     except Exception as e:
         logger.error(f"Error generating complaint PDF: {str(e)}")
         return HttpResponse(f"Error generating PDF: {str(e)}", status=500)
+
+
+def add_complaint_custom(request):
+    context = {
+        'is_edit': False,
+    }
+    return render(request, 'complaints/add_complaint_custom.html', context)
+
+
+def edit_complaint_custom(request, reference):
+    complaint = get_object_or_404(Complaint, reference=reference)
+    context = {
+        'is_edit': True,
+        'complaint': complaint,
+    }
+    return render(request, 'complaints/edit_complaint_custom.html', context)
+
+
+@require_http_methods(["GET"])
+def get_customers(request):
+    customers = Customer.objects.all().order_by('site_name')
+    data = [{
+        'id': c.id,
+        'site_name': c.site_name,
+        'site_address': c.site_address,
+        'contact_person_name': c.contact_person_name,
+        'phone': c.phone,
+    } for c in customers]
+    return JsonResponse(data, safe=False)
+
+
+@require_http_methods(["GET"])
+def get_complaint_types(request):
+    types = ComplaintType.objects.all().order_by('name')
+    return JsonResponse([{'id': t.id, 'name': t.name} for t in types], safe=False)
+
+
+@require_http_methods(["GET"])
+def get_priorities(request):
+    priorities = ComplaintPriority.objects.all().order_by('name')
+    return JsonResponse([{'id': p.id, 'name': p.name} for p in priorities], safe=False)
+
+
+@require_http_methods(["GET"])
+def get_executives(request):
+    users = CustomUser.objects.filter(groups__name='employee').order_by('first_name', 'last_name')
+    return JsonResponse([
+        {
+            'id': u.id,
+            'full_name': f"{u.first_name or ''} {u.last_name or ''}".strip() or u.username
+        } for u in users
+    ], safe=False)
+
+
+@require_http_methods(["GET"])
+def get_next_complaint_reference(request):
+    last = Complaint.objects.order_by('id').last()
+    last_id = 1000
+    if last and last.reference and last.reference.startswith('CMP'):
+        try:
+            last_id = int(last.reference.replace('CMP', ''))
+        except ValueError:
+            last_id = 1000
+    return JsonResponse({'reference': f'CMP{last_id + 1}'})
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def create_complaint(request):
+    data = request.POST or request.body
+    if not isinstance(data, dict):
+        import json as _json
+        try:
+            data = _json.loads(request.body or '{}')
+        except Exception:
+            data = {}
+
+    try:
+        customer = Customer.objects.get(id=data.get('customer')) if data.get('customer') else None
+        complaint = Complaint.objects.create(
+            complaint_type=ComplaintType.objects.get(id=data['complaint_type']) if data.get('complaint_type') else None,
+            date=data.get('date') or None,
+            customer=customer,
+            contact_person_name=data.get('contact_person_name') or (customer.contact_person_name if customer else ''),
+            contact_person_mobile=data.get('contact_person_mobile') or (customer.phone if customer else ''),
+            block_wing=data.get('block_wing') or (customer.site_address if customer else ''),
+            assign_to=CustomUser.objects.get(id=data['assign_to']) if data.get('assign_to') else None,
+            priority=ComplaintPriority.objects.get(id=data['priority']) if data.get('priority') else None,
+            subject=data.get('subject', ''),
+            message=data.get('message', ''),
+            technician_remark=data.get('technician_remark', ''),
+            solution=data.get('solution', ''),
+        )
+        return JsonResponse({'success': True, 'message': f'Complaint {complaint.reference} created successfully'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def update_complaint(request, reference):
+    complaint = get_object_or_404(Complaint, reference=reference)
+    data = request.POST or request.body
+    if not isinstance(data, dict):
+        import json as _json
+        try:
+            data = _json.loads(request.body or '{}')
+        except Exception:
+            data = {}
+    try:
+        if data.get('complaint_type'):
+            complaint.complaint_type = ComplaintType.objects.get(id=data['complaint_type'])
+        if data.get('date'):
+            complaint.date = data.get('date')
+        if data.get('customer'):
+            complaint.customer = Customer.objects.get(id=data['customer'])
+        complaint.contact_person_name = data.get('contact_person_name', complaint.contact_person_name)
+        complaint.contact_person_mobile = data.get('contact_person_mobile', complaint.contact_person_mobile)
+        complaint.block_wing = data.get('block_wing', complaint.block_wing)
+        if data.get('assign_to'):
+            complaint.assign_to = CustomUser.objects.get(id=data['assign_to'])
+        if data.get('priority'):
+            complaint.priority = ComplaintPriority.objects.get(id=data['priority'])
+        complaint.subject = data.get('subject', complaint.subject)
+        complaint.message = data.get('message', complaint.message)
+        complaint.technician_remark = data.get('technician_remark', complaint.technician_remark)
+        complaint.solution = data.get('solution', complaint.solution)
+        complaint.save()
+        return JsonResponse({'success': True, 'message': f'Complaint {complaint.reference} updated successfully'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+

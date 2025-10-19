@@ -1,9 +1,12 @@
+# models.py (corrected to include ViewSet overrides for custom add/edit redirection, added imports)
 from django.db import models
 from django.forms.widgets import RadioSelect
 from wagtail.admin.panels import FieldPanel, MultiFieldPanel
 from wagtail.snippets.models import register_snippet
 from wagtail.snippets.views.snippets import SnippetViewSet, SnippetViewSetGroup
 from django.forms.widgets import RadioSelect
+from django.urls import reverse
+from django.shortcuts import redirect
 
 
 
@@ -124,6 +127,40 @@ class ItemViewSet(SnippetViewSet):
         'threshold_qty', 'sale_price', 'service_type', 'tax_preference',
         'unit', 'sac_code', 'igst', 'gst'
     )
+    list_display = (
+        "item_number",
+        "name",
+        "make",
+        "model",
+        "type",
+        "capacity",
+        "sale_price",
+    )
+    search_fields = (
+        "item_number",
+        "name",
+        "make__value",
+        "model",
+        "type__value",
+    )
+    list_filter = (
+        "make",
+        "type",
+        "unit",
+    )
+
+    def get_add_url(self):
+        return reverse("add_item_custom")
+
+    def get_edit_url(self, instance):
+        return reverse("edit_item_custom", args=(instance.item_number,))
+
+    def add_view(self, request):
+        return redirect(self.get_add_url())
+
+    def edit_view(self, request, pk):
+        instance = self.model.objects.get(pk=pk)
+        return redirect(self.get_edit_url(instance))
 
 
 # ---------- GROUP ----------

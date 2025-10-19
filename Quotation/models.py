@@ -1,4 +1,6 @@
 from django.db import models
+from django.urls import reverse
+from django.shortcuts import redirect
 from wagtail.admin.panels import FieldPanel, MultiFieldPanel
 from wagtail.snippets.models import register_snippet
 from modelcluster.models import ClusterableModel
@@ -142,6 +144,19 @@ class QuotationViewSet(SnippetViewSet):
         "type",
     )
     list_filter = ("type", "date")
+
+    def get_add_url(self):
+        return reverse("add_quotation_custom")
+
+    def get_edit_url(self, instance):
+        return reverse("edit_quotation_custom", args=(instance.reference_id,))
+
+    def add_view(self, request):
+        return redirect(self.get_add_url())
+
+    def edit_view(self, request, pk):
+        instance = self.model.objects.get(pk=pk)
+        return redirect(self.get_edit_url(instance))
 
 # ---------- SNIPPET GROUP ----------
 class QuotationGroup(SnippetViewSetGroup):

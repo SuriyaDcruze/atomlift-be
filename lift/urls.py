@@ -23,4 +23,5 @@ urlpatterns = [
     path('api/lift/controllerbrands/<int:pk>/', views.manage_controllerbrands_detail, name='api_manage_controllerbrands_detail'),
     path('api/lift/cabins/', views.manage_cabins, name='api_manage_cabins'),
     path('api/lift/cabins/<int:pk>/', views.manage_cabins_detail, name='api_manage_cabins_detail'),
+    path('api/lift/next-reference/', views.get_next_lift_reference, name='api_next_lift_reference'),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
