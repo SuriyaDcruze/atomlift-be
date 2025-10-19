@@ -3,480 +3,507 @@
 
 {% block extra_css %}
 <style>
+/* Modern Tailwind-like styles for Wagtail admin */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
 
-  .w-tabs {
-    background: white;
-    border: 1px solid var(--w-color-border);
-    border-radius: 4px;
-    margin-bottom: 2rem;
+.w-content-wrapper {
+  background: #f5f5f5;
+  min-height: calc(100vh - 4rem);
+  padding: 2rem;
+}
+
+.w-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 1rem;
+}
+
+.w-modal-content {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  width: 100%;
+  max-width: 64rem;
+  max-height: 90vh;
+  overflow: visible;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+}
+
+.w-modal-header {
+  background: linear-gradient(to right, #2D3A6B, #243158);
+  padding: 1.5rem;
+}
+
+.w-modal-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: white;
+}
+
+.w-modal-subtitle {
+  margin: 0;
+  color: white;
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
+
+.w-modal-body {
+  padding: 1.5rem;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.form-section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 2px solid #E5E7EB;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.form-required {
+  color: #EF4444;
+  margin-left: 0.25rem;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  border: 1px solid #D1D5DB;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #F97316;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+}
+
+.form-input:disabled {
+  background-color: #F9FAFB;
+  color: #6B7280;
+}
+
+.form-textarea {
+  min-height: 3rem;
+  resize: vertical;
+  padding: 0.5rem 0.75rem;
+}
+
+.form-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.75rem center;
+  background-repeat: no-repeat;
+  background-size: 1rem;
+  padding-right: 2.5rem;
+  font-size: 0.875rem;
+}
+
+.form-select-addon {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.form-select-addon .form-select {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right: 0;
+}
+
+.form-select-addon button {
+  background: linear-gradient(to right, #3B82F6, #1D4ED8);
+  color: white;
+  border: 1px solid #D1D5DB;
+  border-left: 0;
+  border-top-right-radius: 0.375rem;
+  border-bottom-right-radius: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3rem;
+}
+
+.form-select-addon button:hover {
+  background: linear-gradient(to right, #2563EB, #1E40AF);
+}
+
+.form-checkbox-wrapper {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  background: #F9FAFB;
+  border-radius: 0.375rem;
+  border: 1px solid #D1D5DB;
+}
+
+.form-checkbox {
+  margin-right: 0.5rem;
+}
+
+.form-checkbox-label {
+  margin: 0;
+  font-weight: normal !important;
+}
+
+.form-help {
+  font-size: 0.75rem;
+  color: #6B7280;
+  margin-top: 0.25rem;
+}
+
+.w-modal-footer {
+  padding: 1rem 1.5rem;
+  background: #F9FAFB;
+  border-top: 1px solid #E5E7EB;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+}
+
+.btn {
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.btn-secondary {
+  background: #F3F4F6;
+  color: #374151;
+  border: 1px solid #D1D5DB;
+}
+
+.btn-secondary:hover {
+  background: #E5E7EB;
+}
+
+.btn-primary {
+  background: linear-gradient(to right, #2D3A6B, #243158);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(to right, #213066, #182755);
+}
+
+.option-modal {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 1rem;
+}
+
+.option-modal.active {
+  display: flex;
+}
+
+.option-modal-dialog {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  width: 100%;
+  max-width: 42rem;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.option-modal-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.option-modal-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.option-modal-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+.option-modal-footer {
+  padding: 1.5rem;
+  background: #F9FAFB;
+  border-top: 1px solid #E5E7EB;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.option-list {
+  max-height: 20rem;
+  overflow-y: auto;
+  border: 1px solid #D1D5DB;
+  border-radius: 0.375rem;
+  margin-top: 1rem;
+}
+
+.option-table {
+  width: 100%;
+  font-size: 0.875rem;
+}
+
+.option-table thead {
+  background: #F3F4F6;
+}
+
+.option-table th {
+  padding: 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.option-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.toast-container {
+  position: fixed;
+  top: 1.25rem;
+  right: 1.25rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.toast {
+  background: white;
+  border-radius: 0.375rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  min-width: 20rem;
+  max-width: 31.25rem;
+  border-left: 4px solid;
+  animation: slideInRight 0.3s ease-out;
+}
+
+.toast--success {
+  border-left-color: #10B981;
+}
+
+.toast--error {
+  border-left-color: #EF4444;
+}
+
+.toast-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+}
+
+.toast-message {
+  flex: 1;
+  margin-right: 1rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6B7280;
+  padding: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.toast-close:hover {
+  color: #374151;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 10rem;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+  border-radius: 50%;
+  height: 2rem;
+  width: 2rem;
+  border: 2px solid #3B82F6;
+  border-top-color: transparent;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 768px) {
+  .form-grid {
+    grid-template-columns: 1fr;
   }
 
-  .w-tabs__list {
-    display: flex;
-    border-bottom: 1px solid var(--w-color-border);
-    padding: 0;
-    margin: 0;
-    list-style: none;
-    overflow-x: auto;
+  .w-modal-content {
+    max-height: 95vh;
   }
 
-  .w-tabs__tab {
-    padding: 1rem 1.5rem;
-    cursor: pointer;
-    border-bottom: 3px solid transparent;
-    transition: all 0.2s;
-    white-space: nowrap;
-    font-weight: 500;
-    color: var(--w-color-text-meta);
+  .option-modal-dialog {
+    max-width: 95vw;
   }
 
-  .w-tabs__tab:hover {
-    color: var(--w-color-primary);
-    background: #f9f9f9;
+  .toast {
+    min-width: 17.5rem;
+    max-width: 90vw;
   }
-
-  .w-tabs__tab.active {
-    color: var(--w-color-primary);
-    border-bottom-color: var(--w-color-primary);
-    background: white;
-  }
-
-  .w-tabs__content {
-    padding: 2rem;
-  }
-
-  .w-panel {
-    display: none;
-  }
-
-  .w-panel.active {
-    display: block;
-  }
-
-  .w-field {
-    margin-bottom: 1.5rem;
-  }
-
-  .w-field__label {
-    display: block;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-    color: var(--w-color-text);
-    font-size: 0.875rem;
-  }
-
-  .w-field__required {
-    color: var(--w-color-error);
-    margin-left: 0.25rem;
-  }
-
-  .w-field__input,
-  .w-field__select,
-  .w-field__textarea {
-    width: 100%;
-    padding: 0.625rem 0.75rem;
-    border: 1px solid var(--w-color-input-border);
-    border-radius: 3px;
-    font-size: 0.875rem;
-    transition: border-color 0.2s;
-    font-family: inherit;
-  }
-
-  .w-field__input:focus,
-  .w-field__select:focus,
-  .w-field__textarea:focus {
-    outline: none;
-    border-color: var(--w-color-input-focus);
-    box-shadow: 0 0 0 3px rgba(0, 125, 126, 0.1);
-  }
-
-  .w-field__input[readonly] {
-    background-color: #f9f9f9;
-    color: var(--w-color-text-meta);
-  }
-
-  .w-field__help {
-    font-size: 0.75rem;
-    color: var(--w-color-text-meta);
-    margin-top: 0.25rem;
-  }
-
-  .w-field__checkbox-wrapper {
-    display: flex;
-    align-items: center;
-  }
-
-  .w-field__checkbox {
-    width: auto;
-    margin-right: 0.5rem;
-  }
-
-  .w-field__addon {
-    display: flex;
-    gap: 0.5rem;
-  }
-
-  .w-field__addon .w-field__select {
-    flex: 1;
-  }
-
-  .w-button {
-    padding: 0.625rem 1.25rem;
-    border: none;
-    border-radius: 3px;
-    font-size: 0.875rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-decoration: none;
-    display: inline-block;
-  }
-
-  .w-button--primary {
-    background: var(--w-color-primary);
-    color: white;
-  }
-
-  .w-button--primary:hover {
-    background: #006464;
-  }
-
-  .w-button--secondary {
-    background: white;
-    color: var(--w-color-text);
-    border: 1px solid var(--w-color-border);
-  }
-
-  .w-button--secondary:hover {
-    background: #f9f9f9;
-  }
-
-  .w-button--icon {
-    padding: 0.625rem 0.875rem;
-    min-width: auto;
-  }
-
-  .w-header {
-    background: white;
-    border-bottom: 1px solid var(--w-color-border);
-    padding: 1.5rem 2rem;
-    margin: -2rem -2rem 2rem -2rem;
-  }
-
-  .w-header__row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 1rem;
-  }
-
-  .w-header__title {
-    font-size: 1.75rem;
-    font-weight: 600;
-    margin: 0;
-    color: var(--w-color-text);
-  }
-
-  .w-header__actions {
-    display: flex;
-    gap: 0.75rem;
-  }
-
-  .w-message {
-    padding: 1rem 1.25rem;
-    border-radius: 3px;
-    margin-bottom: 1.5rem;
-    border-left: 4px solid;
-  }
-
-  .w-message--info {
-    background: #e7f3ff;
-    border-color: var(--w-color-info);
-    color: var(--w-color-info);
-  }
-
-  .w-message--success {
-    background: #e5f7f1;
-    border-color: var(--w-color-success);
-    color: var(--w-color-success);
-  }
-
-  .w-message--error {
-    background: #fef2f2;
-    border-color: var(--w-color-error);
-    color: var(--w-color-error);
-  }
-
-  .w-message__title {
-    font-weight: 600;
-    margin: 0 0 0.25rem 0;
-  }
-
-  .w-message__content {
-    margin: 0;
-  }
-
-  .w-footer-actions {
-    background: white;
-    border-top: 1px solid var(--w-color-border);
-    padding: 1.5rem 2rem;
-    margin: 2rem -2rem -2rem -2rem;
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.75rem;
-    position: sticky;
-    bottom: 0;
-  }
-
-  .w-section {
-    margin-bottom: 2rem;
-  }
-
-  .w-section__heading {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin: 0 0 1.25rem 0;
-    color: var(--w-color-text);
-    padding-bottom: 0.75rem;
-    border-bottom: 1px solid var(--w-color-border);
-  }
-
-  .w-field-group {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1.5rem;
-  }
-
-  .w-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-  }
-
-  .w-modal.active {
-    display: flex;
-  }
-
-  .w-modal__dialog {
-    background: white;
-    border-radius: 4px;
-    width: 90%;
-    max-width: 500px;
-    max-height: 90vh;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-  }
-
-  .w-modal__header {
-    padding: 1.5rem;
-    border-bottom: 1px solid var(--w-color-border);
-  }
-
-  .w-modal__title {
-    margin: 0;
-    font-size: 1.25rem;
-    font-weight: 600;
-  }
-
-  .w-modal__body {
-    padding: 1.5rem;
-    overflow-y: auto;
-  }
-
-  .w-modal__footer {
-    padding: 1.5rem;
-    border-top: 1px solid var(--w-color-border);
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.75rem;
-  }
-
-  .w-option-list {
-    margin-top: 1.5rem;
-  }
-
-  .w-option-list__title {
-    font-size: 0.875rem;
-    font-weight: 600;
-    margin: 0 0 0.75rem 0;
-    color: var(--w-color-text-meta);
-  }
-
-  .w-option-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.75rem;
-    border: 1px solid var(--w-color-border);
-    border-radius: 3px;
-    margin-bottom: 0.5rem;
-  }
-
-  .w-option-item__actions {
-    display: flex;
-    gap: 0.5rem;
-  }
-
-  .w-button--small {
-    padding: 0.375rem 0.75rem;
-    font-size: 0.75rem;
-  }
-
-  .w-button--danger {
-    background: var(--w-color-error);
-    color: white;
-  }
-
-  .w-button--danger:hover {
-    background: #b12226;
-  }
-
-  @media (max-width: 768px) {
-    .w-header {
-      padding: 1rem 1.5rem;
-      margin: -1.5rem -1.5rem 1.5rem -1.5rem;
-    }
-
-    .w-header__row {
-      flex-direction: column;
-      align-items: flex-start;
-    }
-
-    .w-header__title {
-      font-size: 1.5rem;
-    }
-
-    .w-tabs__content {
-      padding: 1.5rem;
-    }
-
-    .w-field-group {
-      grid-template-columns: 1fr;
-    }
-
-    .w-footer-actions {
-      padding: 1rem 1.5rem;
-      margin: 1.5rem -1.5rem -1.5rem -1.5rem;
-      flex-direction: column-reverse;
-    }
-
-    .w-footer-actions .w-button {
-      width: 100%;
-      text-align: center;
-    }
-
-    .w-tabs__tab {
-      padding: 0.75rem 1rem;
-      font-size: 0.875rem;
-    }
-  }
-
-  @media (max-width: 480px) {
-    .w-header__title {
-      font-size: 1.25rem;
-    }
-
-    .w-modal__dialog {
-      width: 95%;
-    }
-  }
-
-  .w-content-wrapper {
-    background: #f5f5f5;
-    min-height: calc(100vh - 4rem);
-    padding: 2rem;
-  }
-
-  @media (max-width: 768px) {
-    .w-content-wrapper {
-      padding: 1.5rem;
-    }
-  }
+}
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="w-content-wrapper">
-  <div class="w-header">
-    <div class="w-header__row">
-      <h1 class="w-header__title">
-        {% if is_edit %}Edit AMC{% else %}Create AMC{% endif %}
-      </h1>
-      <div class="w-header__actions">
-        <a href="/admin/snippets/amc/amc/" class="w-button w-button--secondary">Cancel</a>
+  <div class="w-modal-overlay">
+    <div class="w-modal-content">
+      <!-- Modal Header -->
+      <div class="w-modal-header">
+        <h2 class="w-modal-title">
+          {% if is_edit %}Edit AMC{% else %}Create New AMC{% endif %}
+        </h2>
+        <p class="w-modal-subtitle">
+          {% if is_edit %}Update AMC details{% else %}Fill in all required fields (*) to add an AMC{% endif %}
+        </p>
       </div>
-    </div>
-  </div>
 
-  {% if customer_id_param and selected_customer %}
-  <div class="w-message w-message--info">
-    <p class="w-message__title">Lift Information</p>
-    <p class="w-message__content">If you haven't added Lifts, <a href="/dashboard/customers" target="_blank">click here</a> to add one. After adding, click to refresh.</p>
-  </div>
-  {% endif %}
+      <!-- Modal Body -->
+      <div class="w-modal-body">
+        {% if customers|length >= 0 and amc_types|length >= 0 and payment_terms|length >= 0 and items|length >= 0 %}
+        <form id="amcForm" method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          <div class="form-grid">
+            <!-- Left Column -->
+            <div class="form-column">
+              <!-- Basic Information -->
+              <h3 class="form-section-title">Basic Information</h3>
 
-  <form id="amcForm">
-    <div class="w-tabs">
-      <ul class="w-tabs__list" role="tablist">
-        <li class="w-tabs__tab active" data-tab="basic" role="tab">Basic Details</li>
-        <li class="w-tabs__tab" data-tab="schedule" role="tab">Schedule & Location</li>
-        <li class="w-tabs__tab" data-tab="contract" role="tab">Contract & Pricing</li>
-      </ul>
-
-      <div class="w-tabs__content">
-        <!-- Basic Details Panel -->
-        <div class="w-panel active" id="basic-panel">
-          <div class="w-section">
-            <h2 class="w-section__heading">Basic Information</h2>
-
-            <div class="w-field">
-              <label for="customer" class="w-field__label">
-                Customer<span class="w-field__required">*</span>
-              </label>
-              <select id="customer" name="customer" class="w-field__select" required onchange="fetchCustomerDetails()">
-                <option value="">Select Customer</option>
-                {% for customer in customers %}
+              <div class="form-group">
+                <label class="form-label">Customer<span class="form-required">*</span></label>
+                <select id="customer" name="customer" class="form-input form-select" required onchange="fetchCustomerDetails()">
+                  <option value="">Select Customer</option>
+                  {% for customer in customers %}
                   <option value="{{ customer.id }}"
                           data-job-no="{{ customer.job_no|default:'' }}"
                           data-site-address="{{ customer.site_address|default:''|escapejs }}"
-                          {% if selected_customer and selected_customer.id == customer.id %}selected{% endif %}
-                          {% if is_edit and amc.customer.id == customer.id %}selected{% endif %}>
+                          {% if selected_customer and selected_customer.id == customer.id %}selected{% endif %}>
                     {{ customer.site_name }}
                     {% if customer.job_no %} ({{ customer.job_no }}){% endif %}
                   </option>
-                {% endfor %}
-              </select>
-            </div>
-
-            <div class="w-field-group">
-              <div class="w-field">
-                <label for="reference_id" class="w-field__label">Reference ID</label>
-                <input type="text" id="reference_id" name="reference_id" 
-                       value="{% if is_edit %}{{ amc.reference_id|default:'' }}{% endif %}"
-                       class="w-field__input" readonly />
-                <p class="w-field__help">Auto-generated reference number</p>
+                  {% endfor %}
+                </select>
               </div>
 
-              <div class="w-field">
-                <label for="amcname" class="w-field__label">AMC Pack Name</label>
-                <input type="text" id="amcname" name="amcname" 
-                       value="{% if is_edit %}{{ amc.amcname }}{% endif %}"
-                       class="w-field__input" />
+              <div class="form-group">
+                <label class="form-label">Reference ID</label>
+                <input
+                  type="text"
+                  id="reference_id"
+                  name="reference_id"
+                  value="{% if is_edit %}{{ amc.reference_id|default:'' }}{% endif %}"
+                  class="form-input"
+                  readonly
+                />
+                <p class="form-help">Auto-generated reference number</p>
               </div>
-            </div>
 
-            <div class="w-field-group">
-              <div class="w-field">
-                <label for="invoice_frequency" class="w-field__label">Invoice Frequency</label>
-                <select id="invoice_frequency" name="invoice_frequency" class="w-field__select">
+              <div class="form-group">
+                <label class="form-label">AMC Pack Name</label>
+                <input
+                  type="text"
+                  id="amcname"
+                  name="amcname"
+                  value="{% if is_edit %}{{ amc.amcname|default:'' }}{% endif %}"
+                  class="form-input"
+                />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Invoice Frequency</label>
+                <select id="invoice_frequency" name="invoice_frequency" class="form-input form-select">
                   <option value="annually" {% if not is_edit or amc.invoice_frequency == 'annually' %}selected{% endif %}>Annually</option>
                   <option value="semi_annually" {% if is_edit and amc.invoice_frequency == 'semi_annually' %}selected{% endif %}>Semi Annually</option>
                   <option value="quarterly" {% if is_edit and amc.invoice_frequency == 'quarterly' %}selected{% endif %}>Quarterly</option>
@@ -485,262 +512,344 @@
                 </select>
               </div>
 
-              <div class="w-field">
-                <label for="amc_type" class="w-field__label">AMC Type</label>
-                <div class="w-field__addon">
-                  <select id="amc_type" name="amc_type" class="w-field__select">
-                    <option value="">Select AMC Type</option>
-                    {% for type in amc_types %}
-                      <option value="{{ type.id }}" {% if is_edit and amc.amc_type.id == type.id %}selected{% endif %}>
-                        {{ type.name }}
-                      </option>
-                    {% endfor %}
-                  </select>
-                  <button type="button" class="w-button w-button--secondary w-button--icon" onclick="openModal('amc-type')">+</button>
-                </div>
+              <!-- Schedule Information -->
+              <h3 class="form-section-title">Schedule Information</h3>
+
+              <div class="form-group">
+                <label class="form-label">Start Date<span class="form-required">*</span></label>
+                <input
+                  type="date"
+                  id="start_date"
+                  name="start_date"
+                  value="{% if is_edit %}{{ amc.start_date|date:'Y-m-d' }}{% endif %}"
+                  class="form-input"
+                  required
+                  onchange="setEndDate()"
+                />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">End Date<span class="form-required">*</span></label>
+                <input
+                  type="date"
+                  id="end_date"
+                  name="end_date"
+                  value="{% if is_edit %}{{ amc.end_date|date:'Y-m-d' }}{% endif %}"
+                  class="form-input"
+                  required
+                />
               </div>
             </div>
 
-            <div class="w-field">
-              <label for="payment_terms" class="w-field__label">Payment Terms</label>
-              <div class="w-field__addon">
-                <select id="payment_terms" name="payment_terms" class="w-field__select">
-                  <option value="">Select Payment Terms</option>
-                  {% for term in payment_terms %}
+            <!-- Right Column -->
+            <div class="form-column">
+              <!-- AMC Type and Payment Terms -->
+              <h3 class="form-section-title">AMC Type and Payment Terms</h3>
+
+              <div class="form-group">
+                <label class="form-label">AMC Type</label>
+                <div class="form-select-addon">
+                  <select id="amc_type" name="amc_type" class="form-input form-select">
+                    <option value="">Select AMC Type</option>
+                    {% for type in amc_types %}
+                    <option value="{{ type.id }}" {% if is_edit and amc.amc_type.id == type.id %}selected{% endif %}>
+                      {{ type.name }}
+                    </option>
+                    {% endfor %}
+                  </select>
+                  <button type="button" class="form-select-addon-button" onclick="openModal('amc-type')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M12 5v14M5 12h14"></path>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Payment Terms</label>
+                <div class="form-select-addon">
+                  <select id="payment_terms" name="payment_terms" class="form-input form-select">
+                    <option value="">Select Payment Terms</option>
+                    {% for term in payment_terms %}
                     <option value="{{ term.id }}" {% if is_edit and amc.payment_terms.id == term.id %}selected{% endif %}>
                       {{ term.name }}
                     </option>
-                  {% endfor %}
-                </select>
-                <button type="button" class="w-button w-button--secondary w-button--icon" onclick="openModal('payment-terms')">+</button>
+                    {% endfor %}
+                  </select>
+                  <button type="button" class="form-select-addon-button" onclick="openModal('payment-terms')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M12 5v14M5 12h14"></path>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Location Details -->
+              <h3 class="form-section-title">Location Details</h3>
+
+              <div class="form-group">
+                <label class="form-label">Equipment No</label>
+                <input
+                  type="text"
+                  id="equipment_no"
+                  name="equipment_no"
+                  value="{% if is_edit %}{{ amc.equipment_no|default:'' }}{% endif %}"
+                  class="form-input"
+                />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Latitude</label>
+                <input
+                  type="text"
+                  id="latitude"
+                  name="latitude"
+                  value="{% if is_edit %}{{ amc.latitude|default:'' }}{% endif %}"
+                  class="form-input"
+                />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Notes</label>
+                <textarea
+                  id="notes"
+                  name="notes"
+                  rows="3"
+                  class="form-input form-textarea"
+                >{% if is_edit %}{{ amc.notes|default:'' }}{% endif %}</textarea>
+                <p class="form-help">Add any additional notes or comments</p>
+              </div>
+
+              <!-- Contract Settings -->
+              <h3 class="form-section-title">Contract Settings</h3>
+
+              <div class="form-group">
+                <div class="form-checkbox-wrapper">
+                  <input
+                    type="checkbox"
+                    id="is_generate_contract"
+                    name="is_generate_contract"
+                    {% if is_edit and amc.is_generate_contract %}checked{% endif %}
+                    onchange="toggleContractFields()"
+                    class="form-checkbox"
+                  />
+                  <label class="form-checkbox-label" style="margin-bottom: 0;">
+                    Generate Contract Now
+                  </label>
+                </div>
+                <p class="form-help">Enable this to create a contract with pricing details</p>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- Schedule & Location Panel -->
-        <div class="w-panel" id="schedule-panel">
-          <div class="w-section">
-            <h2 class="w-section__heading">Schedule Information</h2>
+          <div id="contractFields" style="display: {% if is_edit and amc.is_generate_contract %}block{% else %}none{% endif %};">
+            <h3 class="form-section-title">Contract Details</h3>
 
-            <div class="w-field-group">
-              <div class="w-field">
-                <label for="start_date" class="w-field__label">
-                  Start Date<span class="w-field__required">*</span>
-                </label>
-                <input type="date" id="start_date" name="start_date" 
-                       value="{% if is_edit %}{{ amc.start_date|date:'Y-m-d' }}{% endif %}"
-                       class="w-field__input" required onchange="setEndDate()" />
-              </div>
-
-              <div class="w-field">
-                <label for="end_date" class="w-field__label">
-                  End Date<span class="w-field__required">*</span>
-                </label>
-                <input type="date" id="end_date" name="end_date" 
-                       value="{% if is_edit %}{{ amc.end_date|date:'Y-m-d' }}{% endif %}"
-                       class="w-field__input" required />
-              </div>
-            </div>
-
-            <h2 class="w-section__heading">Location Details</h2>
-
-            <div class="w-field-group">
-              <div class="w-field">
-                <label for="equipment_no" class="w-field__label">Equipment No</label>
-                <input type="text" id="equipment_no" name="equipment_no" 
-                       value="{% if is_edit %}{{ amc.equipment_no }}{% endif %}"
-                       class="w-field__input" />
-              </div>
-
-              <div class="w-field">
-                <label for="latitude" class="w-field__label">Latitude</label>
-                <input type="text" id="latitude" name="latitude" 
-                       value="{% if is_edit %}{{ amc.latitude }}{% endif %}"
-                       class="w-field__input" />
-              </div>
-            </div>
-
-            <div class="w-field">
-              <label for="notes" class="w-field__label">Notes</label>
-              <textarea id="notes" name="notes" rows="4" class="w-field__textarea">{% if is_edit %}{{ amc.notes }}{% endif %}</textarea>
-              <p class="w-field__help">Add any additional notes or comments</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Contract & Pricing Panel -->
-        <div class="w-panel" id="contract-panel">
-          <div class="w-section">
-            <h2 class="w-section__heading">Contract Settings</h2>
-
-            <div class="w-field">
-              <div class="w-field__checkbox-wrapper">
-                <input type="checkbox" id="is_generate_contract" name="is_generate_contract" 
-                       {% if is_edit and amc.is_generate_contract %}checked{% endif %}
-                       onchange="toggleContractFields()" class="w-field__checkbox" />
-                <label for="is_generate_contract" class="w-field__label" style="margin-bottom: 0;">Generate Contract Now</label>
-              </div>
-              <p class="w-field__help">Enable this to create a contract with pricing details</p>
-            </div>
-
-            <div id="contractFields" style="display: {% if is_edit and amc.is_generate_contract %}block{% else %}none{% endif %};">
-              <h2 class="w-section__heading">Contract Details</h2>
-
-              <div class="w-field-group">
-                <div class="w-field">
-                  <label for="no_of_services" class="w-field__label">Number of Services</label>
-                  <input type="number" id="no_of_services" name="no_of_services" 
-                         value="{% if is_edit %}{{ amc.no_of_services|default:'12' }}{% endif %}"
-                         class="w-field__input" />
+            <div class="form-grid">
+              <div class="form-column">
+                <div class="form-group">
+                  <label class="form-label">Number of Services</label>
+                  <input
+                    type="number"
+                    id="no_of_services"
+                    name="no_of_services"
+                    value="{% if is_edit %}{{ amc.no_of_services|default:'12' }}{% endif %}"
+                    class="form-input"
+                  />
                 </div>
 
-                <div class="w-field">
-                  <label for="amc_service_item" class="w-field__label">AMC Service Item</label>
-                  <select id="amc_service_item" name="amc_service_item" class="w-field__select">
+                <div class="form-group">
+                  <label class="form-label">AMC Service Item</label>
+                  <select id="amc_service_item" name="amc_service_item" class="form-input form-select">
                     <option value="">Select Item</option>
                     {% for item in items %}
-                      <option value="{{ item.id }}" {% if is_edit and amc.amc_service_item.id == item.id %}selected{% endif %}>
-                        {{ item.name }}
-                      </option>
+                    <option value="{{ item.id }}" {% if is_edit and amc.amc_service_item.id == item.id %}selected{% endif %}>
+                      {{ item.name }}
+                    </option>
                     {% endfor %}
                   </select>
                 </div>
               </div>
 
-              <h2 class="w-section__heading">Pricing</h2>
-
-              <div class="w-field-group">
-                <div class="w-field">
-                  <label for="price" class="w-field__label">Price per Unit</label>
-                  <input type="number" id="price" name="price" 
-                         value="{% if is_edit %}{{ amc.price|default:'0.00' }}{% endif %}"
-                         class="w-field__input" step="0.01" onchange="calculateTotal()" />
+              <div class="form-column">
+                <div class="form-group">
+                  <label class="form-label">Price per Unit</label>
+                  <input
+                    type="number"
+                    id="price"
+                    name="price"
+                    value="{% if is_edit %}{{ amc.price|default:'0.00' }}{% endif %}"
+                    class="form-input"
+                    step="0.01"
+                    onchange="calculateTotal()"
+                  />
                 </div>
 
-                <div class="w-field">
-                  <label for="no_of_lifts" class="w-field__label">Number of Lifts</label>
-                  <input type="number" id="no_of_lifts" name="no_of_lifts" 
-                         value="{% if is_edit %}{{ amc.no_of_lifts|default:'0' }}{% endif %}"
-                         class="w-field__input" onchange="calculateTotal()" />
+                <div class="form-group">
+                  <label class="form-label">Number of Lifts</label>
+                  <input
+                    type="number"
+                    id="no_of_lifts"
+                    name="no_of_lifts"
+                    value="{% if is_edit %}{{ amc.no_of_lifts|default:'0' }}{% endif %}"
+                    class="form-input"
+                    onchange="calculateTotal()"
+                  />
                 </div>
 
-                <div class="w-field">
-                  <label for="gst_percentage" class="w-field__label">GST Percentage</label>
-                  <input type="number" id="gst_percentage" name="gst_percentage" 
-                         value="{% if is_edit %}{{ amc.gst_percentage|default:'0.00' }}{% endif %}"
-                         class="w-field__input" step="0.01" onchange="calculateTotal()" />
-                </div>
-              </div>
-
-              <div class="w-field-group">
-                <div class="w-field">
-                  <label for="total" class="w-field__label">Total</label>
-                  <input type="number" id="total" name="total" 
-                         value="{% if is_edit %}{{ amc.total|default:'0.00' }}{% endif %}"
-                         class="w-field__input" readonly step="0.01" />
-                </div>
-
-                <div class="w-field">
-                  <label for="contract_amount" class="w-field__label">Contract Amount</label>
-                  <input type="number" id="contract_amount" name="contract_amount" 
-                         value="{% if is_edit %}{{ amc.contract_amount|default:'0.00' }}{% endif %}"
-                         class="w-field__input" readonly step="0.01" />
-                </div>
-
-                <div class="w-field">
-                  <label for="total_amount_paid" class="w-field__label">Total Amount Paid</label>
-                  <input type="number" id="total_amount_paid" name="total_amount_paid" 
-                         value="{% if is_edit %}{{ amc.total_amount_paid|default:'0.00' }}{% endif %}"
-                         class="w-field__input" step="0.01" min="0" />
+                <div class="form-group">
+                  <label class="form-label">GST Percentage</label>
+                  <input
+                    type="number"
+                    id="gst_percentage"
+                    name="gst_percentage"
+                    value="{% if is_edit %}{{ amc.gst_percentage|default:'0.00' }}{% endif %}"
+                    class="form-input"
+                    step="0.01"
+                    onchange="calculateTotal()"
+                  />
                 </div>
               </div>
             </div>
 
-            <h2 class="w-section__heading">Status Information</h2>
-
-            <div class="w-field-group">
-              <div class="w-field">
-                <label for="status" class="w-field__label">Status</label>
-                <input type="text" id="status" name="status" 
-                       value="{% if is_edit %}{{ amc.status }}{% endif %}"
-                       class="w-field__input" readonly />
+            <div class="form-grid">
+              <div class="form-column">
+                <div class="form-group">
+                  <label class="form-label">Total</label>
+                  <input
+                    type="number"
+                    id="total"
+                    name="total"
+                    value="{% if is_edit %}{{ amc.total|default:'0.00' }}{% endif %}"
+                    class="form-input"
+                    readonly
+                    step="0.01"
+                  />
+                </div>
               </div>
 
-              <div class="w-field">
-                <label for="created" class="w-field__label">Created</label>
-                <input type="text" id="created" name="created" 
-                       value="{% if is_edit %}{{ amc.created|date:'Y-m-d H:i' }}{% endif %}"
-                       class="w-field__input" readonly />
+              <div class="form-column">
+                <div class="form-group">
+                  <label class="form-label">Contract Amount</label>
+                  <input
+                    type="number"
+                    id="contract_amount"
+                    name="contract_amount"
+                    value="{% if is_edit %}{{ amc.contract_amount|default:'0.00' }}{% endif %}"
+                    class="form-input"
+                    readonly
+                    step="0.01"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Total Amount Paid</label>
+                  <input
+                    type="number"
+                    id="total_amount_paid"
+                    name="total_amount_paid"
+                    value="{% if is_edit %}{{ amc.total_amount_paid|default:'0.00' }}{% endif %}"
+                    class="form-input"
+                    step="0.01"
+                    min="0"
+                  />
+                </div>
               </div>
             </div>
           </div>
+
+          <h3 class="form-section-title">Status Information</h3>
+
+          <div class="form-grid">
+            <div class="form-column">
+              <div class="form-group">
+                <label class="form-label">Status</label>
+                <input
+                  type="text"
+                  id="status"
+                  name="status"
+                  value="{% if is_edit %}{{ amc.status|default:'Pending' }}{% endif %}"
+                  class="form-input"
+                  readonly
+                />
+              </div>
+            </div>
+
+            <div class="form-column">
+              <div class="form-group">
+                <label class="form-label">Created</label>
+                <input
+                  type="text"
+                  id="created"
+                  name="created"
+                  value="{% if is_edit %}{{ amc.created|date:'Y-m-d H:i' }}{% endif %}"
+                  class="form-input"
+                  readonly
+                />
+              </div>
+            </div>
+          </div>
+        </form>
+        {% else %}
+        <div class="loading-spinner">
+          <div class="spinner"></div>
+          <span>Loading options...</span>
         </div>
+        {% endif %}
       </div>
-    </div>
 
-    <div class="w-footer-actions">
-      <a href="/admin/snippets/amc/amc/" class="w-button w-button--secondary">Cancel</a>
-      <button type="submit" class="w-button w-button--primary">
-        {% if is_edit %}Update AMC{% else %}Create AMC{% endif %}
-      </button>
-    </div>
-  </form>
-</div>
-
-<!-- Modal for adding new options -->
-<div id="optionModal" class="w-modal">
-  <div class="w-modal__dialog">
-    <div class="w-modal__header">
-      <h3 class="w-modal__title" id="modalTitle">Add New Option</h3>
-    </div>
-    <div class="w-modal__body">
-      <div class="w-field">
-        <label for="modalInput" class="w-field__label">Name</label>
-        <input type="text" id="modalInput" class="w-field__input" placeholder="Enter value" />
+      <!-- Modal Footer -->
+      <div class="w-modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="window.history.back();">Cancel</button>
+        <button
+          type="submit"
+          id="submitBtn"
+          class="btn btn-primary"
+          form="amcForm"
+        >
+          {% if is_edit %}Update AMC{% else %}Create AMC{% endif %}
+        </button>
       </div>
-      <div class="w-option-list" id="existingOptions"></div>
-    </div>
-    <div class="w-modal__footer">
-      <button type="button" class="w-button w-button--secondary" onclick="closeModal()">Cancel</button>
-      <button type="button" class="w-button w-button--primary" onclick="saveOption()">Save</button>
     </div>
   </div>
+
+  <!-- Option Modal -->
+  <div id="optionModal" class="option-modal">
+    <div class="option-modal-dialog">
+      <div class="option-modal-header">
+        <h3 class="option-modal-title" id="modalTitle">Add New Option</h3>
+      </div>
+      <div class="option-modal-body">
+        <div class="form-group">
+          <label class="form-label">Name</label>
+          <input type="text" id="modalInput" class="form-input" placeholder="Enter value" />
+        </div>
+        <div class="option-list" id="existingOptions"></div>
+      </div>
+      <div class="option-modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="saveOption()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
 </div>
 
 <script>
 let currentModalType = '';
-{% if is_edit %}
-const isEditAMC = true;
-const submitAMCUrl = "{% url 'edit_amc_custom' amc.id %}";
-{% else %}
-const isEditAMC = false;
-const submitAMCUrl = "{% url 'add_amc_custom' %}";
-{% endif %}
+const isEditAMC = {% if is_edit %}true{% else %}false{% endif %};
+const submitAMCUrl = "{% if is_edit %}{% url 'edit_amc_custom' amc.id|stringformat:'s' %}{% else %}{% url 'add_amc_custom' %}{% endif %}";
 const adminHomeUrlAMC = "{% url 'wagtailadmin_home' %}";
-
-// Tab functionality
-document.querySelectorAll('.w-tabs__tab').forEach(tab => {
-  tab.addEventListener('click', function() {
-    const targetTab = this.dataset.tab;
-    
-    document.querySelectorAll('.w-tabs__tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.w-panel').forEach(p => p.classList.remove('active'));
-    
-    this.classList.add('active');
-    document.getElementById(targetTab + '-panel').classList.add('active');
-  });
-});
 
 function fetchCustomerDetails() {
   const customerSelect = document.getElementById('customer');
   const selectedOption = customerSelect.options[customerSelect.selectedIndex];
 
   if (selectedOption.value) {
-    const jobNo = selectedOption.getAttribute('data-job-no');
-    const siteAddress = selectedOption.getAttribute('data-site-address');
-
-    console.log('Selected customer data:', { jobNo, siteAddress });
+    const jobNo = selectedOption.getAttribute('data-job-no') || '';
+    const siteAddress = selectedOption.getAttribute('data-site-address') || '';
 
     const equipmentNoInput = document.getElementById('equipment_no');
     if (jobNo && equipmentNoInput.value === '') {
@@ -798,7 +907,7 @@ function openModal(type) {
   const modal = document.getElementById('optionModal');
   const modalTitle = document.getElementById('modalTitle');
 
-  modalTitle.textContent = `Add New ${type.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}`;
+  modalTitle.textContent = 'Add New ' + type.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
 
   loadExistingOptions(type);
   modal.classList.add('active');
@@ -821,16 +930,16 @@ function loadExistingOptions(type) {
     .then(response => response.json())
     .then(data => {
       const container = document.getElementById('existingOptions');
-      container.innerHTML = `<h4 class="w-option-list__title">Existing ${type.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}s</h4>` +
+      container.innerHTML = '<table class="option-table"><thead><tr><th>Name</th><th>Actions</th></tr></thead><tbody>' +
         data.map(item => `
-          <div class="w-option-item">
-            <span>${item.name}</span>
-            <div class="w-option-item__actions">
-              <button type="button" class="w-button w-button--small w-button--secondary" onclick="editOption('${type}', ${item.id}, '${item.name}')">Edit</button>
-              <button type="button" class="w-button w-button--small w-button--danger" onclick="deleteOption('${type}', ${item.id})">Delete</button>
-            </div>
-          </div>
-        `).join('');
+          <tr>
+            <td>${item.name}</td>
+            <td>
+              <button type="button" class="btn btn-secondary" style="margin-right: 0.25rem; padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="editOption('${type}', ${item.id}, '${item.name}')">Edit</button>
+              <button type="button" class="btn-danger" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background: #EF4444; color: white; border: none; border-radius: 0.25rem;" onclick="deleteOption('${type}', ${item.id})">Delete</button>
+            </td>
+          </tr>
+        `).join('') + '</tbody></table>';
     });
 }
 
@@ -945,16 +1054,42 @@ function getCsrfToken() {
 }
 
 function showMessage(type, message) {
-  alert(message);
+  const toast = document.createElement('div');
+  toast.className = `toast toast--${type}`;
+  toast.innerHTML = `
+    <div class="toast-content">
+      <span class="toast-message">${message}</span>
+      <button class="toast-close" onclick="this.parentElement.parentElement.remove()">×</button>
+    </div>
+  `;
+
+  const toastContainer = document.getElementById('toastContainer');
+  toastContainer.appendChild(toast);
+
+  setTimeout(function() {
+    if (toast.parentElement) {
+      toast.remove();
+    }
+  }, type === 'success' ? 3000 : 5000);
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+  toggleContractFields();
+  const customerSelect = document.getElementById('customer');
+  if (customerSelect.value) {
+    fetchCustomerDetails();
+  }
+
+  document.getElementById('amcForm').addEventListener('submit', handleAMCFormSubmit);
+});
 
 function handleAMCFormSubmit(event) {
   event.preventDefault();
 
-  const formData = new FormData(event.target);
+  const form = document.getElementById('amcForm');
+  const formData = new FormData(form);
   const data = Object.fromEntries(formData.entries());
-
-  data.is_generate_contract = data.is_generate_contract === 'on';
+  data.is_generate_contract = document.getElementById('is_generate_contract').checked;
 
   if (!data.customer || !data.start_date || !data.end_date) {
     showMessage('error', 'Please fill in all required fields (Customer, Start Date, End Date)');
@@ -966,6 +1101,11 @@ function handleAMCFormSubmit(event) {
     return;
   }
 
+  const submitButton = document.getElementById('submitBtn');
+  const originalText = submitButton.textContent;
+  submitButton.textContent = 'Saving...';
+  submitButton.disabled = true;
+
   fetch(submitAMCUrl, {
     method: 'POST',
     headers: {
@@ -976,31 +1116,27 @@ function handleAMCFormSubmit(event) {
   })
   .then(response => response.json())
   .then(function(result) {
+    submitButton.textContent = originalText;
+    submitButton.disabled = false;
+
     if (result.success) {
       showMessage('success', result.message);
       if (result.amc && result.amc.redirect) {
-        window.location.href = adminHomeUrlAMC;
+        setTimeout(function() {
+          window.location.href = adminHomeUrlAMC;
+        }, 1500);
       }
     } else {
-      showMessage('error', result.error);
+      showMessage('error', result.error || 'An error occurred while saving the AMC');
     }
   })
   .catch(function(error) {
+    submitButton.textContent = originalText;
+    submitButton.disabled = false;
     console.error('Error:', error);
     showMessage('error', 'An error occurred while saving the AMC');
   });
 }
-
-document.getElementById('amcForm').addEventListener('submit', handleAMCFormSubmit);
-
-document.addEventListener('DOMContentLoaded', function() {
-  toggleContractFields();
-
-  const customerSelect = document.getElementById('customer');
-  if (customerSelect.value) {
-    fetchCustomerDetails();
-  }
-});
 
 // Close modal when clicking outside
 document.getElementById('optionModal').addEventListener('click', function(e) {

@@ -3,863 +3,878 @@
 
 {% block extra_css %}
 <style>
+/* Modern Tailwind-like styles for Wagtail admin */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
 
+.w-content-wrapper {
+  background: #f5f5f5;
+  min-height: calc(100vh - 4rem);
+  padding: 2rem;
+}
 
-  .w-content-wrapper {
-    background: #f5f5f5;
-    min-height: calc(100vh - 4rem);
-    padding: 2rem;
-  }
+.w-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 1rem;
+}
 
-  .w-header {
-    background: white;
-    border-bottom: 1px solid var(--w-color-border);
-    padding: 1.5rem 2rem;
-    margin: -2rem -2rem 2rem -2rem;
-  }
+.w-modal-content {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  width: 100%;
+  max-width: 64rem;
+  max-height: 90vh;
+  overflow: visible;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+}
 
-  .w-header__row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 1rem;
-  }
+.w-modal-header {
+  background: linear-gradient(to right, #2D3A6B, #243158);
+  padding: 1.5rem;
+}
 
-  .w-header__title {
-    font-size: 1.75rem;
-    font-weight: 600;
-    margin: 0;
-    color: var(--w-color-text);
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-  }
+.w-modal-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: white;
+}
 
-  .w-header__icon {
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--w-color-primary);
-    color: white;
-    border-radius: 50%;
-    font-size: 1rem;
-  }
+.w-modal-subtitle {
+  margin: 0;
+  color: white;
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
 
-  .w-header__actions {
-    display: flex;
-    gap: 0.75rem;
-  }
+.w-modal-body {
+  padding: 1.5rem;
+  max-height: 70vh;
+  overflow-y: auto;
+}
 
-  .w-form-container {
-    background: white;
-    border: 1px solid var(--w-color-border);
-    border-radius: 4px;
-    padding: 2rem;
-    max-width: 800px;
-    margin: 0 auto;
-  }
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
 
-  .w-section {
-    margin-bottom: 2.5rem;
-  }
+.form-section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 2px solid #E5E7EB;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+}
 
-  .w-section__heading {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin: 0 0 1.5rem 0;
-    color: var(--w-color-text);
-    padding-bottom: 0.75rem;
-    border-bottom: 1px solid var(--w-color-border);
-  }
+.form-group {
+  margin-bottom: 1rem;
+}
 
-  .w-field {
-    margin-bottom: 1.5rem;
-  }
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
 
-  .w-field__label {
-    display: block;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-    color: var(--w-color-text);
-    font-size: 0.875rem;
-  }
+.form-required {
+  color: #EF4444;
+  margin-left: 0.25rem;
+}
 
-  .w-field__required {
-    color: var(--w-color-error);
-    margin-left: 0.25rem;
-  }
+.form-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  border: 1px solid #D1D5DB;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}
 
-  .w-field__input,
-  .w-field__select,
-  .w-field__textarea {
-    width: 100%;
-    padding: 0.625rem 0.75rem;
-    border: 1px solid var(--w-color-input-border);
-    border-radius: 3px;
-    font-size: 0.875rem;
-    transition: border-color 0.2s;
-    font-family: inherit;
-  }
+.form-input:focus {
+  outline: none;
+  border-color: #F97316;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+  z-index: 1;
+}
 
-  .w-field__input:focus,
-  .w-field__select:focus,
-  .w-field__textarea:focus {
-    outline: none;
-    border-color: var(--w-color-input-focus);
-    box-shadow: 0 0 0 3px rgba(0, 125, 126, 0.1);
-  }
+.form-input:disabled {
+  background-color: #F9FAFB;
+  color: #6B7280;
+}
 
-  .w-field__input[readonly] {
-    background-color: #f9f9f9;
-    color: var(--w-color-text-meta);
-  }
+.form-textarea {
+  min-height: 3rem;
+  resize: vertical;
+  padding: 0.5rem 0.75rem;
+}
 
-  .w-field__textarea {
-    resize: vertical;
-  }
+.form-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.75rem center;
+  background-repeat: no-repeat;
+  background-size: 1rem;
+  padding-right: 2.5rem;
+  font-size: 0.875rem;
+}
 
-  .w-field__help {
-    font-size: 0.75rem;
-    color: var(--w-color-text-meta);
-    margin-top: 0.25rem;
-  }
+.form-select-addon {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
 
-  .w-field__checkbox-wrapper {
-    display: flex;
-    align-items: center;
-    padding: 0.75rem;
-    background: #f9f9f9;
-    border-radius: 3px;
-    border: 1px solid var(--w-color-border);
-  }
+.form-select-addon .form-select {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right: 0;
+}
 
-  .w-field__checkbox {
-    width: auto;
-    margin-right: 0.5rem;
-  }
+.form-select-addon button {
+  background: linear-gradient(to right, #3B82F6, #1D4ED8);
+  color: white;
+  border: 1px solid #D1D5DB;
+  border-left: 0;
+  border-top-right-radius: 0.375rem;
+  border-bottom-right-radius: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3rem;
+}
 
-  .w-field__addon {
-    display: flex;
-    gap: 0.5rem;
-  }
+.form-select-addon button:hover {
+  background: linear-gradient(to right, #2563EB, #1E40AF);
+}
 
-  .w-field__addon .w-field__select {
-    flex: 1;
-  }
+.form-checkbox-wrapper {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  background: #F9FAFB;
+  border-radius: 0.375rem;
+  border: 1px solid #D1D5DB;
+}
 
-  .w-field-group {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 1.5rem;
-  }
+.form-checkbox {
+  margin-right: 0.5rem;
+}
 
-  .w-button {
-    padding: 0.625rem 1.25rem;
-    border: none;
-    border-radius: 3px;
-    font-size: 0.875rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
+.form-checkbox-label {
+  margin: 0;
+  font-weight: normal !important;
+}
 
-  .w-button--primary {
-    background: var(--w-color-primary);
-    color: white;
-  }
+.form-help {
+  font-size: 0.75rem;
+  color: #6B7280;
+  margin-top: 0.25rem;
+}
 
-  .w-button--primary:hover {
-    background: #006464;
-  }
-
-  .w-button--secondary {
-    background: white;
-    color: var(--w-color-text);
-    border: 1px solid var(--w-color-border);
-  }
-
-  .w-button--secondary:hover {
-    background: #f9f9f9;
-  }
-
-  .w-button--icon {
-    padding: 0.625rem 0.875rem;
-    min-width: auto;
-  }
-
-  .w-button--small {
-    padding: 0.375rem 0.75rem;
-    font-size: 0.75rem;
-  }
-
-  .w-button--danger {
-    background: var(--w-color-error);
-    color: white;
-  }
-
-  .w-button--danger:hover {
-    background: #b12226;
-  }
-
-  .w-footer-actions {
-    background: white;
-    border-top: 1px solid var(--w-color-border);
-    padding: 1.5rem 2rem;
-    margin: 2rem -2rem -2rem -2rem;
+  .w-modal-footer {
+    padding: 1rem 1.5rem;
+    background: #F9FAFB;
+    border-top: 1px solid #E5E7EB;
     display: flex;
     justify-content: flex-end;
     gap: 0.75rem;
     position: sticky;
     bottom: 0;
+    z-index: 10;
   }
 
-  .w-message {
-    padding: 1rem 1.25rem;
-    border-radius: 3px;
-    margin-bottom: 1.5rem;
-    border-left: 4px solid;
+.btn {
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.btn-secondary {
+  background: #F3F4F6;
+  color: #374151;
+  border: 1px solid #D1D5DB;
+}
+
+.btn-secondary:hover {
+  background: #E5E7EB;
+}
+
+.btn-primary {
+  background: linear-gradient(to right, #2D3A6B, #243158);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(to right, #213066, #182755);
+}
+
+.option-modal {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 1rem;
+}
+
+.option-modal.active {
+  display: flex;
+}
+
+.option-modal-dialog {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  width: 100%;
+  max-width: 42rem;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.option-modal-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.option-modal-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.option-modal-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+.option-modal-footer {
+  padding: 1.5rem;
+  background: #F9FAFB;
+  border-top: 1px solid #E5E7EB;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.option-list {
+  max-height: 20rem;
+  overflow-y: auto;
+  border: 1px solid #D1D5DB;
+  border-radius: 0.375rem;
+  margin-top: 1rem;
+}
+
+.option-table {
+  width: 100%;
+  font-size: 0.875rem;
+}
+
+.option-table thead {
+  background: #F3F4F6;
+}
+
+.option-table th {
+  padding: 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.option-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.toast-container {
+  position: fixed;
+  top: 1.25rem;
+  right: 1.25rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.toast {
+  background: white;
+  border-radius: 0.375rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  min-width: 20rem;
+  max-width: 31.25rem;
+  border-left: 4px solid;
+  animation: slideInRight 0.3s ease-out;
+}
+
+.toast--success {
+  border-left-color: #10B981;
+}
+
+.toast--error {
+  border-left-color: #EF4444;
+}
+
+.toast-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+}
+
+.toast-message {
+  flex: 1;
+  margin-right: 1rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6B7280;
+  padding: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.toast-close:hover {
+  color: #374151;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 10rem;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+  border-radius: 50%;
+  height: 2rem;
+  width: 2rem;
+  border: 2px solid #3B82F6;
+  border-top-color: transparent;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 768px) {
+  .form-grid {
+    grid-template-columns: 1fr;
   }
 
-  .w-message--info {
-    background: #e7f3ff;
-    border-color: var(--w-color-info);
-    color: var(--w-color-info);
+  .w-modal-content {
+    max-height: 95vh;
   }
 
-  .w-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-  }
-
-  .w-modal.active {
-    display: flex;
-  }
-
-  .w-modal__dialog {
-    background: white;
-    border-radius: 4px;
-    width: 90%;
-    max-width: 500px;
-    max-height: 90vh;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-  }
-
-  .w-modal__header {
-    padding: 1.5rem;
-    border-bottom: 1px solid var(--w-color-border);
-  }
-
-  .w-modal__title {
-    margin: 0;
-    font-size: 1.25rem;
-    font-weight: 600;
-  }
-
-  .w-modal__body {
-    padding: 1.5rem;
-    overflow-y: auto;
-  }
-
-  .w-modal__footer {
-    padding: 1.5rem;
-    border-top: 1px solid var(--w-color-border);
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.75rem;
-  }
-
-  .w-option-list {
-    margin-top: 1.5rem;
-  }
-
-  .w-option-list__title {
-    font-size: 0.875rem;
-    font-weight: 600;
-    margin: 0 0 0.75rem 0;
-    color: var(--w-color-text-meta);
-  }
-
-  .w-option-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.75rem;
-    border: 1px solid var(--w-color-border);
-    border-radius: 3px;
-    margin-bottom: 0.5rem;
-  }
-
-  .w-option-item__actions {
-    display: flex;
-    gap: 0.5rem;
-  }
-
-  .toast-container {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 9999;
+  .option-modal-dialog {
+    max-width: 95vw;
   }
 
   .toast {
-    background: white;
-    border-radius: 4px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    margin-bottom: 10px;
-    min-width: 320px;
-    max-width: 500px;
-    border-left: 4px solid;
-    animation: slideIn 0.3s ease-out;
+    min-width: 17.5rem;
+    max-width: 90vw;
   }
-
-  @keyframes slideIn {
-    from {
-      transform: translateX(400px);
-      opacity: 0;
-    }
-    to {
-      transform: translateX(0);
-      opacity: 1;
-    }
-  }
-
-  .toast--success {
-    border-left-color: var(--w-color-success);
-  }
-
-  .toast--error {
-    border-left-color: var(--w-color-error);
-  }
-
-  .toast__content {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 1.25rem;
-  }
-
-  .toast__message {
-    flex: 1;
-    margin-right: 1rem;
-    font-size: 0.875rem;
-    line-height: 1.4;
-  }
-
-  .toast__close {
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    cursor: pointer;
-    color: #999;
-    padding: 0;
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    line-height: 1;
-  }
-
-  .toast__close:hover {
-    color: #333;
-  }
-
-  @media (max-width: 768px) {
-    .w-content-wrapper {
-      padding: 1.5rem;
-    }
-
-    .w-header {
-      padding: 1rem 1.5rem;
-      margin: -1.5rem -1.5rem 1.5rem -1.5rem;
-    }
-
-    .w-header__row {
-      flex-direction: column;
-      align-items: flex-start;
-    }
-
-    .w-header__title {
-      font-size: 1.5rem;
-    }
-
-    .w-form-container {
-      padding: 1.5rem;
-    }
-
-    .w-field-group {
-      grid-template-columns: 1fr;
-    }
-
-    .w-footer-actions {
-      padding: 1rem 1.5rem;
-      margin: 1.5rem -1.5rem -1.5rem -1.5rem;
-      flex-direction: column-reverse;
-    }
-
-    .w-footer-actions .w-button {
-      width: 100%;
-      justify-content: center;
-    }
-
-    .toast {
-      min-width: 280px;
-    }
-
-    .toast-container {
-      left: 20px;
-      right: 20px;
-    }
-  }
-
-  @media (max-width: 480px) {
-    .w-header__title {
-      font-size: 1.25rem;
-    }
-
-    .w-modal__dialog {
-      width: 95%;
-    }
-  }
+}
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="w-content-wrapper">
-  <div class="w-header">
-    <div class="w-header__row">
-      <h1 class="w-header__title">
-        <span class="w-header__icon">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-            <circle cx="12" cy="7" r="4"></circle>
-          </svg>
-        </span>
-        {% if is_edit %}Edit Customer{% else %}Create New Customer{% endif %}
-      </h1>
-      <div class="w-header__actions">
-        <a href="{% url 'wagtailadmin_home' %}" class="w-button w-button--secondary">Cancel</a>
-      </div>
-    </div>
-  </div>
-
-  <form id="customerForm">
-    <div class="w-form-container">
-      <div class="w-section">
-        <h2 class="w-section__heading">Basic Information</h2>
-
-        <div class="w-field">
-          <label for="reference_id" class="w-field__label">Reference ID</label>
-          <input
-            type="text"
-            id="reference_id"
-            name="reference_id"
-            value="{% if is_edit %}{{ customer.reference_id }}{% endif %}"
-            class="w-field__input"
-            readonly
-          />
-          <p class="w-field__help">Auto-generated reference number</p>
-        </div>
-
-        <div class="w-field-group">
-          <div class="w-field">
-            <label for="site_id" class="w-field__label">
-              Site ID<span class="w-field__required">*</span>
-            </label>
-            <input
-              type="text"
-              id="site_id"
-              name="site_id"
-              value="{% if is_edit %}{{ customer.site_id }}{% endif %}"
-              required
-              class="w-field__input"
-            />
-          </div>
-
-          <div class="w-field">
-            <label for="job_no" class="w-field__label">Job No</label>
-            <input
-              type="text"
-              id="job_no"
-              name="job_no"
-              value="{% if is_edit %}{{ customer.job_no }}{% endif %}"
-              class="w-field__input"
-              oninput="updateJobNo(this.value)"
-            />
-          </div>
-        </div>
-
-        <div class="w-field">
-          <label for="site_name" class="w-field__label">
-            Site Name<span class="w-field__required">*</span>
-          </label>
-          <input
-            type="text"
-            id="site_name"
-            name="site_name"
-            value="{% if is_edit %}{{ customer.site_name }}{% endif %}"
-            required
-            class="w-field__input"
-            oninput="updateSiteName(this.value)"
-          />
-          <p class="w-field__help">Site name will be auto-formatted with job number if provided</p>
-        </div>
-
-        <div class="w-field">
-          <label for="billing_name" class="w-field__label">Billing Name</label>
-          <input
-            type="text"
-            id="billing_name"
-            name="billing_name"
-            value="{% if is_edit %}{{ customer.billing_name }}{% endif %}"
-            class="w-field__input"
-          />
-        </div>
+  <div class="w-modal-overlay">
+    <div class="w-modal-content">
+      <!-- Modal Header -->
+      <div class="w-modal-header">
+        <h2 class="w-modal-title">
+          {% if is_edit %}Edit Customer{% else %}Create New Customer{% endif %}
+        </h2>
+        <p class="w-modal-subtitle">
+          {% if is_edit %}Update customer details{% else %}Fill in all required fields (*) to add a customer{% endif %}
+        </p>
       </div>
 
-      <div class="w-section">
-        <h2 class="w-section__heading">Address Details</h2>
+      <!-- Modal Body -->
+      <div class="w-modal-body">
+        {% if states|length >= 0 and routes|length >= 0 and branches|length >= 0 %}
+        <div class="form-grid">
+          <!-- Left Column -->
+          <div class="form-column">
+            <!-- Basic Information -->
+            <h3 class="form-section-title">Basic Information</h3>
 
-        <div class="w-field">
-          <label for="site_address" class="w-field__label">
-            Site Address<span class="w-field__required">*</span>
-          </label>
-          <textarea
-            id="site_address"
-            name="site_address"
-            rows="3"
-            class="w-field__textarea"
-            required
-          >{% if is_edit %}{{ customer.site_address }}{% endif %}</textarea>
-        </div>
+            <div class="form-group">
+              <label class="form-label">Reference ID</label>
+              <input
+                type="text"
+                value="{% if is_edit %}{{ customer.reference_id }}{% endif %}"
+                class="form-input"
+                readonly
+              />
+              <p class="form-help">Auto-generated reference number</p>
+            </div>
 
-        <div class="w-field">
-          <div class="w-field__checkbox-wrapper">
-            <input
-              type="checkbox"
-              id="same_as_site_address"
-              name="same_as_site_address"
-              {% if is_edit and customer.same_as_site_address %}checked{% endif %}
-              onchange="handleOfficeAddressSync()"
-              class="w-field__checkbox"
-            />
-            <label for="same_as_site_address" class="w-field__label" style="margin-bottom: 0;">
-              Same as Site Address
-            </label>
+            <div class="form-group">
+              <label class="form-label">
+                Site ID<span class="form-required">*</span>
+              </label>
+              <input
+                type="text"
+                id="site_id"
+                name="site_id"
+                value="{% if is_edit %}{{ customer.site_id }}{% endif %}"
+                required
+                class="form-input"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Site Name<span class="form-required">*</span></label>
+              <input
+                type="text"
+                id="site_name"
+                name="site_name"
+                value="{% if is_edit %}{{ customer.site_name }}{% endif %}"
+                required
+                class="form-input"
+                oninput="updateSiteName(this.value)"
+              />
+              <p class="form-help">Site name will be auto-formatted with job number if provided</p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Billing Name</label>
+              <input
+                type="text"
+                id="billing_name"
+                name="billing_name"
+                value="{% if is_edit %}{{ customer.billing_name }}{% endif %}"
+                class="form-input"
+              />
+            </div>
+
+            <!-- Address Details -->
+            <h3 class="form-section-title">Address Details</h3>
+
+            <div class="form-group">
+              <label class="form-label">Site Address<span class="form-required">*</span></label>
+              <textarea
+                id="site_address"
+                name="site_address"
+                rows="3"
+                class="form-input form-textarea"
+                required
+              >{% if is_edit %}{{ customer.site_address }}{% endif %}</textarea>
+            </div>
+
+            <div class="form-group">
+              <div class="form-checkbox-wrapper">
+                <input
+                  type="checkbox"
+                  id="same_as_site_address"
+                  name="same_as_site_address"
+                  {% if is_edit and customer.same_as_site_address %}checked{% endif %}
+                  onchange="handleOfficeAddressSync()"
+                  class="form-checkbox"
+                />
+                <label class="form-checkbox-label" style="margin-bottom: 0;">
+                  Same as Site Address
+                </label>
+              </div>
+              <p class="form-help">Check this to automatically copy site address to office address</p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Office Address</label>
+              <textarea
+                id="office_address"
+                name="office_address"
+                rows="3"
+                class="form-input form-textarea"
+                {% if is_edit and customer.same_as_site_address %}disabled{% endif %}
+              >{% if is_edit %}{{ customer.office_address }}{% endif %}</textarea>
+            </div>
+
+            <!-- Contact Information -->
+            <h3 class="form-section-title">Contact Information</h3>
+
+            <div class="form-group">
+              <label class="form-label">
+                Email
+              </label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value="{% if is_edit %}{{ customer.email }}{% endif %}"
+                class="form-input"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">
+                Phone
+              </label>
+              <input
+                type="tel"
+                id="phone"
+                name="phone"
+                value="{% if is_edit %}{{ customer.phone }}{% endif %}"
+                class="form-input"
+                maxlength="10"
+                oninput="this.value = this.value.replace(/\D/g, '').slice(0, 10)"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">
+                Mobile (SMS Notification)<span class="form-required">*</span>
+              </label>
+              <input
+                type="tel"
+                id="mobile"
+                name="mobile"
+                value="{% if is_edit %}{{ customer.mobile }}{% endif %}"
+                class="form-input"
+                maxlength="10"
+                oninput="this.value = this.value.replace(/\D/g, '').slice(0, 10)"
+                required
+                pattern="\d{10}"
+                title="Mobile number must be exactly 10 digits"
+              />
+              <p class="form-help">10-digit mobile number for SMS notifications</p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Contact Person Name</label>
+              <input
+                type="text"
+                id="contact_person_name"
+                name="contact_person_name"
+                value="{% if is_edit %}{{ customer.contact_person_name }}{% endif %}"
+                class="form-input"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Designation</label>
+              <input
+                type="text"
+                id="designation"
+                name="designation"
+                value="{% if is_edit %}{{ customer.designation }}{% endif %}"
+                class="form-input"
+              />
+            </div>
           </div>
-          <p class="w-field__help">Check this to automatically copy site address to office address</p>
-        </div>
 
-        <div class="w-field">
-          <label for="office_address" class="w-field__label">Office Address</label>
-          <textarea
-            id="office_address"
-            name="office_address"
-            rows="3"
-            class="w-field__textarea"
-            {% if is_edit and customer.same_as_site_address %}disabled{% endif %}
-          >{% if is_edit %}{{ customer.office_address }}{% endif %}</textarea>
-        </div>
+          <!-- Right Column -->
+          <div class="form-column">
+            <!-- Organization Details -->
+            <h3 class="form-section-title">Organization Details</h3>
 
-        <div class="w-field-group">
-          <div class="w-field">
-            <label for="city" class="w-field__label">City</label>
-            <input
-              type="text"
-              id="city"
-              name="city"
-              value="{% if is_edit %}{{ customer.city }}{% endif %}"
-              class="w-field__input"
-            />
-          </div>
+            <div class="form-group">
+              <label class="form-label">Job No</label>
+              <input
+                type="text"
+                id="job_no"
+                name="job_no"
+                value="{% if is_edit %}{{ customer.job_no }}{% endif %}"
+                class="form-input"
+                oninput="updateJobNo(this.value)"
+              />
+            </div>
 
-          <div class="w-field">
-            <label for="pin_code" class="w-field__label">Pin Code</label>
-            <input
-              type="text"
-              id="pin_code"
-              name="pin_code"
-              value="{% if is_edit %}{{ customer.pin_code }}{% endif %}"
-              class="w-field__input"
-            />
-          </div>
+            <div class="form-group">
+              <label class="form-label">City</label>
+              <input
+                type="text"
+                id="city"
+                name="city"
+                value="{% if is_edit %}{{ customer.city }}{% endif %}"
+                class="form-input"
+              />
+            </div>
 
-          <div class="w-field">
-            <label for="province_state" class="w-field__label">State</label>
-            <div class="w-field__addon">
-              <select id="province_state" name="province_state" class="w-field__select">
-                <option value="">Select State</option>
-                {% for state in states %}
+            <div class="form-group">
+              <label class="form-label">Pin Code</label>
+              <input
+                type="text"
+                id="pin_code"
+                name="pin_code"
+                value="{% if is_edit %}{{ customer.pin_code }}{% endif %}"
+                class="form-input"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">State</label>
+              <div class="form-select-addon">
+                <select id="province_state" name="province_state" class="form-input form-select">
+                  <option value="">Select State</option>
+                  {% for state in states %}
                   <option value="{{ state.id }}" {% if is_edit and customer.province_state.id == state.id %}selected{% endif %}>
                     {{ state.value }}
                   </option>
-                {% endfor %}
-              </select>
-              <button type="button" class="w-button w-button--secondary w-button--icon" onclick="openModal('state')">+</button>
+                  {% endfor %}
+                </select>
+                <button type="button" class="form-select-addon-button" onclick="openModal('state')">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 5v14M5 12h14"></path>
+                  </svg>
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      </div>
 
-      <div class="w-section">
-        <h2 class="w-section__heading">Contact Information</h2>
+            <div class="form-group">
+              <label class="form-label">Sector</label>
+              <select id="sector" name="sector" class="form-input form-select">
+                <option value="">Select Sector</option>
+                <option value="government" {% if is_edit and customer.sector == 'government' %}selected{% endif %}>Government</option>
+                <option value="private" {% if is_edit and customer.sector == 'private' %}selected{% endif %}>Private</option>
+              </select>
+            </div>
 
-        <div class="w-field-group">
-          <div class="w-field">
-            <label for="email" class="w-field__label">
-              Email<span class="w-field__required">*</span>
-            </label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value="{% if is_edit %}{{ customer.email }}{% endif %}"
-              required
-              class="w-field__input"
-            />
-          </div>
-
-          <div class="w-field">
-            <label for="phone" class="w-field__label">
-              Phone<span class="w-field__required">*</span>
-            </label>
-            <input
-              type="tel"
-              id="phone"
-              name="phone"
-              value="{% if is_edit %}{{ customer.phone }}{% endif %}"
-              class="w-field__input"
-              maxlength="10"
-              oninput="this.value = this.value.replace(/\D/g, '').slice(0, 10)"
-              required
-            />
-          </div>
-
-          <div class="w-field">
-            <label for="mobile" class="w-field__label">
-              Mobile (SMS Notification)<span class="w-field__required">*</span>
-            </label>
-            <input
-              type="tel"
-              id="mobile"
-              name="mobile"
-              value="{% if is_edit %}{{ customer.mobile }}{% endif %}"
-              class="w-field__input"
-              maxlength="10"
-              oninput="this.value = this.value.replace(/\D/g, '').slice(0, 10)"
-              required
-              pattern="\d{10}"
-              title="Mobile number must be exactly 10 digits"
-            />
-            <p class="w-field__help">10-digit mobile number for SMS notifications</p>
-          </div>
-        </div>
-
-        <div class="w-field-group">
-          <div class="w-field">
-            <label for="contact_person_name" class="w-field__label">Contact Person Name</label>
-            <input
-              type="text"
-              id="contact_person_name"
-              name="contact_person_name"
-              value="{% if is_edit %}{{ customer.contact_person_name }}{% endif %}"
-              class="w-field__input"
-            />
-          </div>
-
-          <div class="w-field">
-            <label for="designation" class="w-field__label">Designation</label>
-            <input
-              type="text"
-              id="designation"
-              name="designation"
-              value="{% if is_edit %}{{ customer.designation }}{% endif %}"
-              class="w-field__input"
-            />
-          </div>
-        </div>
-      </div>
-
-      <div class="w-section">
-        <h2 class="w-section__heading">Organization Details</h2>
-
-        <div class="w-field-group">
-          <div class="w-field">
-            <label for="sector" class="w-field__label">Sector</label>
-            <select id="sector" name="sector" class="w-field__select">
-              <option value="">Select Sector</option>
-              <option value="government" {% if is_edit and customer.sector == 'government' %}selected{% endif %}>Government</option>
-              <option value="private" {% if is_edit and customer.sector == 'private' %}selected{% endif %}>Private</option>
-            </select>
-          </div>
-
-          <div class="w-field">
-            <label for="routes" class="w-field__label">Route</label>
-            <div class="w-field__addon">
-              <select id="routes" name="routes" class="w-field__select">
-                <option value="">Select Route</option>
-                {% for route in routes %}
+            <div class="form-group">
+              <label class="form-label">Route</label>
+              <div class="form-select-addon">
+                <select id="routes" name="routes" class="form-input form-select">
+                  <option value="">Select Route</option>
+                  {% for route in routes %}
                   <option value="{{ route.id }}" {% if is_edit and customer.routes.id == route.id %}selected{% endif %}>
                     {{ route.value }}
                   </option>
-                {% endfor %}
-              </select>
-              <button type="button" class="w-button w-button--secondary w-button--icon" onclick="openModal('route')">+</button>
+                  {% endfor %}
+                </select>
+                <button type="button" class="form-select-addon-button" onclick="openModal('routes')">
+                  {% load static %}
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 5v14M5 12h14"></path>
+                  </svg>
+                </button>
+              </div>
             </div>
-          </div>
 
-          <div class="w-field">
-            <label for="branch" class="w-field__label">Branch</label>
-            <div class="w-field__addon">
-              <select id="branch" name="branch" class="w-field__select">
-                <option value="">Select Branch</option>
-                {% for branch in branches %}
+            <div class="form-group">
+              <label class="form-label">Branch</label>
+              <div class="form-select-addon">
+                <select id="branch" name="branch" class="form-input form-select">
+                  <option value="">Select Branch</option>
+                  {% for branch in branches %}
                   <option value="{{ branch.id }}" {% if is_edit and customer.branch.id == branch.id %}selected{% endif %}>
                     {{ branch.value }}
                   </option>
-                {% endfor %}
-              </select>
-              <button type="button" class="w-button w-button--secondary w-button--icon" onclick="openModal('branch')">+</button>
+                  {% endfor %}
+                </select>
+                <button type="button" class="form-select-addon-button" onclick="openModal('branch')">
+                  {% load static %}
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 5v14M5 12h14"></path>
+                  </svg>
+                </button>
+              </div>
             </div>
+
+            <div class="form-group">
+              <label class="form-label">GST Number</label>
+              <input
+                type="text"
+                id="gst_number"
+                name="gst_number"
+                value="{% if is_edit %}{{ customer.gst_number }}{% endif %}"
+                class="form-input"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">PAN Number</label>
+              <input
+                type="text"
+                id="pan_number"
+                name="pan_number"
+                value="{% if is_edit %}{{ customer.pan_number }}{% endif %}"
+                class="form-input"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Handover Date</label>
+              <input
+                type="date"
+                id="handover_date"
+                name="handover_date"
+                value="{% if is_edit %}{{ customer.handover_date|date:'Y-m-d' }}{% endif %}"
+                class="form-input"
+              />
+            </div>
+
+            {% if not is_edit %}
+            <div class="form-group">
+              <div class="form-checkbox-wrapper">
+                <input
+                  type="checkbox"
+                  id="generate_customer_license"
+                  name="generate_customer_license"
+                  class="form-checkbox"
+                />
+                <label class="form-checkbox-label">
+                  Generate Customer License
+                </label>
+              </div>
+              <p class="form-help">Enable this to automatically generate a license for this customer</p>
+            </div>
+            {% endif %}
           </div>
         </div>
-
-        <div class="w-field-group">
-          <div class="w-field">
-            <label for="gst_number" class="w-field__label">GST Number</label>
-            <input
-              type="text"
-              id="gst_number"
-              name="gst_number"
-              value="{% if is_edit %}{{ customer.gst_number }}{% endif %}"
-              class="w-field__input"
-            />
-          </div>
-
-          <div class="w-field">
-            <label for="pan_number" class="w-field__label">PAN Number</label>
-            <input
-              type="text"
-              id="pan_number"
-              name="pan_number"
-              value="{% if is_edit %}{{ customer.pan_number }}{% endif %}"
-              class="w-field__input"
-            />
-          </div>
-
-          <div class="w-field">
-            <label for="handover_date" class="w-field__label">Handover Date</label>
-            <input
-              type="date"
-              id="handover_date"
-              name="handover_date"
-              value="{% if is_edit %}{{ customer.handover_date|date:'Y-m-d' }}{% endif %}"
-              class="w-field__input"
-            />
-          </div>
+        {% else %}
+        <div class="loading-spinner">
+          <div class="spinner"></div>
+          <span>Loading options...</span>
         </div>
+        {% endif %}
       </div>
 
-      {% if not is_edit %}
-      <div class="w-section">
-        <h2 class="w-section__heading">License Generation</h2>
-
-        <div class="w-field">
-          <div class="w-field__checkbox-wrapper">
-            <input type="checkbox" id="generate_customer_license" name="generate_customer_license" class="w-field__checkbox" />
-            <label for="generate_customer_license" class="w-field__label" style="margin-bottom: 0;">
-              Generate Customer License
-            </label>
-          </div>
-          <p class="w-field__help">Enable this to automatically generate a license for this customer</p>
-        </div>
-      </div>
-      {% endif %}
-
-      <div class="w-footer-actions">
-        <a href="{% url 'wagtailadmin_home' %}" class="w-button w-button--secondary">Cancel</a>
-        <button type="submit" class="w-button w-button--primary">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-            <polyline points="17 21 17 13 7 13 7 21"></polyline>
-            <polyline points="7 3 7 8 15 8"></polyline>
-          </svg>
-          Save Customer
+      <!-- Modal Footer -->
+      <div class="w-modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="window.history.back();">Cancel</button>
+        <button
+          type="button"
+          id="submitBtn"
+          class="btn btn-primary"
+          onclick="handleFormSubmit({target: document.getElementById('customerForm')})"
+        >
+          {% if is_edit %}Update Customer{% else %}Create Customer{% endif %}
         </button>
       </div>
     </div>
-  </form>
-</div>
+  </div>
 
-<!-- Modal for adding new options -->
-<div id="optionModal" class="w-modal">
-  <div class="w-modal__dialog">
-    <div class="w-modal__header">
-      <h3 class="w-modal__title" id="modalTitle">Add New Option</h3>
-    </div>
-    <div class="w-modal__body">
-      <div class="w-field">
-        <label for="modalInput" class="w-field__label">Name</label>
-        <input type="text" id="modalInput" class="w-field__input" placeholder="Enter value" />
+  <!-- Option Modal -->
+  <div id="optionModal" class="option-modal">
+    <div class="option-modal-dialog">
+      <div class="option-modal-header">
+        <h3 class="option-modal-title" id="modalTitle">Add New Option</h3>
       </div>
-      <div class="w-option-list" id="existingOptions"></div>
-    </div>
-    <div class="w-modal__footer">
-      <button type="button" class="w-button w-button--secondary" onclick="closeModal()">Cancel</button>
-      <button type="button" class="w-button w-button--primary" onclick="saveOption()">Save</button>
+      <div class="option-modal-body">
+        <div class="form-group">
+          <label class="form-label">Name</label>
+          <input type="text" id="modalInput" class="form-input" placeholder="Enter value" />
+        </div>
+        <div class="option-list" id="existingOptions"></div>
+      </div>
+      <div class="option-modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="saveOption()">Save</button>
+      </div>
     </div>
   </div>
+
+  <!-- Hidden Form for Django CSRF -->
+  <form id="customerForm" style="display:none;">
+    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+  </form>
+
+  {% if messages %}
+  <div class="toast-container">
+    {% for message in messages %}
+    <div class="toast toast--{% if message.tags %}{{ message.tags }}{% else %}info{% endif %}">
+      <div class="toast-content">
+        <div class="toast-message">
+          {{ message }}
+        </div>
+        <button class="toast-close" onclick="this.parentElement.parentElement.remove()">×</button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
 </div>
 
 <script>
 let currentModalType = '';
-{% if is_edit %}
-const isEdit = true;
-const submitUrl = "{% url 'edit_customer_custom' customer.id %}";
-{% else %}
-const isEdit = false;
-const submitUrl = "{% url 'add_customer_custom' %}";
-{% endif %}
-const amcUrl = "{% url 'add_amc_custom' %}";
-const adminHomeUrl = "{% url 'wagtailadmin_home' %}";
+var isEditMode = {% if is_edit %}true{% else %}false{% endif %};
+var submitUrl = "{% if is_edit %}{% url 'edit_customer_custom' customer.id %}{% else %}{% url 'add_customer_custom' %}{% endif %}";
+var amcUrl = "{% url 'add_amc_custom' %}";
+var adminHomeUrl = "{% url 'wagtailadmin_home' %}";
 
 function updateSiteName(value) {
-  const jobNo = document.getElementById('job_no').value;
+  var jobNo = document.getElementById('job_no').value;
   if (jobNo) {
-    document.getElementById('site_name').value = `${value} - ${jobNo}`;
+    document.getElementById('site_name').value = value + ' - ' + jobNo;
   }
 }
 
 function updateJobNo(value) {
-  const siteName = document.getElementById('site_name').value;
-  if (siteName && !siteName.includes(' - ')) {
-    document.getElementById('site_name').value = `${siteName} - ${value}`;
-  } else if (siteName.includes(' - ')) {
-    const baseName = siteName.split(' - ')[0];
-    document.getElementById('site_name').value = `${baseName} - ${value}`;
+  var siteName = document.getElementById('site_name').value;
+  if (siteName && siteName.indexOf(' - ') === -1) {
+    document.getElementById('site_name').value = siteName + ' - ' + value;
+  } else if (siteName.indexOf(' - ') !== -1) {
+    var baseName = siteName.split(' - ')[0];
+    document.getElementById('site_name').value = baseName + ' - ' + value;
   }
 }
 
 function handleOfficeAddressSync() {
-  const sameAsSite = document.getElementById('same_as_site_address').checked;
-  const siteAddress = document.getElementById('site_address');
-  const officeAddress = document.getElementById('office_address');
+  var sameAsSite = document.getElementById('same_as_site_address').checked;
+  var siteAddress = document.getElementById('site_address');
+  var officeAddress = document.getElementById('office_address');
 
   if (sameAsSite) {
     officeAddress.value = siteAddress.value;
@@ -870,9 +885,9 @@ function handleOfficeAddressSync() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-  const sameAsSiteCheckbox = document.getElementById('same_as_site_address');
-  const siteAddressField = document.getElementById('site_address');
-  const officeAddressField = document.getElementById('office_address');
+  var sameAsSiteCheckbox = document.getElementById('same_as_site_address');
+  var siteAddressField = document.getElementById('site_address');
+  var officeAddressField = document.getElementById('office_address');
 
   if (sameAsSiteCheckbox && siteAddressField && officeAddressField) {
     sameAsSiteCheckbox.addEventListener('change', function() {
@@ -899,10 +914,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function openModal(type) {
   currentModalType = type;
-  const modal = document.getElementById('optionModal');
-  const modalTitle = document.getElementById('modalTitle');
+  var modal = document.getElementById('optionModal');
+  var modalTitle = document.getElementById('modalTitle');
 
-  modalTitle.textContent = `Add New ${type.charAt(0).toUpperCase() + type.slice(1)}`;
+  modalTitle.textContent = 'Add New ' + type.charAt(0).toUpperCase() + type.slice(1);
 
   loadExistingOptions(type);
   modal.classList.add('active');
@@ -914,45 +929,42 @@ function closeModal() {
 }
 
 function loadExistingOptions(type) {
-  fetch(`/api/customer/${type}s/`)
-    .then(response => response.json())
-    .then(data => {
-      const container = document.getElementById('existingOptions');
-      container.innerHTML = `<h4 class="w-option-list__title">Existing ${type.charAt(0).toUpperCase() + type.slice(1)}s</h4>` +
-        data.map(item => `
-          <div class="w-option-item">
-            <span>${item.value}</span>
-            <div class="w-option-item__actions">
-              <button type="button" class="w-button w-button--small w-button--secondary" onclick="editOption('${type}', ${item.id}, '${item.value}')">Edit</button>
-              <button type="button" class="w-button w-button--small w-button--danger" onclick="deleteOption('${type}', ${item.id})">Delete</button>
-            </div>
-          </div>
-        `).join('');
+  fetch('/api/customer/' + type + 's/')
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+      var container = document.getElementById('existingOptions');
+      container.innerHTML = '<table class="option-table"><thead><tr><th>Name</th><th>Actions</th></tr></thead><tbody>' +
+        data.map(function(item) {
+          return '<tr><td>' + item.value + '</td><td>' +
+            '<button type="button" class="btn btn-secondary" style="margin-right: 0.25rem; padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="editOption(\'' + type + '\', ' + item.id + ', \'' + item.value + '\')">Edit</button>' +
+            '<button type="button" class="btn-danger" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background: #EF4444; color: white; border: none; border-radius: 0.25rem; cursor: pointer;" onclick="deleteOption(\'' + type + '\', ' + item.id + ')">Delete</button>' +
+          '</td></tr>';
+        }).join('') + '</tbody></table>';
     });
 }
 
 function saveOption() {
-  const value = document.getElementById('modalInput').value.trim();
+  var value = document.getElementById('modalInput').value.trim();
   if (!value) return;
 
-  fetch(`/api/customer/${currentModalType}s/`, {
+  fetch('/api/customer/' + currentModalType + 's/', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'X-CSRFToken': getCsrfToken()
     },
-    body: JSON.stringify({ value })
+    body: JSON.stringify({ value: value })
   })
-  .then(response => response.json())
-  .then(data => {
+  .then(function(response) { return response.json(); })
+  .then(function(data) {
     if (data.success) {
-      const select = document.getElementById(currentModalType);
-      const option = new Option(value, data.id);
+      var select = document.getElementById(currentModalType);
+      var option = new Option(value, data.id);
       select.appendChild(option);
       select.value = data.id;
 
       closeModal();
-      showMessage('success', `${currentModalType.charAt(0).toUpperCase() + currentModalType.slice(1)} added successfully`);
+      showMessage('success', currentModalType.charAt(0).toUpperCase() + currentModalType.slice(1) + ' added successfully');
     } else {
       showMessage('error', data.error);
     }
@@ -960,9 +972,9 @@ function saveOption() {
 }
 
 function editOption(type, id, currentValue) {
-  const newValue = prompt(`Edit ${type.charAt(0).toUpperCase() + type.slice(1)}:`, currentValue);
+  var newValue = prompt('Edit ' + type.charAt(0).toUpperCase() + type.slice(1) + ':', currentValue);
   if (newValue && newValue.trim() && newValue !== currentValue) {
-    fetch(`/api/customer/${type}s/${id}/`, {
+    fetch('/api/customer/' + type + 's/' + id + '/', {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -970,16 +982,16 @@ function editOption(type, id, currentValue) {
       },
       body: JSON.stringify({ value: newValue.trim() })
     })
-    .then(response => response.json())
-    .then(data => {
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
       if (data.success) {
         loadExistingOptions(type);
-        const select = document.getElementById(type);
-        const option = select.querySelector(`option[value="${id}"]`);
+        var select = document.getElementById(type);
+        var option = select.querySelector('option[value="' + id + '"]');
         if (option) {
           option.textContent = newValue.trim();
         }
-        showMessage('success', `${type.charAt(0).toUpperCase() + type.slice(1)} updated successfully`);
+        showMessage('success', type.charAt(0).toUpperCase() + type.slice(1) + ' updated successfully');
       } else {
         showMessage('error', data.error);
       }
@@ -988,24 +1000,24 @@ function editOption(type, id, currentValue) {
 }
 
 function deleteOption(type, id) {
-  if (!confirm(`Are you sure you want to delete this ${type}?`)) return;
+  if (!confirm('Are you sure you want to delete this ' + type + '?')) return;
 
-  fetch(`/api/customer/${type}s/${id}/`, {
+  fetch('/api/customer/' + type + 's/' + id + '/', {
     method: 'DELETE',
     headers: {
       'X-CSRFToken': getCsrfToken()
     }
   })
-  .then(response => response.json())
-  .then(data => {
+  .then(function(response) { return response.json(); })
+  .then(function(data) {
     if (data.success) {
       loadExistingOptions(type);
-      const select = document.getElementById(type);
-      const option = select.querySelector(`option[value="${id}"]`);
+      var select = document.getElementById(type);
+      var option = select.querySelector('option[value="' + id + '"]');
       if (option) {
         option.remove();
       }
-      showMessage('success', `${type.charAt(0).toUpperCase() + type.slice(1)} deleted successfully`);
+      showMessage('success', type.charAt(0).toUpperCase() + type.slice(1) + ' deleted successfully');
     } else {
       showMessage('error', data.error);
     }
@@ -1013,44 +1025,56 @@ function deleteOption(type, id) {
 }
 
 function getCsrfToken() {
-  const token = document.querySelector('[name=csrfmiddlewaretoken]');
+  var token = document.querySelector('[name=csrfmiddlewaretoken]');
   return token ? token.value : '';
 }
 
 function showMessage(type, message) {
-  const toast = document.createElement('div');
-  toast.className = `toast toast--${type}`;
-  toast.innerHTML = `
-    <div class="toast__content">
-      <span class="toast__message">${message}</span>
-      <button class="toast__close" onclick="this.parentElement.parentElement.remove()">×</button>
-    </div>
-  `;
+  var toast = document.createElement('div');
+  toast.className = 'toast toast--' + type;
+  toast.innerHTML = '<div class="toast-content">' +
+    '<span class="toast-message">' + message + '</span>' +
+    '<button class="toast-close" onclick="this.parentElement.parentElement.remove()">×</button>' +
+  '</div>';
 
-  let toastContainer = document.querySelector('.toast-container');
+  var toastContainer = document.querySelector('.toast-container');
   if (!toastContainer) {
     toastContainer = document.createElement('div');
     toastContainer.className = 'toast-container';
-    document.body.appendChild(toastContainer);
+    document.getElementsByClassName('w-content-wrapper')[0].appendChild(toastContainer);
   }
 
   toastContainer.appendChild(toast);
 
-  setTimeout(() => {
+  setTimeout(function() {
     if (toast.parentElement) {
       toast.remove();
     }
   }, type === 'success' ? 3000 : 5000);
 }
 
+function createFormData() {
+  var elements = document.querySelectorAll('input, select, textarea');
+  var data = {};
+  for (var i = 0; i < elements.length; i++) {
+    var element = elements[i];
+    if (element.name) {
+      if (element.type === 'checkbox') {
+        data[element.name] = element.checked;
+      } else {
+        data[element.name] = element.value;
+      }
+    }
+  }
+  data.same_as_site_address = data.same_as_site_address || false;
+  data.generate_customer_license = data.generate_customer_license || false;
+  return data;
+}
+
 function handleFormSubmit(event) {
-  event.preventDefault();
+  if (event) event.preventDefault();
 
-  const formData = new FormData(event.target);
-  const data = Object.fromEntries(formData.entries());
-
-  data.same_as_site_address = data.same_as_site_address === 'on';
-  data.generate_customer_license = data.generate_customer_license === 'on';
+  var data = createFormData();
 
   if (!data.site_id || !data.site_name || !data.mobile) {
     showMessage('error', 'Please fill in all required fields (Site ID, Site Name, Mobile)');
@@ -1067,6 +1091,11 @@ function handleFormSubmit(event) {
     return;
   }
 
+  var submitButton = document.getElementById('submitBtn');
+  var originalText = submitButton.textContent;
+  submitButton.textContent = 'Saving...';
+  submitButton.disabled = true;
+
   fetch(submitUrl, {
     method: 'POST',
     headers: {
@@ -1075,10 +1104,13 @@ function handleFormSubmit(event) {
     },
     body: JSON.stringify(data)
   })
-  .then(response => response.json())
+  .then(function(response) { return response.json(); })
   .then(function(result) {
+    submitButton.textContent = originalText;
+    submitButton.disabled = false;
+
     if (result.success) {
-      if (isEdit) {
+      if (isEditMode) {
         handleEditSuccess(result);
       } else {
         handleCreateSuccess(result);
@@ -1088,6 +1120,8 @@ function handleFormSubmit(event) {
     }
   })
   .catch(function(error) {
+    submitButton.textContent = originalText;
+    submitButton.disabled = false;
     console.error('Error:', error);
     showMessage('error', 'An error occurred while saving the customer');
   });
@@ -1095,7 +1129,7 @@ function handleFormSubmit(event) {
 
 function handleEditSuccess(result) {
   showMessage('success', result.message);
-  setTimeout(() => {
+  setTimeout(function() {
     window.location.href = adminHomeUrl;
   }, 1500);
 }
@@ -1104,14 +1138,14 @@ function handleCreateSuccess(result) {
   showMessage('success', result.message);
 
   setTimeout(function() {
-    const createAMC = confirm('Do you want to create an AMC for this customer?');
+    var createAMC = confirm('Do you want to create an AMC for this customer?');
     if (createAMC) {
-      const customerRefId = result.customer?.reference_id;
+      var customerRefId = result.customer.reference_id;
       if (customerRefId) {
         window.location.href = amcUrl + '?customerId=' + customerRefId;
       } else {
         showMessage('error', 'Could not retrieve customer reference ID for AMC navigation');
-        setTimeout(() => {
+        setTimeout(function() {
           window.location.href = adminHomeUrl;
         }, 2000);
       }
@@ -1121,7 +1155,8 @@ function handleCreateSuccess(result) {
   }, 1500);
 }
 
-document.getElementById('customerForm').addEventListener('submit', handleFormSubmit);
+// Add click event listener to submit button
+document.getElementById('submitBtn').addEventListener('click', handleFormSubmit);
 
 // Close modal when clicking outside
 document.getElementById('optionModal').addEventListener('click', function(e) {
