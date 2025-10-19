@@ -7,11 +7,14 @@ from django.views.decorators.csrf import csrf_exempt
 from wagtail import hooks
 from wagtail.admin.menu import MenuItem
 import json
+from .views import get_customer_json  # Add this import
 
 from .models import AMC, AMCType, PaymentTerms
 from customer.models import Customer
 from items.models import Item
 
+
+# ... (existing imports and code above) ...
 
 @hooks.register('register_admin_urls')
 def register_amc_form_url():
@@ -26,7 +29,11 @@ def register_amc_form_url():
         # API for fetching customers
         path('api/amc/customers/', get_customers, name='api_get_customers'),
         path('api/amc/items/', get_items, name='api_get_items'),
+        # New endpoint for individual customer details (for autofill)
+        path('customer/customer/<int:id>/', get_customer_json, name='get_customer_json'),
     ]
+
+# ... (rest of the file unchanged) ...
 
 
 # @hooks.register('register_admin_menu_item')

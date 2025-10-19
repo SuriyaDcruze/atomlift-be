@@ -3,7 +3,7 @@ from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
-from .models import AMC, AMCType, PaymentTerms
+from .models import AMC, AMCType, PaymentTerms, Customer
 
 # Create your views here.
 
@@ -21,6 +21,7 @@ def customer_form(request, pk=None):
         'is_edit': pk is not None,
         'customer_id': pk,
     }
+    return render(request, 'amc/customer_form.html', context)
 
 # API endpoints for fetching dropdown options
 @require_http_methods(["GET"])
@@ -206,5 +207,54 @@ def delete_payment_term(request, payment_term_id):
             "success": True,
             "message": f"Payment term '{name}' deleted successfully"
         })
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+    
+
+# ... (existing code above) ...
+
+
+@csrf_exempt
+@require_http_methods(["GET", "POST"])
+def amc_types_list(request):
+    if request.method == 'GET':
+        return get_amc_types(request)
+    elif request.method == 'POST':
+        return create_amc_type(request)
+
+@csrf_exempt
+@require_http_methods(["PUT", "DELETE"])
+def amc_types_detail(request, amc_type_id):
+    if request.method == 'PUT':
+        return update_amc_type(request, amc_type_id)
+    elif request.method == 'DELETE':
+        return delete_amc_type(request, amc_type_id)
+
+@csrf_exempt
+@require_http_methods(["GET", "POST"])
+def payment_terms_list(request):
+    if request.method == 'GET':
+        return get_payment_terms(request)
+    elif request.method == 'POST':
+        return create_payment_term(request)
+
+@csrf_exempt
+@require_http_methods(["PUT", "DELETE"])
+def payment_terms_detail(request, payment_term_id):
+    if request.method == 'PUT':
+        return update_payment_term(request, payment_term_id)
+    elif request.method == 'DELETE':
+        return delete_payment_term(request, payment_term_id)
+
+# New view for individual customer JSON (to support autofill)
+def get_customer_json(request, id):
+    try:
+        customer = get_object_or_404(Customer, id=id)
+        data = {
+            'site_address': customer.site_address,
+            'job_no': customer.job_no,
+            'site_name': customer.site_name,
+        }
+        return JsonResponse(data)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)

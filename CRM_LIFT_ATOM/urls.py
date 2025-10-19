@@ -9,6 +9,7 @@ from wagtail.documents import urls as wagtaildocs_urls
 from search import views as search_views
 
 urlpatterns = [
+    path('amc/', include('amc.urls')),
     path('reports/', include('reports.urls')),
     path('lift/', include('lift.urls')),
     path('items/', include('items.urls')),

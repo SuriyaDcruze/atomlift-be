@@ -24,7 +24,7 @@ document.addEventListener("DOMContentLoaded", function () {
             if (!id) return;
 
             try {
-                const resp = await fetch(`/customer/customer/${id}/`);
+                const resp = await fetch(`/admin/customer/customer/${id}/`);  // Changed to new admin endpoint
                 if (!resp.ok) return;
                 const data = await resp.json();
 

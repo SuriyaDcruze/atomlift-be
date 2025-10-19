@@ -940,7 +940,7 @@ function saveOption() {
     apiUrl = '/amc/api/amc/amc-types/';
     data.name = value;
   } else if (currentModalType === 'payment-terms') {
-    apiUrl = '/api/amc/payment-terms/';
+    apiUrl = '/amc/api/amc/payment-terms/';  // Added /amc/ for consistency
     data.name = value;
   }
 
@@ -975,7 +975,7 @@ function editOption(type, id, currentValue) {
     if (type === 'amc-type') {
       apiUrl = `/amc/api/amc/amc-types/${id}/`;
     } else if (type === 'payment-terms') {
-      apiUrl = `/api/amc/payment-terms/${id}/`;
+      apiUrl = `/amc/api/amc/payment-terms/${id}/`;  // Added /amc/ for consistency
     }
 
     fetch(apiUrl, {
@@ -1010,7 +1010,7 @@ function deleteOption(type, id) {
   if (type === 'amc-type') {
     apiUrl = `/amc/api/amc/amc-types/${id}/`;
   } else if (type === 'payment-terms') {
-    apiUrl = `/api/amc/payment-terms/${id}/`;
+    apiUrl = `/amc/api/amc/payment-terms/${id}/`;  // Added /amc/ for consistency
   }
 
   fetch(apiUrl, {
@@ -1077,7 +1077,7 @@ function loadCustomersDropdown() {
   var currentCustomerId = null;
   {% endif %}
 
-  fetch('/customer/api/customer/customers/')
+  fetch('/admin/api/amc/customers/')  // Changed to correct Wagtail admin endpoint
     .then(function(response) { return response.json(); })
     .then(function(data) {
       var customerSelect = document.getElementById('customer');
@@ -1105,7 +1105,7 @@ function loadCustomersDropdown() {
 
       // Trigger customer details fetch if a customer is pre-selected
       if (currentCustomerId) {
-        fetchCustomerDetails();
+        fetchCustomerDetails();  // Assuming this function is defined elsewhere in the full file
       }
     })
     .catch(function(error) {
