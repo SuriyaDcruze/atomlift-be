@@ -464,16 +464,7 @@ body {
               <div class="form-group">
                 <label class="form-label">Customer<span class="form-required">*</span></label>
                 <select id="customer" name="customer" class="form-input form-select" required onchange="fetchCustomerDetails()">
-                  <option value="">Select Customer</option>
-                  {% for customer in customers %}
-                  <option value="{{ customer.id }}"
-                          data-job-no="{{ customer.job_no|default:'' }}"
-                          data-site-address="{{ customer.site_address|default:''|escapejs }}"
-                          {% if selected_customer and selected_customer.id == customer.id %}selected{% endif %}>
-                    {{ customer.site_name }}
-                    {% if customer.job_no %} ({{ customer.job_no }}){% endif %}
-                  </option>
-                  {% endfor %}
+                  <option value="">Loading customers...</option>
                 </select>
               </div>
 
@@ -848,6 +839,7 @@ function fetchCustomerDetails() {
   const selectedOption = customerSelect.options[customerSelect.selectedIndex];
 
   if (selectedOption.value) {
+    // Get customer data from the option's data attributes
     const jobNo = selectedOption.getAttribute('data-job-no') || '';
     const siteAddress = selectedOption.getAttribute('data-site-address') || '';
 
@@ -1075,13 +1067,57 @@ function showMessage(type, message) {
 
 document.addEventListener('DOMContentLoaded', function() {
   toggleContractFields();
-  const customerSelect = document.getElementById('customer');
-  if (customerSelect.value) {
-    fetchCustomerDetails();
-  }
+
+  // Load customers dynamically on page load
+  loadCustomersDropdown();
 
   document.getElementById('amcForm').addEventListener('submit', handleAMCFormSubmit);
 });
+
+function loadCustomersDropdown() {
+  {% if is_edit and amc.customer %}
+  var currentCustomerId = {{ amc.customer.id }};
+  {% else %}
+  var currentCustomerId = null;
+  {% endif %}
+
+  fetch('/customer/api/customer/customers/')
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+      var customerSelect = document.getElementById('customer');
+      customerSelect.innerHTML = '<option value="">Select Customer</option>';
+
+      data.forEach(function(customer) {
+        var option = document.createElement('option');
+        option.value = customer.id;
+        option.textContent = customer.site_name;
+        if (customer.job_no) {
+          option.textContent += ' (' + customer.job_no + ')';
+        }
+
+        // Store customer data as attributes for later use
+        option.setAttribute('data-job-no', customer.job_no);
+        option.setAttribute('data-site-address', customer.site_address);
+
+        // If editing, select the current customer
+        if (currentCustomerId && customer.id === currentCustomerId) {
+          option.selected = true;
+        }
+
+        customerSelect.appendChild(option);
+      });
+
+      // Trigger customer details fetch if a customer is pre-selected
+      if (currentCustomerId) {
+        fetchCustomerDetails();
+      }
+    })
+    .catch(function(error) {
+      console.error('Error loading customers:', error);
+      var customerSelect = document.getElementById('customer');
+      customerSelect.innerHTML = '<option value="">Error loading customers</option>';
+    });
+}
 
 function handleAMCFormSubmit(event) {
   event.preventDefault();
