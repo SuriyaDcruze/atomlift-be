@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Material Request - CRM LIFT ATOM</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+                'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+                sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .wagtail-admin {
+            background-color: #f8f9fa;
+            min-height: 100vh;
+        }
+
+        .wagtail-admin-header {
+            background: white;
+            border-bottom: 1px solid #e1e5e9;
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .wagtail-admin-header h1 {
+            color: #243158;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .wagtail-admin-content {
+            padding: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="wagtail-admin">
+        <header class="wagtail-admin-header">
+            <h1>Material Request Management</h1>
+        </header>
+        <main class="wagtail-admin-content">
+            <div id="material-request-root"></div>
+        </main>
+    </div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const MaterialRequest = () => {
+            const [expandedFilters, setExpandedFilters] = useState(true);
+            const [requests, setRequests] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const primaryColor = '#243158';
+
+            useEffect(() => {
+                // Initialize Lucide icons
+                if (window.lucide) {
+                    window.lucide.createIcons();
+                }
+
+                // Fetch material requests from Django backend
+                fetchMaterialRequests();
+            }, []);
+
+            const fetchMaterialRequests = async () => {
+                try {
+                    const response = await fetch('/admin/material_request/materialrequest/');
+                    if (response.ok) {
+                        const data = await response.json();
+                        setRequests(data.items || []);
+                    } else {
+                        // Fallback to sample data if API fails
+                        setRequests([
+                            {
+                                date: '27.11.2024',
+                                name: 'Landing Button',
+                                description: 'Button not working',
+                                item: 'Button',
+                                brand: '',
+                                file: 'Saravanan S',
+                                added_by: 'Complaint # 381',
+                                requested_by: 'KORATTUR 1 - BALA GOPAL'
+                            }
+                        ]);
+                    }
+                } catch (error) {
+                    console.error('Error fetching material requests:', error);
+                    // Fallback to sample data
+                    setRequests([
+                        {
+                            date: '27.11.2024',
+                            name: 'Landing Button',
+                            description: 'Button not working',
+                            item: 'Button',
+                            brand: '',
+                            file: 'Saravanan S',
+                            added_by: 'Complaint # 381',
+                            requested_by: 'KORATTUR 1 - BALA GOPAL'
+                        }
+                    ]);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const formatDate = (dateString) => {
+                const date = new Date(dateString);
+                return date.toLocaleDateString('en-GB');
+            };
+
+            if (loading) {
+                return (
+                    <div className="flex items-center justify-center min-h-[400px]">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: primaryColor }}></div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen bg-gray-50 p-4">
+                    <div className="max-w-7xl mx-auto">
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+                            <h1 className="text-2xl font-bold text-gray-800">Routine Services Monthly Load</h1>
+                            <div className="mt-4 md:mt-0 flex flex-wrap gap-2">
+                                <button
+                                    className="flex items-center bg-white border rounded-md px-3 py-2 text-sm hover:bg-gray-50"
+                                    style={{ borderColor: primaryColor, color: primaryColor }}
+                                    onClick={() => alert('Add Request functionality will be implemented')}
+                                >
+                                    <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    Add Request
+                                </button>
+                                <button
+                                    className="flex items-center bg-white border rounded-md px-3 py-2 text-sm hover:bg-gray-50"
+                                    style={{ borderColor: primaryColor, color: primaryColor }}
+                                    onClick={() => alert('Export functionality will be implemented')}
+                                >
+                                    <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l4-4m-4 4l-4-4m8 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    Export
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Filters Section */}
+                        <div className="bg-white rounded-lg shadow p-4 mb-6">
+                            <div className="flex items-center justify-between mb-3">
+                                <h2 className="font-medium text-gray-700 flex items-center">
+                                    <svg className="h-5 w-5 mr-2" style={{ color: primaryColor }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                    </svg>
+                                    Filters
+                                </h2>
+                                <button onClick={() => setExpandedFilters(!expandedFilters)}>
+                                    {expandedFilters ?
+                                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                        </svg>
+                                        :
+                                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    }
+                                </button>
+                            </div>
+
+                            {expandedFilters && (
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
+                                    <div>
+                                        <div className="text-gray-500 mb-1">Date Range</div>
+                                        <select className="w-full border border-gray-300 rounded p-2">
+                                            <option>Last 30 Days</option>
+                                            <option>This Month</option>
+                                            <option>Custom Range</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <div className="text-gray-500 mb-1">Item</div>
+                                        <select className="w-full border border-gray-300 rounded p-2">
+                                            <option>All Items</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <div className="text-gray-500 mb-1">Status</div>
+                                        <select className="w-full border border-gray-300 rounded p-2">
+                                            <option>All Statuses</option>
+                                            <option>Pending</option>
+                                            <option>Approved</option>
+                                            <option>Rejected</option>
+                                        </select>
+                                    </div>
+                                    <div className="flex items-end">
+                                        <button
+                                            className="flex items-center justify-center text-white rounded p-2 w-full transition-colors"
+                                            style={{ backgroundColor: primaryColor }}
+                                            onClick={() => alert('Search functionality will be implemented')}
+                                        >
+                                            <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                            </svg>
+                                            Search
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Requests Table */}
+                        <div className="bg-white rounded-lg shadow overflow-hidden">
+                            {/* Mobile View - Card Layout */}
+                            <div className="block md:hidden">
+                                {requests.length > 0 ? (
+                                    requests.map((request, index) => (
+                                        <div key={index} className="p-4 border-b border-gray-200 last:border-b-0">
+                                            <div className="space-y-2">
+                                                <div className="flex justify-between items-start">
+                                                    <div className="font-medium text-gray-900">{request.name}</div>
+                                                    <div className="text-xs text-gray-500">{formatDate(request.date)}</div>
+                                                </div>
+                                                <div className="text-sm text-gray-600">{request.description}</div>
+                                                <div className="grid grid-cols-2 gap-2 text-xs">
+                                                    <div>
+                                                        <span className="text-gray-500">Item:</span>
+                                                        <span className="ml-1">{request.item}</span>
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-gray-500">Brand:</span>
+                                                        <span className="ml-1">{request.brand || '-'}</span>
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-gray-500">File:</span>
+                                                        <span className="ml-1">{request.file}</span>
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-gray-500">Added By:</span>
+                                                        <span className="ml-1">{request.added_by}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="text-xs">
+                                                    <span className="text-gray-500">Requested By:</span>
+                                                    <span className="ml-1">{request.requested_by}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="p-4 text-center text-gray-500">
+                                        No data to show
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Desktop View - Table Layout */}
+                            <div className="hidden md:block overflow-x-auto">
+                                <div className="min-w-full">
+                                    {/* Table Header */}
+                                    <div className="grid grid-cols-8 bg-gray-100 p-3 font-medium text-gray-700 text-sm border-b border-gray-200 min-w-[800px]">
+                                        <div className="px-2 min-w-[80px]">DATE</div>
+                                        <div className="px-2 min-w-[120px]">NAME</div>
+                                        <div className="px-2 min-w-[150px]">DESCRIPTION</div>
+                                        <div className="px-2 min-w-[100px]">ITEM</div>
+                                        <div className="px-2 min-w-[100px]">BRAND</div>
+                                        <div className="px-2 min-w-[100px]">FILE</div>
+                                        <div className="px-2 min-w-[120px]">ADDED BY</div>
+                                        <div className="px-2 min-w-[150px]">REQUESTED BY</div>
+                                    </div>
+
+                                    {/* Table Rows */}
+                                    {requests.length > 0 ? (
+                                        requests.map((request, index) => (
+                                            <div key={index} className="grid grid-cols-8 p-3 border-b border-gray-200 text-sm items-center min-w-[800px]">
+                                                <div className="px-2 min-w-[80px]">{formatDate(request.date)}</div>
+                                                <div className="px-2 min-w-[120px] font-medium">{request.name}</div>
+                                                <div className="px-2 min-w-[150px]">{request.description}</div>
+                                                <div className="px-2 min-w-[100px]">{request.item}</div>
+                                                <div className="px-2 min-w-[100px]">{request.brand || '-'}</div>
+                                                <div className="px-2 min-w-[100px]">{request.file}</div>
+                                                <div className="px-2 min-w-[120px]">{request.added_by}</div>
+                                                <div className="px-2 min-w-[150px]">{request.requested_by}</div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="p-4 text-center text-gray-500">
+                                            No data to show
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Pagination */}
+                            <div className="p-3 text-sm text-gray-600 border-t border-gray-200">
+                                Showing 1-{requests.length} of {requests.length}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Render the component
+        const root = ReactDOM.createRoot(document.getElementById('material-request-root'));
+        root.render(React.createElement(MaterialRequest));
+    </script>
+</body>
+</html>
