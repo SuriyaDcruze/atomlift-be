@@ -1,5 +1,5 @@
 import json
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
@@ -1296,3 +1296,205 @@ def manage_cabins_detail(request, pk):
 
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+# Custom lift views for add/edit pages
+def add_lift_custom(request, job_no=None):
+    """Custom add lift page"""
+    floor_ids = FloorID.objects.all()
+    brands = Brand.objects.all()
+    lift_types = LiftType.objects.all()
+    machine_types = MachineType.objects.all()
+    machine_brands = MachineBrand.objects.all()
+    door_types = DoorType.objects.all()
+    door_brands = DoorBrand.objects.all()
+    controller_brands = ControllerBrand.objects.all()
+    cabins = Cabin.objects.all()
+
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            
+            # Get foreign key objects
+            floor_id = None
+            if data.get('floor_id'):
+                floor_id = get_object_or_404(FloorID, id=data['floor_id'])
+            
+            brand = None
+            if data.get('brand'):
+                brand = get_object_or_404(Brand, id=data['brand'])
+            
+            lift_type = None
+            if data.get('lift_type'):
+                lift_type = get_object_or_404(LiftType, id=data['lift_type'])
+            
+            machine_type = None
+            if data.get('machine_type'):
+                machine_type = get_object_or_404(MachineType, id=data['machine_type'])
+            
+            machine_brand = None
+            if data.get('machine_brand'):
+                machine_brand = get_object_or_404(MachineBrand, id=data['machine_brand'])
+            
+            door_type = None
+            if data.get('door_type'):
+                door_type = get_object_or_404(DoorType, id=data['door_type'])
+            
+            door_brand = None
+            if data.get('door_brand'):
+                door_brand = get_object_or_404(DoorBrand, id=data['door_brand'])
+            
+            controller_brand = None
+            if data.get('controller_brand'):
+                controller_brand = get_object_or_404(ControllerBrand, id=data['controller_brand'])
+            
+            cabin = None
+            if data.get('cabin'):
+                cabin = get_object_or_404(Cabin, id=data['cabin'])
+            
+            # Create new lift
+            lift = Lift.objects.create(
+                lift_code=data.get('lift_code', ''),
+                name=data.get('name', ''),
+                price=data.get('price', 0),
+                floor_id=floor_id,
+                brand=brand,
+                model=data.get('model', ''),
+                no_of_passengers=data.get('no_of_passengers', 0),
+                load_kg=data.get('load_kg'),
+                speed=data.get('speed', ''),
+                lift_type=lift_type,
+                machine_type=machine_type,
+                machine_brand=machine_brand,
+                door_type=door_type,
+                door_brand=door_brand,
+                controller_brand=controller_brand,
+                cabin=cabin,
+                block=data.get('block', ''),
+                license_no=data.get('license_no', ''),
+                license_start_date=data.get('license_start_date') if data.get('license_start_date') else None,
+                license_end_date=data.get('license_end_date') if data.get('license_end_date') else None,
+            )
+            return JsonResponse({'success': True, 'message': 'Lift created successfully'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+    return render(request, 'lift/add_lift_custom.html', {
+        'floor_ids': floor_ids,
+        'brands': brands,
+        'lift_types': lift_types,
+        'machine_types': machine_types,
+        'machine_brands': machine_brands,
+        'door_types': door_types,
+        'door_brands': door_brands,
+        'controller_brands': controller_brands,
+        'cabins': cabins,
+        'is_edit': False,
+        'job_no': job_no  # Pass job_no to template for pre-filling
+    })
+
+
+def edit_lift_custom(request, identifier):
+    """Custom edit lift page"""
+    try:
+        # Try to find by lift_code first, then by reference_id
+        try:
+            lift = Lift.objects.get(lift_code=identifier)
+        except Lift.DoesNotExist:
+            lift = Lift.objects.get(reference_id=identifier)
+    except Lift.DoesNotExist:
+        from django.contrib import messages
+        messages.error(request, 'Lift not found')
+        return render(request, '404.html')
+
+    floor_ids = FloorID.objects.all()
+    brands = Brand.objects.all()
+    lift_types = LiftType.objects.all()
+    machine_types = MachineType.objects.all()
+    machine_brands = MachineBrand.objects.all()
+    door_types = DoorType.objects.all()
+    door_brands = DoorBrand.objects.all()
+    controller_brands = ControllerBrand.objects.all()
+    cabins = Cabin.objects.all()
+
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            
+            # Get foreign key objects
+            floor_id = None
+            if data.get('floor_id'):
+                floor_id = get_object_or_404(FloorID, id=data['floor_id'])
+            
+            brand = None
+            if data.get('brand'):
+                brand = get_object_or_404(Brand, id=data['brand'])
+            
+            lift_type = None
+            if data.get('lift_type'):
+                lift_type = get_object_or_404(LiftType, id=data['lift_type'])
+            
+            machine_type = None
+            if data.get('machine_type'):
+                machine_type = get_object_or_404(MachineType, id=data['machine_type'])
+            
+            machine_brand = None
+            if data.get('machine_brand'):
+                machine_brand = get_object_or_404(MachineBrand, id=data['machine_brand'])
+            
+            door_type = None
+            if data.get('door_type'):
+                door_type = get_object_or_404(DoorType, id=data['door_type'])
+            
+            door_brand = None
+            if data.get('door_brand'):
+                door_brand = get_object_or_404(DoorBrand, id=data['door_brand'])
+            
+            controller_brand = None
+            if data.get('controller_brand'):
+                controller_brand = get_object_or_404(ControllerBrand, id=data['controller_brand'])
+            
+            cabin = None
+            if data.get('cabin'):
+                cabin = get_object_or_404(Cabin, id=data['cabin'])
+            
+            # Update lift
+            lift.lift_code = data.get('lift_code', '')
+            lift.name = data.get('name', '')
+            lift.price = data.get('price', 0)
+            lift.floor_id = floor_id
+            lift.brand = brand
+            lift.model = data.get('model', '')
+            lift.no_of_passengers = data.get('no_of_passengers', 0)
+            lift.load_kg = data.get('load_kg')
+            lift.speed = data.get('speed', '')
+            lift.lift_type = lift_type
+            lift.machine_type = machine_type
+            lift.machine_brand = machine_brand
+            lift.door_type = door_type
+            lift.door_brand = door_brand
+            lift.controller_brand = controller_brand
+            lift.cabin = cabin
+            lift.block = data.get('block', '')
+            lift.license_no = data.get('license_no', '')
+            lift.license_start_date = data.get('license_start_date') if data.get('license_start_date') else None
+            lift.license_end_date = data.get('license_end_date') if data.get('license_end_date') else None
+            lift.save()
+
+            return JsonResponse({'success': True, 'message': 'Lift updated successfully'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+    return render(request, 'lift/add_lift_custom.html', {
+        'lift': lift,
+        'floor_ids': floor_ids,
+        'brands': brands,
+        'lift_types': lift_types,
+        'machine_types': machine_types,
+        'machine_brands': machine_brands,
+        'door_types': door_types,
+        'door_brands': door_brands,
+        'controller_brands': controller_brands,
+        'cabins': cabins,
+        'is_edit': True
+    })

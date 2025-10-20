@@ -476,11 +476,11 @@ body {
                 type="text"
                 id="lift_code"
                 name="lift_code"
-                value="{% if is_edit %}{{ lift.lift_code }}{% endif %}"
+                value="{% if is_edit %}{{ lift.lift_code }}{% elif job_no %}{{ job_no }}{% endif %}"
                 class="form-input"
                 placeholder="Enter custom lift code (optional)"
               />
-              <p class="form-help">Optional custom code for the lift</p>
+              <p class="form-help">{% if job_no %}Pre-filled with customer job number{% else %}Optional custom code for the lift{% endif %}</p>
             </div>
 
             <div class="form-group">

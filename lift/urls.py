@@ -4,6 +4,11 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
+    # Custom add/edit pages
+    path('add-custom/', views.add_lift_custom, name='add_lift_custom'),
+    path('add-custom/<str:job_no>/', views.add_lift_custom, name='add_lift_custom_with_job'),
+    path('edit-custom/<str:identifier>/', views.edit_lift_custom, name='edit_lift_custom'),
+    
     # API endpoints for dropdown management
     path('api/lift/floorids/', views.manage_floorids, name='api_manage_floorids'),
     path('api/lift/floorids/<int:pk>/', views.manage_floorids_detail, name='api_manage_floorids_detail'),
