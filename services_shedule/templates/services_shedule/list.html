@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block body_class %}template-homepage{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>Service Schedule Management</h1>
+    <p>Welcome to the Service Schedule management system. Add your business logic here.</p>
+
+    <div class="service-schedule-content">
+        <h2>Service Schedules</h2>
+        <p>Total schedules: {{ service_schedules.count }}</p>
+
+        <!-- Add your service schedule logic here -->
+        <div class="service-schedule-placeholder">
+            <p>Service schedule functionality will be implemented here.</p>
+        </div>
+    </div>
+</div>
+{% endblock content %}

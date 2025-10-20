@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block body_class %}template-homepage{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>Monthly Load Management</h1>
+    <p>Welcome to the Monthly Load management system. Add your business logic here.</p>
+
+    <div class="monthly-load-content">
+        <h2>Monthly Loads</h2>
+        <p>Total loads: {{ monthly_loads.count }}</p>
+
+        <!-- Add your monthly load logic here -->
+        <div class="monthly-load-placeholder">
+            <p>Monthly load functionality will be implemented here.</p>
+        </div>
+    </div>
+</div>
+{% endblock content %}

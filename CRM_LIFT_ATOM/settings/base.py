@@ -38,6 +38,8 @@ INSTALLED_APPS = [
     "complaints",
     "reports",
     "Material_Request",
+    "monthly_load",
+    "services_shedule",
     "search",
     "wagtail_modeladmin",
     "wagtail.contrib.forms",
