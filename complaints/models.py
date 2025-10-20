@@ -193,7 +193,7 @@ class ComplaintManagementGroup(SnippetViewSetGroup):
     menu_icon = "info-circle"
     menu_label = "Complaints"
     menu_name = "complaints"
-    menu_order = 7 
+    menu_order = 8
 
 
 register_snippet(ComplaintManagementGroup)

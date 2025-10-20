@@ -65,10 +65,10 @@ class SalesGroup(SnippetViewSetGroup):
         InvoiceGroup,
         RecurringInvoiceGroup,
     )
-    menu_icon = "shopping-cart"
+    menu_icon = "tag"
     menu_label = "Sales"
     menu_name = "sales"
-    menu_order = 2
+    menu_order = 6
 
 
 # Register the Sales group

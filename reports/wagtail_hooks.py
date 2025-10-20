@@ -49,6 +49,6 @@ def register_reports_menu():
         'Reports',
         submenu,
         name='custom_reports',
-        icon_name='folder-open-inverse',
-        order=10000
+        icon_name='doc-full-inverse',
+        order=10
     )
