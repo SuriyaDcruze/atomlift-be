@@ -8,6 +8,7 @@ urlpatterns = [
     path('complaints/', views.complaints_report, name='complaints_report'),
     path('invoices/', views.invoice_report, name='invoice_report'),
     path('payments/', views.payment_report, name='payment_report'),
+    path('amcs/', views.amc_report, name='amc_report'),
     path('quotations/', views.quotation_report, name='quotation_report'),
     path('routine-services/', views.routine_service_report, name='routine_service_report'),
     

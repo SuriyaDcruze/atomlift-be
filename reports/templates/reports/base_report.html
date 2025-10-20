@@ -200,7 +200,14 @@
 <div class="report-container">
     <div class="report-header">
         <h1 class="report-title">{% block report_title %}{% endblock %}</h1>
-        <div class="export-dropdown">
+        <div style="display:flex; gap:0.5rem; align-items:center;">
+            <a id="graphToggle" class="btn-export" href="#" onclick="toggleGraphView(event)">
+                <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3v18m-4-6v6m8-12v12m4-9v9" />
+                </svg>
+                Graph View
+            </a>
+            <div class="export-dropdown">
             <button class="btn-export" onclick="toggleExportMenu()">
                 <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
@@ -209,6 +216,7 @@
             </button>
             <div class="export-menu" id="exportMenu">
                 {% block export_links %}{% endblock %}
+            </div>
             </div>
         </div>
     </div>
@@ -253,6 +261,17 @@ window.onclick = function(event) {
             }
         }
     }
+}
+
+function toggleGraphView(event) {
+    event.preventDefault();
+    var url = new URL(window.location.href);
+    if (url.searchParams.get('view') === 'graph') {
+        url.searchParams.delete('view');
+    } else {
+        url.searchParams.set('view', 'graph');
+    }
+    window.location.href = url.toString();
 }
 </script>
 {% endblock %}

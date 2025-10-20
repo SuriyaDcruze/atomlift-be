@@ -26,6 +26,12 @@ def register_reports_menu():
             order=300
         ),
         MenuItem(
+            'AMC Report',
+            reverse('reports:amc_report'),
+            icon_name='doc-full-inverse',
+            order=350
+        ),
+        MenuItem(
             'Quotation Report',
             reverse('reports:quotation_report'),
             icon_name='doc-full-inverse',

@@ -1,0 +1,101 @@
+{% extends "reports/base_report.html" %}
+
+{% block report_title %}AMC Report{% endblock %}
+
+{% block export_links %}
+<!-- No export yet for AMC -->
+{% endblock %}
+
+{% block filters %}
+<div class="filter-grid">
+    <div class="filter-field">
+        <label>Period</label>
+        <select name="period">
+            <option value="ALL TIME" {% if selected_period == 'ALL TIME' %}selected{% endif %}>ALL TIME</option>
+            <option value="CURRENT MONTH" {% if selected_period == 'CURRENT MONTH' %}selected{% endif %}>CURRENT MONTH</option>
+            <option value="LAST 90 DAYS" {% if selected_period == 'LAST 90 DAYS' %}selected{% endif %}>LAST 90 DAYS</option>
+        </select>
+    </div>
+    <div class="filter-field">
+        <label>Customer</label>
+        <select name="customer">
+            <option value="ALL" {% if selected_customer == 'ALL' %}selected{% endif %}>ALL</option>
+            {% for c in customers %}
+            <option value="{{ c }}" {% if selected_customer == c %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="filter-field">
+        <label>Status</label>
+        <select name="status">
+            <option value="ALL" {% if selected_status == 'ALL' %}selected{% endif %}>ALL</option>
+            <option value="active" {% if selected_status == 'active' %}selected{% endif %}>Active</option>
+            <option value="expired" {% if selected_status == 'expired' %}selected{% endif %}>Expired</option>
+            <option value="cancelled" {% if selected_status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+            <option value="on_hold" {% if selected_status == 'on_hold' %}selected{% endif %}>On Hold</option>
+        </select>
+    </div>
+    <div class="filter-field">
+        <label>AMC Type</label>
+        <select name="amc_type">
+            <option value="ALL" {% if selected_amc_type == 'ALL' %}selected{% endif %}>ALL</option>
+            {% for t in amc_types %}
+            <option value="{{ t }}" {% if selected_amc_type == t %}selected{% endif %}>{{ t }}</option>
+            {% endfor %}
+        </select>
+    </div>
+ </div>
+{% endblock %}
+
+{% block table_content %}
+<table>
+    <thead>
+        <tr>
+            <th>AMC NO</th>
+            <th>CUSTOMER</th>
+            <th>TYPE</th>
+            <th>START</th>
+            <th>END</th>
+            <th>TOTAL</th>
+            <th>DUE</th>
+            <th>STATUS</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for a in amcs %}
+        <tr>
+            <td>{{ a.reference_id }}</td>
+            <td>{{ a.customer.site_name }}</td>
+            <td>{{ a.amc_type.name|default:'-' }}</td>
+            <td>{{ a.start_date }}</td>
+            <td>{{ a.end_date|default:'-' }}</td>
+            <td>{{ a.total }}</td>
+            <td>{{ a.amount_due }}</td>
+            <td>
+                {% if a.status == 'active' %}
+                  <span class="badge badge-green">Active</span>
+                {% elif a.status == 'expired' %}
+                  <span class="badge badge-red">Expired</span>
+                {% elif a.status == 'cancelled' %}
+                  <span class="badge badge-gray">Cancelled</span>
+                {% elif a.status == 'on_hold' %}
+                  <span class="badge badge-yellow">On Hold</span>
+                {% else %}
+                  <span class="badge badge-blue">{{ a.status }}</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="8" class="no-data">No AMCs for selected filters</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
+
+{% block pagination %}
+Showing 0 to {{ amcs|length }} of {{ amcs|length }} entries
+{% endblock %}
+
+

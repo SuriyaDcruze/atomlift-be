@@ -1,7 +1,8 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse
-from django.db.models import Q, Sum
+from django.db.models import Q, Sum, Count
+import json
 from datetime import datetime, timedelta
 import csv
 import io
@@ -16,6 +17,7 @@ from customer.models import Customer
 @login_required
 def complaints_report(request):
     """Complaints Report View"""
+    view_mode = request.GET.get('view')
     # Get filter parameters
     period = request.GET.get('period', 'ALL TIME')
     customer_filter = request.GET.get('customer', 'ALL')
@@ -42,6 +44,24 @@ def complaints_report(request):
     # Get customer list for filter dropdown
     customers = Customer.objects.all().values_list('site_name', flat=True).distinct()
     
+    if view_mode == 'graph':
+        by_status = complaints.values('priority').annotate(count=Count('id')).order_by()
+        labels = [row['priority'] or 'Unknown' for row in by_status]
+        data = [row['count'] for row in by_status]
+        context = {
+            'graph_title': 'Complaints by Status',
+            'labels': labels,
+            'datasets': [
+                {
+                    'label': 'Count',
+                    'data': data,
+                    'backgroundColor': ['#60a5fa', '#34d399', '#fbbf24', '#a78bfa', '#f87171'][:len(data)],
+                }
+            ],
+            'chart_type': 'bar',
+        }
+        return render(request, 'reports/graph_report.html', context)
+
     context = {
         'complaints': complaints,
         'customers': customers,
@@ -50,13 +70,13 @@ def complaints_report(request):
         'selected_by': by_filter,
         'selected_status': status_filter,
     }
-    
     return render(request, 'reports/complaints_report.html', context)
 
 
 @login_required
 def invoice_report(request):
     """Invoice Report View"""
+    view_mode = request.GET.get('view')
     # Get filter parameters
     period = request.GET.get('period', 'ALL TIME')
     customer_filter = request.GET.get('customer', 'ALL')
@@ -82,6 +102,24 @@ def invoice_report(request):
     # Get customer list for filter dropdown
     customers = Customer.objects.all().values_list('site_name', flat=True).distinct()
     
+    if view_mode == 'graph':
+        by_status = invoices.values('status').annotate(count=Count('id')).order_by()
+        labels = [row['status'] or 'Unknown' for row in by_status]
+        data = [row['count'] for row in by_status]
+        context = {
+            'graph_title': 'Invoices by Status',
+            'labels': labels,
+            'datasets': [
+                {
+                    'label': 'Count',
+                    'data': data,
+                    'backgroundColor': ['#60a5fa', '#34d399', '#fbbf24', '#a78bfa', '#f87171'][:len(data)],
+                }
+            ],
+            'chart_type': 'doughnut',
+        }
+        return render(request, 'reports/graph_report.html', context)
+
     context = {
         'invoices': invoices,
         'customers': customers,
@@ -90,13 +128,13 @@ def invoice_report(request):
         'selected_by': by_filter,
         'selected_status': status_filter,
     }
-    
     return render(request, 'reports/invoice_report.html', context)
 
 
 @login_required
 def payment_report(request):
     """Payment Report View"""
+    view_mode = request.GET.get('view')
     # Get filter parameters
     customer_filter = request.GET.get('customer', '')
     status_filter = request.GET.get('status', 'ALL')
@@ -122,6 +160,32 @@ def payment_report(request):
     # Get customer list for filter dropdown
     customers = Customer.objects.all().values_list('site_name', flat=True).distinct()
     
+    if view_mode == 'graph':
+        # Aggregate by month and sum amount
+        qs = payments
+        # default to last 12 months if no range
+        if not (start_date and end_date):
+            twelve_months_ago = datetime.now() - timedelta(days=365)
+            qs = qs.filter(date__gte=twelve_months_ago)
+        totals = qs.values('date__year', 'date__month').annotate(total=Sum('amount')).order_by('date__year', 'date__month')
+        labels = [f"{row['date__year']}-{str(row['date__month']).zfill(2)}" for row in totals]
+        data = [float(row['total'] or 0) for row in totals]
+        context = {
+            'graph_title': 'Payments by Month (Total Amount)',
+            'labels': labels,
+            'datasets': [
+                {
+                    'label': 'Amount',
+                    'data': data,
+                    'borderColor': '#10b981',
+                    'backgroundColor': 'rgba(16,185,129,0.2)',
+                    'fill': True,
+                }
+            ],
+            'chart_type': 'line',
+        }
+        return render(request, 'reports/graph_report.html', context)
+
     context = {
         'payments': payments,
         'customers': customers,
@@ -133,13 +197,13 @@ def payment_report(request):
         'start_date': start_date,
         'end_date': end_date,
     }
-    
     return render(request, 'reports/payment_report.html', context)
 
 
 @login_required
 def quotation_report(request):
     """Quotation Report View"""
+    view_mode = request.GET.get('view')
     # Get filter parameters
     period = request.GET.get('period', 'ALL TIME')
     customer_filter = request.GET.get('customer', 'ALL')
@@ -170,6 +234,24 @@ def quotation_report(request):
     # Get customer list for filter dropdown
     customers = Customer.objects.all().values_list('site_name', flat=True).distinct()
     
+    if view_mode == 'graph':
+        by_status = quotations.values('status').annotate(count=Count('id')).order_by()
+        labels = [row['status'] or 'Unknown' for row in by_status]
+        data = [row['count'] for row in by_status]
+        context = {
+            'graph_title': 'Quotations by Status',
+            'labels': labels,
+            'datasets': [
+                {
+                    'label': 'Count',
+                    'data': data,
+                    'backgroundColor': ['#60a5fa', '#34d399', '#fbbf24', '#a78bfa', '#f87171'][:len(data)],
+                }
+            ],
+            'chart_type': 'pie',
+        }
+        return render(request, 'reports/graph_report.html', context)
+
     context = {
         'quotations': quotations,
         'customers': customers,
@@ -178,13 +260,13 @@ def quotation_report(request):
         'selected_by': by_filter,
         'selected_status': status_filter,
     }
-    
     return render(request, 'reports/quotation_report.html', context)
 
 
 @login_required
 def routine_service_report(request):
     """Routine Service Report View"""
+    view_mode = request.GET.get('view')
     # Get filter parameters
     customer_filter = request.GET.get('customer', '')
     by_filter = request.GET.get('by', 'DATE')
@@ -217,6 +299,24 @@ def routine_service_report(request):
     # Get customer list for filter dropdown
     customers = Customer.objects.all().values_list('site_name', flat=True).distinct()
     
+    if view_mode == 'graph':
+        by_type = amc_records.values('amctype__amc_type_name').annotate(count=Count('id')).order_by()
+        labels = [row['amctype__amc_type_name'] or 'Unknown' for row in by_type]
+        data = [row['count'] for row in by_type]
+        context = {
+            'graph_title': 'Routine Services by AMC Type',
+            'labels': labels,
+            'datasets': [
+                {
+                    'label': 'Count',
+                    'data': data,
+                    'backgroundColor': ['#60a5fa', '#34d399', '#fbbf24', '#a78bfa', '#f87171'][:len(data)],
+                }
+            ],
+            'chart_type': 'bar',
+        }
+        return render(request, 'reports/graph_report.html', context)
+
     context = {
         'amc_records': amc_records,
         'customers': customers,
@@ -229,8 +329,138 @@ def routine_service_report(request):
         'start_date': start_date,
         'end_date': end_date,
     }
-    
     return render(request, 'reports/routine_service_report.html', context)
+
+
+@login_required
+def amc_report(request):
+    """AMC Report View"""
+    view_mode = request.GET.get('view')
+
+    # Filters
+    period = request.GET.get('period', 'ALL TIME')
+    customer_filter = request.GET.get('customer', 'ALL')
+    status_filter = request.GET.get('status', 'ALL')
+    amc_type_filter = request.GET.get('amc_type', 'ALL')
+
+    # Base queryset
+    amcs = AMC.objects.all().select_related('customer', 'amc_type')
+
+    # Apply period filter
+    if period == 'CURRENT MONTH':
+        amcs = amcs.filter(
+            start_date__month=datetime.now().month,
+            start_date__year=datetime.now().year
+        )
+    elif period == 'LAST 90 DAYS':
+        amcs = amcs.filter(start_date__gte=datetime.now() - timedelta(days=90))
+
+    # Apply other filters
+    if customer_filter != 'ALL' and customer_filter:
+        amcs = amcs.filter(customer__site_name=customer_filter)
+
+    if status_filter != 'ALL' and status_filter:
+        amcs = amcs.filter(status=status_filter)
+
+    if amc_type_filter != 'ALL' and amc_type_filter:
+        amcs = amcs.filter(amc_type__name=amc_type_filter)
+
+    # Dropdown data
+    customers = Customer.objects.all().values_list('site_name', flat=True).distinct()
+    from amc.models import AMCType
+    amc_types = AMCType.objects.all().values_list('name', flat=True)
+
+    if view_mode == 'graph':
+        # Graph per customer: stacked bar of Contract Amount, Total Paid, Amount Due
+        per_customer_qs = amcs.values('customer__site_name').annotate(
+            total_amount=Sum('contract_amount'),
+            total_paid=Sum('total_amount_paid'),
+            total_due=Sum('amount_due'),
+        ).order_by('customer__site_name')
+
+        # Pagination across customers (10 per page)
+        page_size = 10
+        try:
+            page = int(request.GET.get('page', '1'))
+        except ValueError:
+            page = 1
+        if page < 1:
+            page = 1
+
+        per_customer = list(per_customer_qs)
+        total_count = len(per_customer)
+        total_pages = (total_count + page_size - 1) // page_size if total_count else 1
+        if page > total_pages:
+            page = total_pages
+        start_index = (page - 1) * page_size
+        end_index = start_index + page_size
+        current_rows = per_customer[start_index:end_index]
+
+        labels = [row['customer__site_name'] or 'Unknown' for row in current_rows]
+        dataset_amount = [float(row['total_amount'] or 0) for row in current_rows]
+        dataset_paid = [float(row['total_paid'] or 0) for row in current_rows]
+        dataset_due = [float(row['total_due'] or 0) for row in current_rows]
+
+        datasets = [
+            {
+                'label': 'Contract Amount',
+                'data': dataset_amount,
+                'backgroundColor': '#60a5fa'
+            },
+            {
+                'label': 'Total Paid',
+                'data': dataset_paid,
+                'backgroundColor': '#34d399'
+            },
+            {
+                'label': 'Amount Due',
+                'data': dataset_due,
+                'backgroundColor': '#f87171'
+            }
+        ]
+
+        # Build prev/next links preserving filters
+        def build_url(target_page: int) -> str:
+            query = request.GET.copy()
+            query['view'] = 'graph'
+            query['page'] = str(target_page)
+            return f"{request.path}?{query.urlencode()}"
+
+        has_prev = page > 1
+        has_next = page < total_pages
+        prev_url = build_url(page - 1) if has_prev else ''
+        next_url = build_url(page + 1) if has_next else ''
+
+        context = {
+            'graph_title': 'AMC Financials by Customer',
+            'labels_json': json.dumps(labels),
+            'datasets_json': json.dumps(datasets),
+            'chart_type': 'bar',
+            'stacked': True,
+            # pagination meta for template controls
+            'total_count': total_count,
+            'page': page,
+            'page_size': page_size,
+            'total_pages': total_pages,
+            'start_index_display': (start_index + 1) if total_count else 0,
+            'end_index_display': min(end_index, total_count),
+            'has_prev': has_prev,
+            'has_next': has_next,
+            'prev_url': prev_url,
+            'next_url': next_url,
+        }
+        return render(request, 'reports/graph_report.html', context)
+
+    context = {
+        'amcs': amcs,
+        'customers': customers,
+        'amc_types': amc_types,
+        'selected_period': period,
+        'selected_customer': customer_filter,
+        'selected_status': status_filter,
+        'selected_amc_type': amc_type_filter,
+    }
+    return render(request, 'reports/amc_report.html', context)
 
 
 @login_required

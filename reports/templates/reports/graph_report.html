@@ -1,0 +1,60 @@
+{% extends "reports/base_report.html" %}
+
+{% block report_title %}{{ graph_title }}{% endblock %}
+
+{% block filters %}
+<div style="display:flex; justify-content: space-between; align-items:center; width:100%">
+  <div></div>
+  <div>
+    <span style="font-size:0.875rem; color:#6b7280">Toggle back to table using the Graph View button.</span>
+  </div>
+  <div></div>
+  <input type="hidden" name="view" value="graph" />
+</div>
+{% endblock %}
+
+{% block table_content %}
+<div style="padding:1rem;">
+  <div class="chart-container" style="position:relative; width:100%; height:clamp(240px, 40vh, 520px);">
+    <canvas id="reportChart"></canvas>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    const ctx = document.getElementById('reportChart').getContext('2d');
+    const chart = new Chart(ctx, {
+      type: '{{ chart_type|default:"bar" }}',
+      data: {
+        labels: {{ labels_json|safe }},
+        datasets: {{ datasets_json|safe }}
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'top' },
+          title: { display: true, text: '{{ graph_title }}' }
+        },
+        scales: {
+          y: { beginAtZero: true, stacked: {{ stacked|yesno:"true,false" }} },
+          x: { stacked: {{ stacked|yesno:"true,false" }} }
+        }
+      }
+    });
+  </script>
+  {% if total_count is not None %}
+  <div style="margin-top:0.75rem; display:flex; justify-content:space-between; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+    <div style="font-size:0.875rem; color:#6b7280;">
+      Showing {{ start_index_display }}–{{ end_index_display }} of {{ total_count }} customers
+    </div>
+    <div style="display:flex; gap:0.5rem;">
+      <a href="{{ prev_url }}" class="btn-export" style="opacity:{% if has_prev %}1{% else %}0.5{% endif %}; pointer-events:{% if has_prev %}auto{% else %}none{% endif %};">Prev</a>
+      <a href="{{ next_url }}" class="btn-export" style="opacity:{% if has_next %}1{% else %}0.5{% endif %}; pointer-events:{% if has_next %}auto{% else %}none{% endif %};">Next</a>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block pagination %}{% endblock %}
+
+
