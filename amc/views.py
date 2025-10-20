@@ -4,6 +4,8 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from .models import AMC, AMCType, PaymentTerms, Customer
+from django.utils import timezone
+from datetime import date, timedelta
 
 # Create your views here.
 
@@ -278,3 +280,48 @@ def get_next_amc_reference(request):
         return JsonResponse({"reference_id": next_ref})
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+
+# ================================
+# Read-only AMC expiry listings
+# ================================
+
+def _month_range(target_date: date):
+    first_day = target_date.replace(day=1)
+    if first_day.month == 12:
+        next_month_first = first_day.replace(year=first_day.year + 1, month=1, day=1)
+    else:
+        next_month_first = first_day.replace(month=first_day.month + 1, day=1)
+    last_day = next_month_first - timedelta(days=1)
+    return first_day, last_day
+
+
+def amc_expiring_this_month(request):
+    today = timezone.now().date()
+    start, end = _month_range(today)
+    amcs = AMC.objects.filter(end_date__gte=start, end_date__lte=end).order_by("end_date")
+    context = {"title": "This Month Expiring AMCs", "amcs": amcs}
+    return render(request, "amc/amc_expiring_this_month.html", context)
+
+
+def amc_expiring_last_month(request):
+    today = timezone.now().date()
+    first_of_this_month = today.replace(day=1)
+    last_month_last_day = first_of_this_month - timedelta(days=1)
+    start, end = _month_range(last_month_last_day)
+    amcs = AMC.objects.filter(end_date__gte=start, end_date__lte=end).order_by("end_date")
+    context = {"title": "Last Month Expired AMCs", "amcs": amcs}
+    return render(request, "amc/amc_expiring_last_month.html", context)
+
+
+def amc_expiring_next_month(request):
+    today = timezone.now().date()
+    # first day of next month
+    if today.month == 12:
+        next_month_first = date(today.year + 1, 1, 1)
+    else:
+        next_month_first = date(today.year, today.month + 1, 1)
+    start, end = _month_range(next_month_first)
+    amcs = AMC.objects.filter(end_date__gte=start, end_date__lte=end).order_by("end_date")
+    context = {"title": "Next Month Expiring AMCs", "amcs": amcs}
+    return render(request, "amc/amc_expiring_next_month.html", context)

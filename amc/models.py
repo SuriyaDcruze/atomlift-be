@@ -237,8 +237,230 @@ class AMCViewSet(SnippetViewSet):
     )
 
 
+class AMCExpiringThisMonth(AMC):
+    class Meta:
+        proxy = True
+        verbose_name = "This Month Expiring AMC"
+        verbose_name_plural = "This Month Expiring AMCs"
+
+
+class AMCExpiringLastMonth(AMC):
+    class Meta:
+        proxy = True
+        verbose_name = "Last Month Expired AMC"
+        verbose_name_plural = "Last Month Expired AMCs"
+
+
+class AMCExpiringNextMonth(AMC):
+    class Meta:
+        proxy = True
+        verbose_name = "Next Month Expiring AMC"
+        verbose_name_plural = "Next Month Expiring AMCs"
+
+
+class AMCExpiringThisMonthViewSet(SnippetViewSet):
+    model = AMCExpiringThisMonth
+    icon = "date"
+    menu_label = "This Month Expiring"
+    inspect_view_enabled = True
+    create_view_enabled = False
+    edit_view_enabled = False
+    delete_view_enabled = False
+
+    list_display = (
+        "reference_id",
+        "customer",
+        "amcname",
+        "status",
+        "start_date",
+        "end_date",
+        "amount_due",
+    )
+
+    list_export = [
+        "id",
+        "reference_id",
+        "customer",
+        "amcname",
+        "latitude",
+        "equipment_no",
+        "invoice_frequency",
+        "amc_type",
+        "payment_terms",
+        "start_date",
+        "end_date",
+        "notes",
+        "is_generate_contract",
+        "no_of_services",
+        "price",
+        "no_of_lifts",
+        "gst_percentage",
+        "total",
+        "contract_amount",
+        "total_amount_paid",
+        "amount_due",
+        "amc_service_item",
+        "status",
+        "created",
+    ]
+    export_formats = ["csv", "xlsx"]
+
+    search_fields = (
+        "reference_id",
+        "amcname",
+        "customer__site_name",
+        "equipment_no",
+    )
+
+    def get_queryset(self, request):
+        today = timezone.now().date()
+        first_day = today.replace(day=1)
+        if first_day.month == 12:
+            next_month_first = first_day.replace(year=first_day.year + 1, month=1, day=1)
+        else:
+            next_month_first = first_day.replace(month=first_day.month + 1, day=1)
+        last_day = next_month_first - timedelta(days=1)
+        return AMC.objects.filter(end_date__gte=first_day, end_date__lte=last_day).order_by("end_date")
+
+
+class AMCExpiringLastMonthViewSet(SnippetViewSet):
+    model = AMCExpiringLastMonth
+    icon = "date"
+    menu_label = "Last Month Expired"
+    inspect_view_enabled = True
+    create_view_enabled = False
+    edit_view_enabled = False
+    delete_view_enabled = False
+
+    list_display = (
+        "reference_id",
+        "customer",
+        "amcname",
+        "status",
+        "start_date",
+        "end_date",
+        "amount_due",
+    )
+
+    list_export = [
+        "id",
+        "reference_id",
+        "customer",
+        "amcname",
+        "latitude",
+        "equipment_no",
+        "invoice_frequency",
+        "amc_type",
+        "payment_terms",
+        "start_date",
+        "end_date",
+        "notes",
+        "is_generate_contract",
+        "no_of_services",
+        "price",
+        "no_of_lifts",
+        "gst_percentage",
+        "total",
+        "contract_amount",
+        "total_amount_paid",
+        "amount_due",
+        "amc_service_item",
+        "status",
+        "created",
+    ]
+    export_formats = ["csv", "xlsx"]
+
+    search_fields = (
+        "reference_id",
+        "amcname",
+        "customer__site_name",
+        "equipment_no",
+    )
+
+    def get_queryset(self, request):
+        today = timezone.now().date()
+        first_of_this_month = today.replace(day=1)
+        last_month_last_day = first_of_this_month - timedelta(days=1)
+        last_month_first_day = last_month_last_day.replace(day=1)
+        return AMC.objects.filter(end_date__gte=last_month_first_day, end_date__lte=last_month_last_day).order_by("end_date")
+
+
+class AMCExpiringNextMonthViewSet(SnippetViewSet):
+    model = AMCExpiringNextMonth
+    icon = "date"
+    menu_label = "Next Month Expiring"
+    inspect_view_enabled = True
+    create_view_enabled = False
+    edit_view_enabled = False
+    delete_view_enabled = False
+
+    list_display = (
+        "reference_id",
+        "customer",
+        "amcname",
+        "status",
+        "start_date",
+        "end_date",
+        "amount_due",
+    )
+
+    list_export = [
+        "id",
+        "reference_id",
+        "customer",
+        "amcname",
+        "latitude",
+        "equipment_no",
+        "invoice_frequency",
+        "amc_type",
+        "payment_terms",
+        "start_date",
+        "end_date",
+        "notes",
+        "is_generate_contract",
+        "no_of_services",
+        "price",
+        "no_of_lifts",
+        "gst_percentage",
+        "total",
+        "contract_amount",
+        "total_amount_paid",
+        "amount_due",
+        "amc_service_item",
+        "status",
+        "created",
+    ]
+    export_formats = ["csv", "xlsx"]
+
+    search_fields = (
+        "reference_id",
+        "amcname",
+        "customer__site_name",
+        "equipment_no",
+    )
+
+    def get_queryset(self, request):
+        today = timezone.now().date()
+        if today.month == 12:
+            next_month_first = date(today.year + 1, 1, 1)
+        else:
+            next_month_first = date(today.year, today.month + 1, 1)
+        if next_month_first.month == 12:
+            month_after_next_first = next_month_first.replace(year=next_month_first.year + 1, month=1, day=1)
+        else:
+            month_after_next_first = next_month_first.replace(month=next_month_first.month + 1, day=1)
+        next_month_last = month_after_next_first - timedelta(days=1)
+        return AMC.objects.filter(end_date__gte=next_month_first, end_date__lte=next_month_last).order_by("end_date")
+
 class AMCManagementGroup(SnippetViewSetGroup):
-    items = (AMCViewSet, AMCTypeViewSet, PaymentTermsViewSet)
+    items = (
+        AMCViewSet,
+        AMCExpiringThisMonthViewSet,
+        AMCExpiringLastMonthViewSet,
+        AMCExpiringNextMonthViewSet,
+        AMCTypeViewSet,
+        PaymentTermsViewSet,
+    )
     menu_icon = "calendar"
     menu_label = "AMC "
     menu_name = "amc"

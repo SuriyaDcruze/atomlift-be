@@ -5,11 +5,12 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from wagtail import hooks
-from wagtail.admin.menu import MenuItem
+from wagtail.admin.menu import MenuItem, SubmenuMenuItem, Menu
 import json
 from .views import get_customer_json  # Add this import
+from . import views
 
-from .models import AMC, AMCType, PaymentTerms
+from .models import AMC, AMCType
 from customer.models import Customer
 from items.models import Item
 
@@ -31,6 +32,10 @@ def register_amc_form_url():
         path('api/amc/items/', get_items, name='api_get_items'),
         # New endpoint for individual customer details (for autofill)
         path('customer/customer/<int:id>/', get_customer_json, name='get_customer_json'),
+        # Read-only AMC expiry listing routes in admin
+        path('amc/expiring/this-month/', views.amc_expiring_this_month, name='admin_amc_expiring_this_month'),
+        path('amc/expiring/last-month/', views.amc_expiring_last_month, name='admin_amc_expiring_last_month'),
+        path('amc/expiring/next-month/', views.amc_expiring_next_month, name='admin_amc_expiring_next_month'),
     ]
 
 # ... (rest of the file unchanged) ...
@@ -44,6 +49,9 @@ def register_amc_form_url():
 #         icon_name='calendar',
 #         order=1001
 #     )
+
+
+# Removed separate submenu; expiry lists are inside AMC group now.
 
 
 def add_amc_custom(request):
@@ -154,7 +162,7 @@ def add_amc_custom(request):
         'selected_customer': selected_customer,
         'customer_id_param': customer_id,
     }
-    return render(request, 'amc/edit_amc_custom.html', context)
+    return render(request, 'amc/add_amc_custom.html', context)
 
 
 def edit_amc_custom(request, pk):
@@ -317,5 +325,5 @@ def get_customers(request):
 @require_http_methods(["GET"])
 def get_items(request):
     """API for getting all items"""
-    items = Item.objects.all().values('id', 'name')
+    items = Item.objects.all().values('id', 'name', 'item_number')
     return JsonResponse(list(items), safe=False)

@@ -576,6 +576,7 @@ body {
                 </div>
               </div>
 
+              <!-- Payment Terms temporarily disabled
               <div class="form-group">
                 <label class="form-label">Payment Terms</label>
                 <div class="form-select-addon">
@@ -594,6 +595,7 @@ body {
                   </button>
                 </div>
               </div>
+              -->
 
               <!-- Location Details -->
               <h3 class="form-section-title">Location Details</h3>
@@ -675,7 +677,7 @@ body {
                     <option value="">Select Item</option>
                     {% for item in items %}
                     <option value="{{ item.id }}" {% if is_edit and amc.amc_service_item.id == item.id %}selected{% endif %}>
-                      {{ item.name }}
+                      {{ item.name }}{% if item.item_number %} ({{ item.item_number }}){% endif %}
                     </option>
                     {% endfor %}
                   </select>
@@ -908,6 +910,8 @@ function toggleContractFields() {
   if (isChecked) {
     contractFields.style.display = 'block';
     amcServiceItem.setAttribute('required', 'required');
+    // Load items when contract fields are shown
+    loadItemsDropdown();
   } else {
     contractFields.style.display = 'none';
     amcServiceItem.removeAttribute('required');
@@ -1091,6 +1095,8 @@ document.addEventListener('DOMContentLoaded', function() {
   // Load customers and AMC types dynamically on page load
   loadCustomersDropdown();
   loadAMCTypesDropdown();
+  // Also attempt to load items initially
+  loadItemsDropdown();
 
   // Check for customer ID from URL parameter or session storage
   var customerId = '{{ customer_id }}' || sessionStorage.getItem('recentCustomerId');
@@ -1138,6 +1144,39 @@ function prefillCustomer(customerId) {
   
   // Start checking after a short delay to allow initial load
   setTimeout(checkCustomers, 500);
+}
+function loadItemsDropdown() {
+  {% if is_edit and amc.amc_service_item %}
+  var currentItemId = {{ amc.amc_service_item.id }};
+  {% else %}
+  var currentItemId = null;
+  {% endif %}
+
+  fetch('/admin/api/amc/items/')
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+      var itemSelect = document.getElementById('amc_service_item');
+      if (!itemSelect) return;
+      var previous = itemSelect.value;
+      itemSelect.innerHTML = '<option value="">Select Item</option>';
+
+      data.forEach(function(item) {
+        var option = document.createElement('option');
+        option.value = item.id;
+        option.textContent = item.name + (item.item_number ? ' (' + item.item_number + ')' : '');
+        if ((currentItemId && item.id === currentItemId) || (previous && previous == item.id)) {
+          option.selected = true;
+        }
+        itemSelect.appendChild(option);
+      });
+    })
+    .catch(function(error) {
+      console.error('Error loading items:', error);
+      var itemSelect = document.getElementById('amc_service_item');
+      if (itemSelect) {
+        itemSelect.innerHTML = '<option value="">Error loading items</option>';
+      }
+    });
 }
 
 function showNavigationSection(customerId) {

@@ -16,6 +16,11 @@ urlpatterns = [
     path("api/amc/amc-types/<int:amc_type_id>/", views.amc_types_detail, name="amc_types_detail"),
     path("api/amc/payment-terms/<int:payment_term_id>/", views.payment_terms_detail, name="payment_terms_detail"),
     path("api/amc/next-reference/", views.get_next_amc_reference, name="get_next_amc_reference"),
+
+    # Read-only AMC expiry listings
+    path("amc/expiring/this-month/", views.amc_expiring_this_month, name="amc_expiring_this_month"),
+    path("amc/expiring/last-month/", views.amc_expiring_last_month, name="amc_expiring_last_month"),
+    path("amc/expiring/next-month/", views.amc_expiring_next_month, name="amc_expiring_next_month"),
 ]
 
 # Serve media files in development
