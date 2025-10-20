@@ -453,6 +453,33 @@ body {
         {% if customers|length >= 0 and amc_types|length >= 0 and payment_terms|length >= 0 and items|length >= 0 %}
         <form id="amcForm" method="post" enctype="multipart/form-data">
           {% csrf_token %}
+          
+          <!-- Navigation Link Section - Show when customer_id is provided or from session storage -->
+          <div id="navigationSection" class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6" style="display: none;">
+            <div class="flex items-center">
+              <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                </svg>
+              </div>
+              <div class="ml-3">
+                <p class="text-sm text-gray-700">
+                  <strong>Add lifts </strong>
+                  <a 
+                    id="customerViewLink"
+                    href="#" 
+                    class="text-blue-600 hover:text-blue-800 underline cursor-pointer font-semibold"
+                  >
+                    click here
+                  </a>
+                </p>
+                <p class="text-xs text-gray-500 mt-1">
+                  Click the link above to view customer details and manage lifts
+                </p>
+              </div>
+            </div>
+          </div>
+          
           <div class="form-grid">
             <!-- Left Column -->
             <div class="form-column">
@@ -1065,6 +1092,13 @@ document.addEventListener('DOMContentLoaded', function() {
   loadCustomersDropdown();
   loadAMCTypesDropdown();
 
+  // Check for customer ID from URL parameter or session storage
+  var customerId = '{{ customer_id }}' || sessionStorage.getItem('recentCustomerId');
+  if (customerId) {
+    prefillCustomer(customerId);
+    showNavigationSection(customerId);
+  }
+
   if (!isEditAMC) {
     fetch('/amc/api/amc/next-reference/')
       .then(function(r){return r.json();})
@@ -1078,6 +1112,47 @@ document.addEventListener('DOMContentLoaded', function() {
 
   document.getElementById('amcForm').addEventListener('submit', handleAMCFormSubmit);
 });
+
+function prefillCustomer(customerId) {
+  // Wait for customers to be loaded, then pre-fill the customer field
+  var checkCustomers = function() {
+    var customerSelect = document.getElementById('customer');
+    if (customerSelect && customerSelect.options.length > 1) {
+      // Find the customer by ID and select it
+      for (var i = 0; i < customerSelect.options.length; i++) {
+        var option = customerSelect.options[i];
+        if (option.value === customerId) {
+          customerSelect.value = customerId;
+          // Trigger the change event to load customer details
+          if (typeof fetchCustomerDetails === 'function') {
+            fetchCustomerDetails();
+          }
+          break;
+        }
+      }
+    } else {
+      // If customers not loaded yet, try again in 100ms
+      setTimeout(checkCustomers, 100);
+    }
+  };
+  
+  // Start checking after a short delay to allow initial load
+  setTimeout(checkCustomers, 500);
+}
+
+function showNavigationSection(customerId) {
+  // Show the navigation section
+  var navigationSection = document.getElementById('navigationSection');
+  var customerViewLink = document.getElementById('customerViewLink');
+  
+  if (navigationSection && customerViewLink) {
+    navigationSection.style.display = 'block';
+    customerViewLink.href = '/admin/customer/view-custom/' + customerId + '/';
+    
+    // Clear the session storage after showing the link
+    sessionStorage.removeItem('recentCustomerId');
+  }
+}
 
 function loadCustomersDropdown() {
   {% if is_edit and amc.customer %}

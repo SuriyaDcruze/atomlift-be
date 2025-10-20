@@ -9,11 +9,15 @@ from .models import AMC, AMCType, PaymentTerms, Customer
 
 def amc_form(request, pk=None):
     """View for AMC form page"""
+    # Get customer ID from query parameters if provided
+    customer_id = request.GET.get('customerId')
+    
     context = {
         'is_edit': pk is not None,
         'amc_id': pk,
+        'customer_id': customer_id,
     }
-    return render(request, 'amc/amc_form.html', context)
+    return render(request, 'amc/add_amc_custom.html', context)
 
 def customer_form(request, pk=None):
     """View for Customer form page"""
