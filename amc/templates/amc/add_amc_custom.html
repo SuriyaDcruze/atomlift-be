@@ -937,9 +937,9 @@ function closeModal() {
 function loadExistingOptions(type) {
   let apiUrl = '';
   if (type === 'amc-type') {
-    apiUrl = '/amc/amc/api/amc/amc-types/';
+    apiUrl = '/admin/api/amc/amc-types/';
   } else if (type === 'payment-terms') {
-    apiUrl = '/amc/api/amc/payment-terms/';
+    apiUrl = '/admin/api/amc/payment-terms/';
   }
 
   fetch(apiUrl)
@@ -966,10 +966,10 @@ function saveOption() {
   let apiUrl = '';
   const data = {};
   if (currentModalType === 'amc-type') {
-    apiUrl = '/amc/api/amc/amc-types/';
+    apiUrl = '/admin/api/amc/amc-types/';
     data.name = value;
   } else if (currentModalType === 'payment-terms') {
-    apiUrl = '/amc/api/amc/payment-terms/';  // Added /amc/ for consistency
+    apiUrl = '/admin/api/amc/payment-terms/';
     data.name = value;
   }
 
@@ -1002,9 +1002,9 @@ function editOption(type, id, currentValue) {
   if (newValue && newValue.trim() && newValue !== currentValue) {
     let apiUrl = '';
     if (type === 'amc-type') {
-      apiUrl = `/amc/api/amc/amc-types/${id}/`;
+      apiUrl = `/admin/api/amc/amc-types/${id}/`;
     } else if (type === 'payment-terms') {
-      apiUrl = `/amc/api/amc/payment-terms/${id}/`;  // Added /amc/ for consistency
+      apiUrl = `/admin/api/amc/payment-terms/${id}/`;
     }
 
     fetch(apiUrl, {
@@ -1037,9 +1037,9 @@ function deleteOption(type, id) {
 
   let apiUrl = '';
   if (type === 'amc-type') {
-    apiUrl = `/amc/api/amc/amc-types/${id}/`;
+    apiUrl = `/admin/api/amc/amc-types/${id}/`;
   } else if (type === 'payment-terms') {
-    apiUrl = `/amc/api/amc/payment-terms/${id}/`;  // Added /amc/ for consistency
+    apiUrl = `/admin/api/amc/payment-terms/${id}/`;
   }
 
   fetch(apiUrl, {

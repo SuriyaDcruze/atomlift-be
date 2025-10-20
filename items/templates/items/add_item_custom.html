@@ -854,7 +854,7 @@ function openModal(type, editId = null, editValue = '') {
   modalTitle.textContent = editId ? `Edit ${type.charAt(0).toUpperCase() + type.slice(1)}` : `Add New ${type.charAt(0).toUpperCase() + type.slice(1)}`;
   modalInput.value = editValue;
   saveBtn.textContent = editId ? `Update ${type.charAt(0).toUpperCase() + type.slice(1)}` : `Add ${type.charAt(0).toUpperCase() + type.slice(1)}`;
-  saveBtn.disabled = !editValue.trim();
+  saveBtn.disabled = editId ? !editValue.trim() : false;
   modal.classList.add('active');
   loadExistingOptions(type);
 }
@@ -878,16 +878,8 @@ async function loadExistingOptions(type) {
       <tr>
         <td>${item.value}</td>
         <td class="text-right">
-          <button type="button" class="btn btn-edit" onclick="openModal('${type}', ${item.id}, '${item.value.replace(/'/g, "\\'")}')">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
-          </button>
-          <button type="button" class="btn btn-delete" onclick="deleteOption('${type}', ${item.id})">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-4h4M7 7h10m-9 3v8m4-8v8m4-8v8" />
-            </svg>
-          </button>
+          <button type="button" class="btn btn-secondary" style="margin-right: 0.25rem; padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="openModal('${type}', ${item.id}, '${item.value.replace(/'/g, "\\'")}')">Edit</button>
+          <button type="button" class="btn-danger" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background: #EF4444; color: white; border: none; border-radius: 0.25rem; cursor: pointer;" onclick="deleteOption('${type}', ${item.id})">Delete</button>
         </td>
       </tr>
     `).join('') : `<tr><td colspan="2" class="text-center text-gray-500">No ${type}s found</td></tr>`;

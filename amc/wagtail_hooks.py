@@ -22,11 +22,9 @@ def register_amc_form_url():
     return [
         path('amc/add-custom/', add_amc_custom, name='add_amc_custom'),
         path('amc/edit-custom/<int:pk>/', edit_amc_custom, name='edit_amc_custom'),
-        # API endpoints for dropdown management
+        # API endpoints for dropdown management (payment terms removed for now)
         path('api/amc/amc-types/', manage_amc_types, name='api_manage_amc_types'),
         path('api/amc/amc-types/<int:pk>/', manage_amc_types_detail, name='api_manage_amc_types_detail'),
-        path('api/amc/payment-terms/', manage_payment_terms, name='api_manage_payment_terms'),
-        path('api/amc/payment-terms/<int:pk>/', manage_payment_terms_detail, name='api_manage_payment_terms_detail'),
         # API for fetching customers
         path('api/amc/customers/', get_customers, name='api_get_customers'),
         path('api/amc/items/', get_items, name='api_get_items'),
