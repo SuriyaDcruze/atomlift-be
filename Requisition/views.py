@@ -20,15 +20,33 @@ def add_requisition_custom(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
+            
+            # Get foreign key objects
+            item = None
+            if data.get('item'):
+                item = get_object_or_404(Item, id=data['item'])
+            
+            site = None
+            if data.get('site'):
+                site = get_object_or_404(Customer, id=data['site'])
+            
+            amc = None
+            if data.get('amc_id'):
+                amc = get_object_or_404(AMC, id=data['amc_id'])
+            
+            employee = None
+            if data.get('employee'):
+                employee = get_object_or_404(CustomUser, id=data['employee'])
+            
             # Create new requisition
             requisition = Requisition.objects.create(
                 date=data.get('date'),
-                item_id=data.get('item') if data.get('item') else None,
+                item=item,
                 qty=data.get('qty', 0),
-                site_id=data.get('site') if data.get('site') else None,
-                amc_id=data.get('amc_id') if data.get('amc_id') else None,
+                site=site,
+                amc_id=amc,
                 service=data.get('service', ''),
-                employee_id=data.get('employee') if data.get('employee') else None,
+                employee=employee,
                 status=data.get('status', 'OPEN'),
                 approve_for=data.get('approve_for', 'PENDING')
             )
@@ -60,14 +78,32 @@ def edit_requisition_custom(request, reference_id):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
+            
+            # Get foreign key objects
+            item = None
+            if data.get('item'):
+                item = get_object_or_404(Item, id=data['item'])
+            
+            site = None
+            if data.get('site'):
+                site = get_object_or_404(Customer, id=data['site'])
+            
+            amc = None
+            if data.get('amc_id'):
+                amc = get_object_or_404(AMC, id=data['amc_id'])
+            
+            employee = None
+            if data.get('employee'):
+                employee = get_object_or_404(CustomUser, id=data['employee'])
+            
             # Update requisition
             requisition.date = data.get('date')
-            requisition.item_id = data.get('item') if data.get('item') else None
+            requisition.item = item
             requisition.qty = data.get('qty', 0)
-            requisition.site_id = data.get('site') if data.get('site') else None
-            requisition.amc_id = data.get('amc_id') if data.get('amc_id') else None
+            requisition.site = site
+            requisition.amc_id = amc
             requisition.service = data.get('service', '')
-            requisition.employee_id = data.get('employee') if data.get('employee') else None
+            requisition.employee = employee
             requisition.status = data.get('status', 'OPEN')
             requisition.approve_for = data.get('approve_for', 'PENDING')
             requisition.save()

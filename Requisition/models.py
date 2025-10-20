@@ -136,8 +136,12 @@ class RequisitionViewSet(SnippetViewSet):
         return redirect(self.get_add_url())
 
     def edit_view(self, request, pk):
-        instance = self.model.objects.get(pk=pk)
-        return redirect(self.get_edit_url(instance))
+        try:
+            instance = self.model.objects.get(pk=pk)
+            return redirect(self.get_edit_url(instance))
+        except self.model.DoesNotExist:
+            from django.shortcuts import render
+            return render(request, '404.html', status=404)
 
 # ---------- GROUP ----------
 class InventoryGroup(SnippetViewSetGroup):

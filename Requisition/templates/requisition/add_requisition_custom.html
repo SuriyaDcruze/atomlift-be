@@ -258,6 +258,7 @@ body {
         <div id="messageContainer"></div>
         
         <form id="requisitionForm" class="w-form">
+          {% csrf_token %}
           <!-- Requisition Details Section -->
           <div class="w-section">
             <h2 class="w-section-title">Requisition Details</h2>
@@ -407,7 +408,7 @@ body {
 
 <script>
 const isEditMode = {{ is_edit|yesno:"true,false" }};
-const submitUrl = "{% if is_edit %}{% url 'edit_requisition_custom' requisition.reference_id %}{% else %}{% url 'add_requisition_custom' %}{% endif %}";
+const submitUrl = "{% if is_edit and requisition %}{% url 'edit_requisition_custom' requisition.reference_id %}{% else %}{% url 'add_requisition_custom' %}{% endif %}";
 const adminHomeUrl = "{% url 'wagtailadmin_home' %}";
 
 function getCsrfToken() {
