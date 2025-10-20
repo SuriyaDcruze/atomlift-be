@@ -201,3 +201,9 @@ AUTHENTICATION_BACKENDS = [
     "authentication.backends.EmailBackend",
     "django.contrib.auth.backends.ModelBackend",  # optional fallback
 ]
+
+# Wagtail user forms (add phone_number to add/edit forms)
+WAGTAIL_USER_CREATION_FORM = "authentication.forms.CustomUserCreationForm"
+WAGTAIL_USER_EDIT_FORM = "authentication.forms.CustomUserEditForm"
+# Ensure extra model fields are shown on default Wagtail user forms
+WAGTAIL_USER_CUSTOM_FIELDS = ["phone_number"]

@@ -22,8 +22,8 @@ from recurringInvoice.models import RecurringInvoiceGroup
 def hide_explorer_menu_item_from_frank(request, menu_items):
     new_menu_items = []
     for item in menu_items:
-        # Hide default Wagtail items
-        if item.name in ['help','explorer','documents','images']:
+        # Hide default Wagtail items (including Wagtail's built-in reports)
+        if item.name in ['help','explorer','documents','images','reports']:
             continue
         # Hide individual sales groups that are now part of Sales group
         if item.name in ['customer', 'quotation', 'payment', 'invoicing', 'recurring_billing']:

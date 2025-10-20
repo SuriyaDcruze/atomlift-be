@@ -48,6 +48,7 @@ def register_reports_menu():
     return SubmenuMenuItem(
         'Reports',
         submenu,
+        name='custom_reports',
         icon_name='folder-open-inverse',
         order=10000
     )
