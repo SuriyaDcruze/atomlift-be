@@ -10,6 +10,11 @@ from complaints.models import Complaint
 from amc.models import AMC
 from invoice.models import Invoice
 from PaymentReceived.models import PaymentReceived
+from customer.models import CustomerGroup
+from Quotation.models import QuotationGroup
+from PaymentReceived.models import PaymentGroup
+from invoice.models import InvoiceGroup
+from recurringInvoice.models import RecurringInvoiceGroup
 
 
 
@@ -17,8 +22,13 @@ from PaymentReceived.models import PaymentReceived
 def hide_explorer_menu_item_from_frank(request, menu_items):
     new_menu_items = []
     for item in menu_items:
-        if not item.name in ['help','explorer','documents','images']:
-            new_menu_items.append(item)
+        # Hide default Wagtail items
+        if item.name in ['help','explorer','documents','images']:
+            continue
+        # Hide individual sales groups that are now part of Sales group
+        if item.name in ['customer', 'quotation', 'payment', 'invoicing', 'recurring_billing']:
+            continue
+        new_menu_items.append(item)
     menu_items[:] = new_menu_items
 
 
@@ -41,3 +51,25 @@ def register_main_admin_menu_item():
         icon_name='home',
         order=1
     )
+
+
+# ======================================================
+#  SALES GROUP
+# ======================================================
+
+class SalesGroup(SnippetViewSetGroup):
+    items = (
+        CustomerGroup,
+        QuotationGroup,
+        PaymentGroup,
+        InvoiceGroup,
+        RecurringInvoiceGroup,
+    )
+    menu_icon = "shopping-cart"
+    menu_label = "Sales"
+    menu_name = "sales"
+    menu_order = 2
+
+
+# Register the Sales group
+register_snippet(SalesGroup)

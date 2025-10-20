@@ -1,0 +1,505 @@
+{% extends "wagtailadmin/base.html" %}
+{% load wagtailadmin_tags %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+/* Modern Tailwind-like styles for Wagtail admin */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+.w-content-wrapper {
+  background: #f5f5f5;
+  min-height: calc(100vh - 4rem);
+  padding: 2rem;
+}
+
+.w-modal-overlay {
+  position: static;
+  inset: auto;
+  background-color: transparent;
+  display: block;
+  padding: 0;
+}
+
+.w-modal-content {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.15);
+  width: 100%;
+  max-width: 72rem;
+  margin: 2rem auto;
+  max-height: none;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+}
+
+.w-modal-header {
+  background: linear-gradient(to right, #2D3A6B, #243158);
+  padding: 1.5rem;
+  color: white;
+}
+
+.w-modal-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.w-modal-body {
+  padding: 2rem;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.w-form-group {
+  margin-bottom: 1.5rem;
+}
+
+.w-form-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #374151;
+  font-size: 0.875rem;
+}
+
+.w-form-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.w-form-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.w-form-select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  background-color: white;
+  cursor: pointer;
+}
+
+.w-form-textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  resize: vertical;
+  min-height: 100px;
+}
+
+.w-radio-group {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.w-radio-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.w-radio-input {
+  margin: 0;
+}
+
+.w-radio-label {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+.w-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.w-form-row-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1rem;
+}
+
+.w-error-message {
+  color: #dc2626;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  display: none;
+}
+
+.w-button-group {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.w-btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  border: none;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.w-btn-primary {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.w-btn-primary:hover:not(:disabled) {
+  background-color: #2563eb;
+}
+
+.w-btn-secondary {
+  background-color: #6b7280;
+  color: white;
+}
+
+.w-btn-secondary:hover:not(:disabled) {
+  background-color: #4b5563;
+}
+
+.w-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.w-message {
+  padding: 1rem;
+  border-radius: 0.375rem;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+}
+
+.w-message-success {
+  background-color: #d1fae5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.w-message-error {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+.w-section {
+  margin-bottom: 2rem;
+}
+
+.w-section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.w-required {
+  color: #dc2626;
+}
+
+@media (max-width: 768px) {
+  .w-form-row,
+  .w-form-row-3 {
+    grid-template-columns: 1fr;
+  }
+  
+  .w-button-group {
+    flex-direction: column;
+  }
+  
+  .w-modal-body {
+    padding: 1rem;
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="w-content-wrapper">
+  <div class="w-modal-overlay">
+    <div class="w-modal-content">
+      <div class="w-modal-header">
+        <h1 class="w-modal-title">
+          {% if is_edit %}Edit Requisition{% else %}Add New Requisition{% endif %}
+        </h1>
+      </div>
+      
+      <div class="w-modal-body">
+        <div id="messageContainer"></div>
+        
+        <form id="requisitionForm" class="w-form">
+          <!-- Requisition Details Section -->
+          <div class="w-section">
+            <h2 class="w-section-title">Requisition Details</h2>
+            
+            <div class="w-form-row">
+              <div class="w-form-group">
+                <label for="reference_id" class="w-form-label">Reference ID</label>
+                <input type="text" id="reference_id" name="reference_id" class="w-form-input" 
+                       value="{% if is_edit %}{{ requisition.reference_id }}{% endif %}" readonly>
+              </div>
+              
+              <div class="w-form-group">
+                <label for="date" class="w-form-label">Date <span class="w-required">*</span></label>
+                <input type="date" id="date" name="date" class="w-form-input" required
+                       value="{% if is_edit %}{{ requisition.date|date:'Y-m-d' }}{% endif %}">
+                <div id="dateError" class="w-error-message"></div>
+              </div>
+            </div>
+            
+            <div class="w-form-row">
+              <div class="w-form-group">
+                <label for="item" class="w-form-label">Item</label>
+                <select id="item" name="item" class="w-form-select">
+                  <option value="">Select an item</option>
+                  {% for item in items %}
+                    <option value="{{ item.id }}" 
+                            {% if is_edit and requisition.item and requisition.item.id == item.id %}selected{% endif %}>
+                      {{ item.item_number }} - {{ item.name }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
+              
+              <div class="w-form-group">
+                <label for="qty" class="w-form-label">Quantity <span class="w-required">*</span></label>
+                <input type="number" id="qty" name="qty" class="w-form-input" min="1" required
+                       value="{% if is_edit %}{{ requisition.qty }}{% endif %}">
+                <div id="qtyError" class="w-error-message"></div>
+              </div>
+            </div>
+            
+            <div class="w-form-row">
+              <div class="w-form-group">
+                <label for="site" class="w-form-label">Site/Customer</label>
+                <select id="site" name="site" class="w-form-select">
+                  <option value="">Select a site</option>
+                  {% for customer in customers %}
+                    <option value="{{ customer.id }}" 
+                            {% if is_edit and requisition.site and requisition.site.id == customer.id %}selected{% endif %}>
+                      {{ customer.site_name }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
+              
+              <div class="w-form-group">
+                <label for="amc_id" class="w-form-label">AMC</label>
+                <select id="amc_id" name="amc_id" class="w-form-select">
+                  <option value="">Select an AMC</option>
+                  {% for amc in amcs %}
+                    <option value="{{ amc.id }}" 
+                            {% if is_edit and requisition.amc_id and requisition.amc_id.id == amc.id %}selected{% endif %}>
+                      {{ amc.amcname }} - {{ amc.customer }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+            
+            <div class="w-form-group">
+              <label for="service" class="w-form-label">Service Description</label>
+              <textarea id="service" name="service" class="w-form-textarea" 
+                        placeholder="Enter service description...">{% if is_edit %}{{ requisition.service }}{% endif %}</textarea>
+            </div>
+            
+            <div class="w-form-group">
+              <label for="employee" class="w-form-label">Employee</label>
+              <select id="employee" name="employee" class="w-form-select">
+                <option value="">Select an employee</option>
+                {% for employee in employees %}
+                  <option value="{{ employee.id }}" 
+                          {% if is_edit and requisition.employee and requisition.employee.id == employee.id %}selected{% endif %}>
+                    {{ employee.username }} - {{ employee.first_name }} {{ employee.last_name }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          
+          <!-- Status & Approval Section -->
+          <div class="w-section">
+            <h2 class="w-section-title">Status & Approval</h2>
+            
+            <div class="w-form-row">
+              <div class="w-form-group">
+                <label class="w-form-label">Status</label>
+                <div class="w-radio-group">
+                  <div class="w-radio-item">
+                    <input type="radio" id="status_open" name="status" value="OPEN" class="w-radio-input"
+                           {% if not is_edit or requisition.status == 'OPEN' %}checked{% endif %}>
+                    <label for="status_open" class="w-radio-label">Open</label>
+                  </div>
+                  <div class="w-radio-item">
+                    <input type="radio" id="status_closed" name="status" value="CLOSED" class="w-radio-input"
+                           {% if is_edit and requisition.status == 'CLOSED' %}checked{% endif %}>
+                    <label for="status_closed" class="w-radio-label">Closed</label>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="w-form-group">
+                <label class="w-form-label">Approval Status</label>
+                <div class="w-radio-group">
+                  <div class="w-radio-item">
+                    <input type="radio" id="approve_pending" name="approve_for" value="PENDING" class="w-radio-input"
+                           {% if not is_edit or requisition.approve_for == 'PENDING' %}checked{% endif %}>
+                    <label for="approve_pending" class="w-radio-label">Pending</label>
+                  </div>
+                  <div class="w-radio-item">
+                    <input type="radio" id="approve_approved" name="approve_for" value="APPROVED" class="w-radio-input"
+                           {% if is_edit and requisition.approve_for == 'APPROVED' %}checked{% endif %}>
+                    <label for="approve_approved" class="w-radio-label">Approved</label>
+                  </div>
+                  <div class="w-radio-item">
+                    <input type="radio" id="approve_rejected" name="approve_for" value="REJECTED" class="w-radio-input"
+                           {% if is_edit and requisition.approve_for == 'REJECTED' %}checked{% endif %}>
+                    <label for="approve_rejected" class="w-radio-label">Rejected</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+      
+      <div class="w-button-group">
+        <button type="button" onclick="handleCancel()" class="w-btn w-btn-secondary">
+          Cancel
+        </button>
+        <button type="button" onclick="handleFormSubmit()" id="submitBtn" class="w-btn w-btn-primary">
+          {% if is_edit %}Update Requisition{% else %}Create Requisition{% endif %}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const isEditMode = {{ is_edit|yesno:"true,false" }};
+const submitUrl = "{% if is_edit %}{% url 'edit_requisition_custom' requisition.reference_id %}{% else %}{% url 'add_requisition_custom' %}{% endif %}";
+const adminHomeUrl = "{% url 'wagtailadmin_home' %}";
+
+function getCsrfToken() {
+  return document.querySelector('[name=csrfmiddlewaretoken]').value;
+}
+
+function showMessage(type, message) {
+  const container = document.getElementById('messageContainer');
+  const messageDiv = document.createElement('div');
+  messageDiv.className = `w-message w-message-${type}`;
+  messageDiv.textContent = message;
+  container.innerHTML = '';
+  container.appendChild(messageDiv);
+  
+  setTimeout(() => {
+    messageDiv.remove();
+  }, 5000);
+}
+
+function validateForm() {
+  const errors = {};
+  
+  const date = document.getElementById('date').value;
+  const qty = parseInt(document.getElementById('qty').value);
+  
+  if (!date) errors.date = 'Date is required';
+  if (!qty || qty < 1) errors.qty = 'Quantity must be at least 1';
+
+  document.getElementById('dateError').textContent = errors.date || '';
+  document.getElementById('dateError').style.display = errors.date ? 'block' : 'none';
+  document.getElementById('qtyError').textContent = errors.qty || '';
+  document.getElementById('qtyError').style.display = errors.qty ? 'block' : 'none';
+
+  return Object.keys(errors).length === 0;
+}
+
+function createFormData() {
+  const form = document.getElementById('requisitionForm');
+  const data = {};
+  new FormData(form).forEach((value, key) => {
+    if (key === 'qty') value = parseInt(value) || null;
+    if (key === 'item' || key === 'site' || key === 'amc_id' || key === 'employee') {
+      value = value ? parseInt(value) : null;
+    }
+    data[key] = value;
+  });
+  return data;
+}
+
+async function handleFormSubmit() {
+  if (!validateForm()) return;
+
+  const submitButton = document.getElementById('submitBtn');
+  const originalText = submitButton.textContent;
+  submitButton.textContent = 'Saving...';
+  submitButton.disabled = true;
+
+  try {
+    const data = createFormData();
+    const response = await fetch(submitUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: JSON.stringify(data)
+    });
+    const result = await response.json();
+    submitButton.textContent = originalText;
+    submitButton.disabled = false;
+
+    if (result.success) {
+      showMessage('success', result.message || (isEditMode ? 'Requisition updated successfully' : 'Requisition created successfully'));
+      setTimeout(() => {
+        window.location.href = adminHomeUrl;
+      }, 2000);
+    } else {
+      showMessage('error', result.error || 'Failed to save requisition');
+    }
+  } catch (error) {
+    console.error('Error saving requisition:', error);
+    submitButton.textContent = originalText;
+    submitButton.disabled = false;
+    showMessage('error', 'An error occurred while saving the requisition');
+  }
+}
+
+function handleCancel() {
+  document.getElementById('requisitionForm').reset();
+  document.getElementById('dateError').style.display = 'none';
+  document.getElementById('qtyError').style.display = 'none';
+  window.history.back();
+}
+</script>
+{% endblock %}

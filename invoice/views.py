@@ -1,12 +1,15 @@
 # invoice/views.py
-from django.shortcuts import get_object_or_404
-from django.http import HttpResponse
+from django.shortcuts import get_object_or_404, render
+from django.http import HttpResponse, JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib import messages
 from io import BytesIO
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 import logging
+import json
 
 from .models import Invoice, InvoiceItem
 
@@ -120,3 +123,224 @@ def download_invoice_pdf(request, pk):
     except Exception as e:
         logger.error(f"Error generating invoice PDF: {str(e)}")
         return HttpResponse(f"Error generating PDF: {str(e)}", status=500)
+
+
+def add_invoice_custom(request):
+    """Custom add invoice page"""
+    from customer.models import Customer
+    from amc.models import AMCType
+    from items.models import Item
+    
+    customers = Customer.objects.all()
+    amc_types = AMCType.objects.all()
+    items = Item.objects.all()
+
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            
+            # Create new invoice
+            invoice = Invoice.objects.create(
+                customer_id=data.get('customer') if data.get('customer') else None,
+                amc_type_id=data.get('amc_type') if data.get('amc_type') else None,
+                start_date=data.get('start_date'),
+                due_date=data.get('due_date'),
+                discount=data.get('discount', 0),
+                payment_term=data.get('payment_term', 'cash'),
+                status=data.get('status', 'open'),
+                uploads_files=data.get('uploads_files')
+            )
+            
+            # Add invoice items
+            items_data = data.get('items', [])
+            for item_data in items_data:
+                InvoiceItem.objects.create(
+                    invoice=invoice,
+                    item_id=item_data.get('item') if item_data.get('item') else None,
+                    rate=item_data.get('rate', 0),
+                    qty=item_data.get('qty', 1),
+                    tax=item_data.get('tax', 0)
+                )
+            
+            return JsonResponse({'success': True, 'message': 'Invoice created successfully'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+    return render(request, 'invoice/add_invoice_custom.html', {
+        'customers': customers,
+        'amc_types': amc_types,
+        'items': items,
+        'is_edit': False
+    })
+
+
+def edit_invoice_custom(request, reference_id):
+    """Custom edit invoice page"""
+    from customer.models import Customer
+    from amc.models import AMCType
+    from items.models import Item
+    
+    try:
+        invoice = Invoice.objects.get(reference_id=reference_id)
+    except Invoice.DoesNotExist:
+        messages.error(request, 'Invoice not found')
+        return render(request, '404.html')
+
+    customers = Customer.objects.all()
+    amc_types = AMCType.objects.all()
+    items = Item.objects.all()
+
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            
+            # Update invoice
+            invoice.customer_id = data.get('customer') if data.get('customer') else None
+            invoice.amc_type_id = data.get('amc_type') if data.get('amc_type') else None
+            invoice.start_date = data.get('start_date')
+            invoice.due_date = data.get('due_date')
+            invoice.discount = data.get('discount', 0)
+            invoice.payment_term = data.get('payment_term', 'cash')
+            invoice.status = data.get('status', 'open')
+            if data.get('uploads_files'):
+                invoice.uploads_files = data.get('uploads_files')
+            invoice.save()
+            
+            # Clear existing items and add new ones
+            invoice.items.all().delete()
+            items_data = data.get('items', [])
+            for item_data in items_data:
+                InvoiceItem.objects.create(
+                    invoice=invoice,
+                    item_id=item_data.get('item') if item_data.get('item') else None,
+                    rate=item_data.get('rate', 0),
+                    qty=item_data.get('qty', 1),
+                    tax=item_data.get('tax', 0)
+                )
+
+            return JsonResponse({'success': True, 'message': 'Invoice updated successfully'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+    return render(request, 'invoice/add_invoice_custom.html', {
+        'invoice': invoice,
+        'customers': customers,
+        'amc_types': amc_types,
+        'items': items,
+        'is_edit': True
+    })
+
+
+# API endpoints for dropdown management
+@csrf_exempt
+def manage_customers(request):
+    """API for managing customers: GET list, POST create"""
+    from customer.models import Customer
+    
+    if request.method == 'GET':
+        customers = Customer.objects.all().values('id', 'site_name').order_by('site_name')
+        return JsonResponse(list(customers), safe=False)
+    elif request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            site_name = data.get('site_name', '').strip()
+            if not site_name:
+                return JsonResponse({"error": "Site name is required"}, status=400)
+            if Customer.objects.filter(site_name=site_name).exists():
+                return JsonResponse({"error": "Customer already exists"}, status=400)
+            customer = Customer.objects.create(site_name=site_name)
+            return JsonResponse({
+                "success": True,
+                "id": customer.id,
+                "site_name": customer.site_name
+            })
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+
+@csrf_exempt
+def manage_amc_types(request):
+    """API for managing AMC types: GET list, POST create"""
+    from amc.models import AMCType
+    
+    if request.method == 'GET':
+        amc_types = AMCType.objects.all().values('id', 'name').order_by('name')
+        return JsonResponse(list(amc_types), safe=False)
+    elif request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            name = data.get('name', '').strip()
+            if not name:
+                return JsonResponse({"error": "Name is required"}, status=400)
+            if AMCType.objects.filter(name=name).exists():
+                return JsonResponse({"error": "AMC Type already exists"}, status=400)
+            amc_type = AMCType.objects.create(name=name)
+            return JsonResponse({
+                "success": True,
+                "id": amc_type.id,
+                "name": amc_type.name
+            })
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+
+@csrf_exempt
+def manage_customers_detail(request, pk):
+    """API for updating/deleting customers"""
+    from customer.models import Customer
+    
+    try:
+        customer = Customer.objects.get(pk=pk)
+        if request.method == 'PUT':
+            data = json.loads(request.body)
+            site_name = data.get('site_name', '').strip()
+            if not site_name:
+                return JsonResponse({"error": "Site name is required"}, status=400)
+            if Customer.objects.filter(site_name=site_name).exclude(pk=pk).exists():
+                return JsonResponse({"error": "Customer already exists"}, status=400)
+            customer.site_name = site_name
+            customer.save()
+            return JsonResponse({'success': True, 'message': 'Customer updated'})
+        elif request.method == 'DELETE':
+            customer.delete()
+            return JsonResponse({'success': True, 'message': 'Customer deleted'})
+    except Customer.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Customer not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@csrf_exempt
+def manage_amc_types_detail(request, pk):
+    """API for updating/deleting AMC types"""
+    from amc.models import AMCType
+    
+    try:
+        amc_type = AMCType.objects.get(pk=pk)
+        if request.method == 'PUT':
+            data = json.loads(request.body)
+            name = data.get('name', '').strip()
+            if not name:
+                return JsonResponse({"error": "Name is required"}, status=400)
+            if AMCType.objects.filter(name=name).exclude(pk=pk).exists():
+                return JsonResponse({"error": "AMC Type already exists"}, status=400)
+            amc_type.name = name
+            amc_type.save()
+            return JsonResponse({'success': True, 'message': 'AMC Type updated'})
+        elif request.method == 'DELETE':
+            amc_type.delete()
+            return JsonResponse({'success': True, 'message': 'AMC Type deleted'})
+    except AMCType.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'AMC Type not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@csrf_exempt
+def manage_items(request):
+    """API for managing items: GET list"""
+    from items.models import Item
+    
+    if request.method == 'GET':
+        items = Item.objects.all().values('id', 'name', 'sale_price').order_by('name')
+        return JsonResponse(list(items), safe=False)

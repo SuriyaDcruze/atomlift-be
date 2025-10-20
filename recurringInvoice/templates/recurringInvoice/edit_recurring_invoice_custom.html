@@ -1,0 +1,754 @@
+{% extends "wagtailadmin/base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+/* Modern Tailwind-like styles for Wagtail admin */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+.w-content-wrapper {
+  background: #f5f5f5;
+  min-height: calc(100vh - 4rem);
+  padding: 2rem;
+}
+
+.w-modal-overlay {
+  /* Align with Add page: render as normal container, not overlay */
+  position: static;
+  inset: auto;
+  background-color: transparent;
+  display: block;
+  padding: 0;
+}
+
+.w-modal-content {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.15);
+  width: 100%;
+  max-width: 72rem;
+  margin: 2rem auto;
+  max-height: none;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+}
+
+.w-modal-header {
+  background: linear-gradient(to right, #2D3A6B, #243158);
+  padding: 1.5rem;
+}
+
+.w-modal-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: white;
+}
+
+.w-modal-subtitle {
+  margin: 0;
+  color: white;
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
+
+.w-modal-body {
+  padding: 1.5rem;
+  max-height: none;
+  overflow: visible;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.form-section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 2px solid #E5E7EB;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.form-required {
+  color: #EF4444;
+  margin-left: 0.25rem;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  border: 1px solid #D1D5DB;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #F97316;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+  z-index: 1;
+}
+
+.form-input:disabled {
+  background-color: #F9FAFB;
+  color: #6B7280;
+}
+
+.form-textarea {
+  min-height: 3rem;
+  resize: vertical;
+  padding: 0.5rem 0.75rem;
+}
+
+.form-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.75rem center;
+  background-repeat: no-repeat;
+  background-size: 1rem;
+  padding-right: 2.5rem;
+  font-size: 0.875rem;
+}
+
+.form-select-addon {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.form-select-addon .form-select {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right: 0;
+}
+
+.form-select-addon button {
+  background: linear-gradient(to right, #3B82F6, #1D4ED8);
+  color: white;
+  border: 1px solid #D1D5DB;
+  border-left: 0;
+  border-top-right-radius: 0.375rem;
+  border-bottom-right-radius: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3rem;
+}
+
+.form-select-addon button:hover {
+  background: linear-gradient(to right, #2563EB, #1E40AF);
+}
+
+.form-checkbox-wrapper {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  background: #F9FAFB;
+  border-radius: 0.375rem;
+  border: 1px solid #D1D5DB;
+}
+
+.form-checkbox {
+  margin-right: 0.5rem;
+}
+
+.form-checkbox-label {
+  margin: 0;
+  font-weight: normal !important;
+}
+
+.form-help {
+  font-size: 0.75rem;
+  color: #6B7280;
+  margin-top: 0.25rem;
+}
+
+.form-error {
+  border-color: #EF4444;
+}
+
+.form-error-message {
+  color: #EF4444;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.w-modal-footer {
+  padding: 1rem 1.5rem;
+  background: #F9FAFB;
+  border-top: 1px solid #E5E7EB;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+}
+
+.btn {
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.btn-secondary {
+  background: #F3F4F6;
+  color: #374151;
+  border: 1px solid #D1D5DB;
+}
+
+.btn-secondary:hover {
+  background: #E5E7EB;
+}
+
+.btn-primary {
+  background: linear-gradient(to right, #2D3A6B, #243158);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(to right, #213066, #182755);
+}
+
+.toast-container {
+  position: fixed;
+  top: 1.25rem;
+  right: 1.25rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.toast {
+  background: white;
+  border-radius: 0.375rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  min-width: 20rem;
+  max-width: 31.25rem;
+  border-left: 4px solid;
+  animation: slideInRight 0.3s ease-out;
+}
+
+.toast--success {
+  border-left-color: #10B981;
+}
+
+.toast--error {
+  border-left-color: #EF4444;
+}
+
+.toast-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+}
+
+.toast-message {
+  flex: 1;
+  margin-right: 1rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6B7280;
+  padding: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.toast-close:hover {
+  color: #374151;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 10rem;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+  border-radius: 50%;
+  height: 2rem;
+  width: 2rem;
+  border: 2px solid #3B82F6;
+  border-top-color: transparent;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 768px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .w-modal-content {
+    margin: 1rem auto;
+  }
+
+  .toast {
+    min-width: 17.5rem;
+    max-width: 90vw;
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="w-content-wrapper">
+  <div class="w-modal-overlay">
+    <div class="w-modal-content">
+      <!-- Modal Header -->
+      <div class="w-modal-header">
+        <h2 class="w-modal-title">
+          {% if is_edit %}Edit Recurring Invoice{% else %}Create New Recurring Invoice{% endif %}
+        </h2>
+        <p class="w-modal-subtitle">
+          {% if is_edit %}Update recurring invoice details{% else %}Fill in all required fields (*) to add a recurring invoice{% endif %}
+        </p>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="w-modal-body">
+        {% if customers|length >= 0 and users|length >= 0 %}
+        <div class="form-grid">
+          <!-- Left Column -->
+          <div class="form-column">
+            <!-- Basic Information -->
+            <h3 class="form-section-title">Recurring Invoice Details</h3>
+
+            <div class="form-group">
+              <label class="form-label">Reference ID</label>
+              <input
+                type="text"
+                id="reference_id"
+                class="form-input"
+                value="{{ recurring_invoice.reference_id }}"
+                readonly
+              />
+              <p class="form-help">Auto-generated reference ID</p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Customer<span class="form-required">*</span></label>
+              <div class="form-select-addon">
+                <select id="customer" name="customer" class="form-input form-select" required>
+                  <option value="">Loading customers...</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Profile Name<span class="form-required">*</span></label>
+              <input
+                type="text"
+                id="profile_name"
+                name="profile_name"
+                class="form-input"
+                placeholder="Enter profile name"
+                value="{{ recurring_invoice.profile_name }}"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Order Number</label>
+              <input
+                type="text"
+                id="order_number"
+                name="order_number"
+                class="form-input"
+                placeholder="Enter order number"
+                value="{{ recurring_invoice.order_number }}"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Repeat Every<span class="form-required">*</span></label>
+              <select id="repeat_every" name="repeat_every" class="form-input form-select" required>
+                <option value="">Select Repeat Frequency</option>
+                <option value="week" {% if recurring_invoice.repeat_every == 'week' %}selected{% endif %}>Week</option>
+                <option value="2week" {% if recurring_invoice.repeat_every == '2week' %}selected{% endif %}>2 Weeks</option>
+                <option value="month" {% if recurring_invoice.repeat_every == 'month' %}selected{% endif %}>Month</option>
+                <option value="2month" {% if recurring_invoice.repeat_every == '2month' %}selected{% endif %}>2 Months</option>
+                <option value="3month" {% if recurring_invoice.repeat_every == '3month' %}selected{% endif %}>3 Months</option>
+                <option value="6month" {% if recurring_invoice.repeat_every == '6month' %}selected{% endif %}>6 Months</option>
+                <option value="year" {% if recurring_invoice.repeat_every == 'year' %}selected{% endif %}>Year</option>
+                <option value="2year" {% if recurring_invoice.repeat_every == '2year' %}selected{% endif %}>2 Years</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Sales Person</label>
+              <div class="form-select-addon">
+                <select id="sales_person" name="sales_person" class="form-input form-select">
+                  <option value="">Loading sales persons...</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column -->
+          <div class="form-column">
+            <!-- Schedule & Billing -->
+            <h3 class="form-section-title">Schedule & Billing</h3>
+
+            <div class="form-group">
+              <label class="form-label">Start Date<span class="form-required">*</span></label>
+              <input
+                type="date"
+                id="start_date"
+                name="start_date"
+                class="form-input"
+                value="{{ recurring_invoice.start_date|date:'Y-m-d' }}"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">End Date</label>
+              <input
+                type="date"
+                id="end_date"
+                name="end_date"
+                class="form-input"
+                value="{% if recurring_invoice.end_date %}{{ recurring_invoice.end_date|date:'Y-m-d' }}{% endif %}"
+              />
+              <p class="form-help">Leave empty for indefinite recurring</p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Status<span class="form-required">*</span></label>
+              <select id="status" name="status" class="form-input form-select" required>
+                <option value="">Select Status</option>
+                <option value="active" {% if recurring_invoice.status == 'active' %}selected{% endif %}>Active</option>
+                <option value="completed" {% if recurring_invoice.status == 'completed' %}selected{% endif %}>Completed</option>
+                <option value="cancelled" {% if recurring_invoice.status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Billing Address</label>
+              <textarea
+                id="billing_address"
+                name="billing_address"
+                class="form-input form-textarea"
+                rows="3"
+                placeholder="Enter billing address..."
+              >{{ recurring_invoice.billing_address }}</textarea>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">GST Treatment</label>
+              <input
+                type="text"
+                id="gst_treatment"
+                name="gst_treatment"
+                class="form-input"
+                placeholder="Enter GST treatment"
+                value="{{ recurring_invoice.gst_treatment }}"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Upload Files</label>
+              <input
+                type="file"
+                id="uploads_files"
+                name="uploads_files"
+                class="form-input"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+              />
+              {% if recurring_invoice.uploads_files %}
+              <p class="form-help">Current file: {{ recurring_invoice.uploads_files.name|basename }}</p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% else %}
+        <div class="loading-spinner">
+          <div class="spinner"></div>
+          <span>Loading options...</span>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="w-modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="window.history.back();">Cancel</button>
+        <button
+          type="button"
+          id="submitBtn"
+          class="btn btn-primary"
+          onclick="handleFormSubmit({target: document.getElementById('recurringInvoiceForm')})"
+        >
+          {% if is_edit %}Update Recurring Invoice{% else %}Create Recurring Invoice{% endif %}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden Form for Django CSRF -->
+  <form id="recurringInvoiceForm" style="display:none;" enctype="multipart/form-data">
+    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+  </form>
+
+  {% if messages %}
+  <div class="toast-container">
+    {% for message in messages %}
+    <div class="toast toast--{% if message.tags %}{{ message.tags }}{% else %}info{% endif %}">
+      <div class="toast-content">
+        <div class="toast-message">
+          {{ message }}
+        </div>
+        <button class="toast-close" onclick="this.parentElement.parentElement.remove()">×</button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<script>
+var isEditMode = {% if is_edit %}true{% else %}false{% endif %};
+var submitUrl = "{% if is_edit %}{% url 'update_recurring_invoice' recurring_invoice.reference_id %}{% else %}{% url 'create_recurring_invoice' %}{% endif %}";
+var adminHomeUrl = "{% url 'wagtailadmin_home' %}";
+
+// Edit mode variables
+var currentCustomerId = {% if is_edit and recurring_invoice.customer %}{{ recurring_invoice.customer.id }}{% else %}null{% endif %};
+var currentSalesPersonId = {% if is_edit and recurring_invoice.sales_person %}{{ recurring_invoice.sales_person.id }}{% else %}null{% endif %};
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Load various dropdowns dynamically on page load
+  loadCustomers();
+  loadSalesPersons();
+});
+
+function loadCustomers() {
+  fetch('/recurringInvoice/api/customers/')
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+      var select = document.getElementById('customer');
+      select.innerHTML = '<option value="">Select Customer</option>';
+
+      data.forEach(function(item) {
+        var option = document.createElement('option');
+        option.value = item.id;
+        option.textContent = item.site_name;
+
+        // If editing, select the current customer
+        if (currentCustomerId && item.id === currentCustomerId) {
+          option.selected = true;
+        }
+
+        select.appendChild(option);
+      });
+    })
+    .catch(function(error) {
+      console.error('Error loading customers:', error);
+      var select = document.getElementById('customer');
+      select.innerHTML = '<option value="">Error loading customers</option>';
+    });
+}
+
+function loadSalesPersons() {
+  fetch('/recurringInvoice/api/sales-persons/')
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+      var select = document.getElementById('sales_person');
+      select.innerHTML = '<option value="">Select Sales Person</option>';
+
+      data.forEach(function(item) {
+        var option = document.createElement('option');
+        option.value = item.id;
+        option.textContent = item.name || item.username;
+
+        // If editing, select the current sales person
+        if (currentSalesPersonId && item.id === currentSalesPersonId) {
+          option.selected = true;
+        }
+
+        select.appendChild(option);
+      });
+    })
+    .catch(function(error) {
+      console.error('Error loading sales persons:', error);
+      var select = document.getElementById('sales_person');
+      select.innerHTML = '<option value="">Error loading sales persons</option>';
+    });
+}
+
+function getCsrfToken() {
+  var token = document.querySelector('[name=csrfmiddlewaretoken]');
+  return token ? token.value : '';
+}
+
+function showMessage(type, message) {
+  var toast = document.createElement('div');
+  toast.className = 'toast toast--' + type;
+  toast.innerHTML = '<div class="toast-content">' +
+    '<span class="toast-message">' + message + '</span>' +
+    '<button class="toast-close" onclick="this.parentElement.parentElement.remove()">×</button>' +
+  '</div>';
+
+  var toastContainer = document.querySelector('.toast-container');
+  if (!toastContainer) {
+    toastContainer = document.createElement('div');
+    toastContainer.className = 'toast-container';
+    document.getElementsByClassName('w-content-wrapper')[0].appendChild(toastContainer);
+  }
+
+  toastContainer.appendChild(toast);
+
+  setTimeout(function() {
+    if (toast.parentElement) {
+      toast.remove();
+    }
+  }, type === 'success' ? 3000 : 5000);
+}
+
+function createFormData() {
+  var formData = new FormData();
+  
+  // Add CSRF token
+  formData.append('csrfmiddlewaretoken', getCsrfToken());
+  
+  // Add form fields
+  var elements = document.querySelectorAll('input, select, textarea');
+  for (var i = 0; i < elements.length; i++) {
+    var element = elements[i];
+    if (element.name && element.type !== 'checkbox') {
+      if (element.type === 'file') {
+        if (element.files && element.files[0]) {
+          formData.append(element.name, element.files[0]);
+        }
+      } else {
+        formData.append(element.name, element.value);
+      }
+    }
+  }
+  
+  return formData;
+}
+
+function handleFormSubmit(event) {
+  if (event) event.preventDefault();
+
+  var customer = document.getElementById('customer').value;
+  var profileName = document.getElementById('profile_name').value;
+  var repeatEvery = document.getElementById('repeat_every').value;
+  var startDate = document.getElementById('start_date').value;
+  var status = document.getElementById('status').value;
+  
+  if (!customer || !profileName || !repeatEvery || !startDate || !status) {
+    showMessage('error', 'Please fill in all required fields (Customer, Profile Name, Repeat Every, Start Date, Status)');
+    return;
+  }
+
+  var submitButton = document.getElementById('submitBtn');
+  var originalText = submitButton.textContent;
+  submitButton.textContent = 'Saving...';
+  submitButton.disabled = true;
+
+  var formData = createFormData();
+
+  fetch(submitUrl, {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': getCsrfToken()
+    },
+    body: formData
+  })
+  .then(function(response) { return response.json(); })
+  .then(function(result) {
+    submitButton.textContent = originalText;
+    submitButton.disabled = false;
+
+    if (result.success) {
+      showMessage('success', result.message);
+      setTimeout(function() {
+        window.location.href = adminHomeUrl;
+      }, 1500);
+    } else {
+      showMessage('error', result.error);
+    }
+  })
+  .catch(function(error) {
+    submitButton.textContent = originalText;
+    submitButton.disabled = false;
+    console.error('Error:', error);
+    showMessage('error', 'An error occurred while saving the recurring invoice');
+  });
+}
+
+// Add click event listener to submit button
+document.getElementById('submitBtn').addEventListener('click', handleFormSubmit);
+</script>
+{% endblock %}
+
+
+

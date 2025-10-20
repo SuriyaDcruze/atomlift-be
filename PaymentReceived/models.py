@@ -121,8 +121,8 @@ class PaymentGroup(SnippetViewSetGroup):
     menu_icon = "group"
     menu_label = "Payment "
     menu_name = "payment"
-    menu_order = 8
 
 
 # ---------- REGISTER GROUP ----------
-register_snippet(PaymentGroup)
+# PaymentGroup is now registered as part of SalesGroup in home/wagtail_hooks.py
+# register_snippet(PaymentGroup)

@@ -1,0 +1,765 @@
+{% extends "wagtailadmin/base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+/* Tailwind-like styles matched to QuotationForm.jsx */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+.w-content-wrapper {
+  background: #f5f5f5;
+  min-height: calc(100vh - 4rem);
+  padding: 2rem;
+}
+
+.w-modal-overlay {
+  /* Match lift add page: render as page container, not overlay */
+  position: static;
+  inset: auto;
+  background-color: transparent;
+  display: block;
+  padding: 0;
+}
+
+.w-modal-content {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.15);
+  width: 100%;
+  max-width: 72rem;
+  margin: 2rem auto;
+  max-height: none;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+}
+
+.w-modal-header {
+  background: linear-gradient(to right, #2D3A6B, #243158);
+  padding: 1.5rem;
+  color: white;
+}
+
+.w-modal-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.w-modal-subtitle {
+  margin: 0;
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
+
+.w-modal-body {
+  padding: 1.5rem;
+  max-height: none;
+  overflow: visible;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.form-section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 2px solid #E5E7EB;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.form-required {
+  color: #EF4444;
+  margin-left: 0.25rem;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  border: 1px solid #D1D5DB;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}
+
+.form-select {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  border: 1px solid #D1D5DB;
+  background: white;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.75rem center;
+  background-repeat: no-repeat;
+  background-size: 1rem;
+  padding-right: 2.5rem;
+}
+
+.form-textarea {
+  width: 100%;
+  min-height: 3rem;
+  resize: vertical;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  border: 1px solid #D1D5DB;
+  background: white;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}
+
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  outline: none;
+  border-color: #F97316;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+  z-index: 1;
+}
+
+.form-input:disabled {
+  background-color: #F9FAFB;
+  color: #6B7280;
+}
+
+.form-error {
+  border-color: #EF4444;
+}
+
+.form-error-message {
+  color: #EF4444;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.form-help {
+  font-size: 0.75rem;
+  color: #6B7280;
+  margin-top: 0.25rem;
+}
+
+.w-modal-footer {
+  padding: 1rem 1.5rem;
+  background: #F9FAFB;
+  border-top: 1px solid #E5E7EB;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+}
+
+.btn {
+  padding: 0.625rem 1.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-secondary {
+  background: white;
+  color: #374151;
+  border: 1px solid #D1D5DB;
+}
+
+.btn-secondary:hover {
+  background: #F3F4F6;
+}
+
+.btn-primary {
+  background: linear-gradient(to right, #2D3A6B, #243158);
+  color: white;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(to right, #213066, #182755);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toast-container {
+  position: fixed;
+  top: 1.25rem;
+  right: 1.25rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.toast {
+  background: white;
+  border-radius: 0.375rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  min-width: 20rem;
+  max-width: 31.25rem;
+  border-left: 4px solid;
+  animation: slideInRight 0.3s ease-out;
+}
+
+.toast--success {
+  border-left-color: #10B981;
+}
+
+.toast--error {
+  border-left-color: #EF4444;
+}
+
+.toast-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+}
+
+.toast-message {
+  flex: 1;
+  margin-right: 1rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6B7280;
+  padding: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.toast-close:hover {
+  color: #374151;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 10rem;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+  border-radius: 50%;
+  height: 2rem;
+  width: 2rem;
+  border: 2px solid #3B82F6;
+  border-top-color: transparent;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Responsive adjustments to match lift add page */
+@media (max-width: 768px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .w-modal-content {
+    margin: 1rem auto;
+  }
+
+  .toast {
+    min-width: 17.5rem;
+    max-width: 90vw;
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="w-content-wrapper">
+  <div class="w-modal-overlay">
+    <div class="w-modal-content">
+      <!-- Modal Header -->
+      <div class="w-modal-header">
+        <h2 class="w-modal-title">Create New Recurring Invoice</h2>
+        <p class="w-modal-subtitle">Fill in all required fields (*) to add a recurring invoice</p>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="w-modal-body">
+        {% if customers|length >= 0 and users|length >= 0 %}
+        <div class="form-grid">
+          <!-- Left Column -->
+          <div class="space-y-4">
+            <h3 class="form-section-title">Recurring Invoice Details</h3>
+
+            <div class="form-group">
+              <label class="form-label">Reference ID</label>
+              <input
+                type="text"
+                id="reference_id"
+                name="reference_id"
+                class="form-input"
+                readonly
+              />
+              <p class="form-help">Auto-generated reference ID</p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Customer<span class="form-required">*</span></label>
+              <select id="customer" name="customer" class="form-select" required>
+                <option value="">Loading customers...</option>
+              </select>
+              <p id="customer-error" class="form-error-message" style="display: none;"></p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Profile Name<span class="form-required">*</span></label>
+              <input
+                type="text"
+                id="profile_name"
+                name="profile_name"
+                class="form-input"
+                placeholder="Enter profile name"
+                required
+              />
+              <p id="profile_name-error" class="form-error-message" style="display: none;"></p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Order Number</label>
+              <input
+                type="text"
+                id="order_number"
+                name="order_number"
+                class="form-input"
+                placeholder="Enter order number"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Repeat Every<span class="form-required">*</span></label>
+              <select id="repeat_every" name="repeat_every" class="form-select" required>
+                <option value="">Select Repeat Frequency</option>
+                <option value="week">Week</option>
+                <option value="2week">2 Weeks</option>
+                <option value="month">Month</option>
+                <option value="2month">2 Months</option>
+                <option value="3month">3 Months</option>
+                <option value="6month">6 Months</option>
+                <option value="year">Year</option>
+                <option value="2year">2 Years</option>
+              </select>
+              <p id="repeat_every-error" class="form-error-message" style="display: none;"></p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Sales Person</label>
+              <select id="sales_person" name="sales_person" class="form-select">
+                <option value="">Select Sales Person</option>
+              </select>
+              <p id="sales_person-error" class="form-error-message" style="display: none;"></p>
+            </div>
+          </div>
+
+          <!-- Right Column -->
+          <div class="space-y-4">
+            <h3 class="form-section-title">Schedule & Billing</h3>
+
+            <div class="form-group">
+              <label class="form-label">Start Date<span class="form-required">*</span></label>
+              <input
+                type="date"
+                id="start_date"
+                name="start_date"
+                class="form-input"
+                required
+              />
+              <p id="start_date-error" class="form-error-message" style="display: none;"></p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">End Date</label>
+              <input
+                type="date"
+                id="end_date"
+                name="end_date"
+                class="form-input"
+              />
+              <p class="form-help">Leave empty for indefinite recurring</p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Status<span class="form-required">*</span></label>
+              <select id="status" name="status" class="form-select" required>
+                <option value="">Select Status</option>
+                <option value="active">Active</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+              <p id="status-error" class="form-error-message" style="display: none;"></p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Billing Address</label>
+              <textarea
+                id="billing_address"
+                name="billing_address"
+                class="form-textarea"
+                rows="3"
+                placeholder="Enter billing address..."
+              ></textarea>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">GST Treatment</label>
+              <input
+                type="text"
+                id="gst_treatment"
+                name="gst_treatment"
+                class="form-input"
+                placeholder="Enter GST treatment"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Upload Files</label>
+              <input
+                type="file"
+                id="uploads_files"
+                name="uploads_files"
+                class="form-input"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                multiple
+              />
+              <p class="form-help">Select files to upload</p>
+            </div>
+          </div>
+        </div>
+        {% else %}
+        <div class="loading-spinner">
+          <div class="spinner"></div>
+          <span>Loading options...</span>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="w-modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="window.history.back();">Cancel</button>
+        <button
+          type="button"
+          id="submitBtn"
+          class="btn btn-primary"
+        >
+          Create Recurring Invoice
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden Form for Django CSRF -->
+  <form id="recurringInvoiceForm" style="display:none;" enctype="multipart/form-data">
+    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+  </form>
+
+  {% if messages %}
+  <div class="toast-container">
+    {% for message in messages %}
+    <div class="toast toast--{% if message.tags %}{{ message.tags }}{% else %}info{% endif %}">
+      <div class="toast-content">
+        <div class="toast-message">
+          {{ message }}
+        </div>
+        <button class="toast-close" onclick="this.parentElement.parentElement.remove()">×</button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<script>
+var isEditMode = false;
+var submitUrl = "{% url 'create_recurring_invoice' %}";
+var adminHomeUrl = "{% url 'wagtailadmin_home' %}";
+
+document.addEventListener('DOMContentLoaded', function() {
+  loadCustomers();
+  loadSalesPersons();
+  document.getElementById('submitBtn').addEventListener('click', handleFormSubmit);
+  fetchNextReferenceId();
+});
+
+function fetchNextReferenceId() {
+  fetch('/recurringInvoice/api/recurring-invoices/')
+    .then(response => response.json())
+    .then(data => {
+      let nextId = 'RINV001';
+      if (data.length > 0) {
+        const numbers = data.map(q => parseInt(q.reference_id.replace('RINV', '')) || 0);
+        const maxNum = Math.max(...numbers);
+        nextId = `RINV${String(maxNum + 1).padStart(3, '0')}`;
+      }
+      document.getElementById('reference_id').value = nextId;
+    })
+    .catch(error => {
+      console.error('Error fetching next reference ID:', error);
+      showMessage('error', 'Failed to generate reference ID');
+    });
+}
+
+function loadCustomers() {
+  fetch('/recurringInvoice/api/customers/')
+    .then(response => response.json())
+    .then(data => {
+      const select = document.getElementById('customer');
+      select.innerHTML = '<option value="">Select Customer</option>';
+      data.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.id;
+        option.textContent = item.site_name;
+        select.appendChild(option);
+      });
+    })
+    .catch(error => {
+      console.error('Error loading customers:', error);
+      document.getElementById('customer').innerHTML = '<option value="">Error loading customers</option>';
+      showMessage('error', 'Failed to load customers');
+    });
+}
+
+function loadSalesPersons() {
+  fetch('/recurringInvoice/api/sales-persons/')
+    .then(response => {
+      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+      return response.json();
+    })
+    .then(data => {
+      const select = document.getElementById('sales_person');
+      select.innerHTML = '<option value="">Select Sales Person</option>';
+      data.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.id;
+        option.textContent = item.name || item.username;
+        select.appendChild(option);
+      });
+    })
+    .catch(error => {
+      console.error('Error loading sales persons:', error);
+      document.getElementById('sales_person').innerHTML = '<option value="">Error loading sales persons</option>';
+      showMessage('error', 'Failed to load sales persons');
+    });
+}
+
+function getCsrfToken() {
+  const token = document.querySelector('[name=csrfmiddlewaretoken]');
+  return token ? token.value : '';
+}
+
+function showMessage(type, message) {
+  const toast = document.createElement('div');
+  toast.className = `toast toast--${type}`;
+  toast.innerHTML = `
+    <div class="toast-content">
+      <span class="toast-message">${message}</span>
+      <button class="toast-close" onclick="this.parentElement.parentElement.remove()">×</button>
+    </div>
+  `;
+
+  let toastContainer = document.querySelector('.toast-container');
+  if (!toastContainer) {
+    toastContainer = document.createElement('div');
+    toastContainer.className = 'toast-container';
+    document.querySelector('.w-content-wrapper').appendChild(toastContainer);
+  }
+
+  toastContainer.appendChild(toast);
+
+  setTimeout(() => {
+    if (toast.parentElement) toast.remove();
+  }, type === 'success' ? 3000 : 5000);
+}
+
+function validateForm() {
+  let isValid = true;
+  const errors = {};
+
+  const customer = document.getElementById('customer').value;
+  const profileName = document.getElementById('profile_name').value;
+  const repeatEvery = document.getElementById('repeat_every').value;
+  const startDate = document.getElementById('start_date').value;
+  const status = document.getElementById('status').value;
+
+  if (!customer) {
+    errors.customer = 'Customer is required';
+    document.getElementById('customer').classList.add('form-error');
+    document.getElementById('customer-error').textContent = errors.customer;
+    document.getElementById('customer-error').style.display = 'block';
+    isValid = false;
+  } else {
+    document.getElementById('customer').classList.remove('form-error');
+    document.getElementById('customer-error').style.display = 'none';
+  }
+
+  if (!profileName) {
+    errors.profile_name = 'Profile name is required';
+    document.getElementById('profile_name').classList.add('form-error');
+    document.getElementById('profile_name-error').textContent = errors.profile_name;
+    document.getElementById('profile_name-error').style.display = 'block';
+    isValid = false;
+  } else {
+    document.getElementById('profile_name').classList.remove('form-error');
+    document.getElementById('profile_name-error').style.display = 'none';
+  }
+
+  if (!repeatEvery) {
+    errors.repeat_every = 'Repeat frequency is required';
+    document.getElementById('repeat_every').classList.add('form-error');
+    document.getElementById('repeat_every-error').textContent = errors.repeat_every;
+    document.getElementById('repeat_every-error').style.display = 'block';
+    isValid = false;
+  } else {
+    document.getElementById('repeat_every').classList.remove('form-error');
+    document.getElementById('repeat_every-error').style.display = 'none';
+  }
+
+  if (!startDate) {
+    errors.start_date = 'Start date is required';
+    document.getElementById('start_date').classList.add('form-error');
+    document.getElementById('start_date-error').textContent = errors.start_date;
+    document.getElementById('start_date-error').style.display = 'block';
+    isValid = false;
+  } else {
+    document.getElementById('start_date').classList.remove('form-error');
+    document.getElementById('start_date-error').style.display = 'none';
+  }
+
+  if (!status) {
+    errors.status = 'Status is required';
+    document.getElementById('status').classList.add('form-error');
+    document.getElementById('status-error').textContent = errors.status;
+    document.getElementById('status-error').style.display = 'block';
+    isValid = false;
+  } else {
+    document.getElementById('status').classList.remove('form-error');
+    document.getElementById('status-error').style.display = 'none';
+  }
+
+  return isValid;
+}
+
+function createFormData() {
+  const formData = new FormData();
+  formData.append('csrfmiddlewaretoken', getCsrfToken());
+  formData.append('reference_id', document.getElementById('reference_id').value);
+
+  const elements = document.querySelectorAll('input:not([type=checkbox]):not([readonly]), select, textarea');
+  elements.forEach(element => {
+    if (element.name) {
+      if (element.type === 'file') {
+        Array.from(element.files).forEach(file => {
+          formData.append('uploads_files', file);
+        });
+      } else {
+        formData.append(element.name, element.value);
+      }
+    }
+  });
+
+  return formData;
+}
+
+function handleFormSubmit() {
+  if (!validateForm()) {
+    showMessage('error', 'Please fill in all required fields');
+    return;
+  }
+
+  const submitButton = document.getElementById('submitBtn');
+  const originalText = submitButton.textContent;
+  submitButton.textContent = 'Saving...';
+  submitButton.disabled = true;
+
+  const formData = createFormData();
+
+  fetch(submitUrl, {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': getCsrfToken()
+    },
+    body: formData
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+    return response.json();
+  })
+  .then(result => {
+    submitButton.textContent = originalText;
+    submitButton.disabled = false;
+
+    if (result.success) {
+      showMessage('success', result.message);
+      setTimeout(() => {
+        window.location.href = adminHomeUrl;
+      }, 1500);
+    } else {
+      showMessage('error', result.error);
+    }
+  })
+  .catch(error => {
+    submitButton.textContent = originalText;
+    submitButton.disabled = false;
+    console.error('Error:', error);
+    showMessage('error', 'An error occurred while saving the recurring invoice');
+  });
+}
+</script>
+{% endblock %}
+

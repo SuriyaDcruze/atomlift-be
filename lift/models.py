@@ -294,7 +294,7 @@ class LiftGroup(SnippetViewSetGroup):
     menu_icon = "cog"
     menu_label = "Lift"
     menu_name = "lift"
-    menu_order = 1
+    menu_order = 3
 
 
 register_snippet(LiftGroup)

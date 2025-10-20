@@ -175,7 +175,7 @@ class ItemGroup(SnippetViewSetGroup):
     menu_icon = "clipboard-list" 
     menu_label = "Item "
     menu_name = "item"
-    menu_order = 2
+    menu_order = 4
 
 
 # ---------- REGISTER GROUP ----------

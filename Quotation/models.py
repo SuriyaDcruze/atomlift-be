@@ -164,8 +164,8 @@ class QuotationGroup(SnippetViewSetGroup):
     menu_icon = "group"
     menu_label = "Quotation "
     menu_name = "quotation"
-    menu_order = 6
 
 
 # ---------- REGISTER GROUP ----------
-register_snippet(QuotationGroup)
+# QuotationGroup is now registered as part of SalesGroup in home/wagtail_hooks.py
+# register_snippet(QuotationGroup)

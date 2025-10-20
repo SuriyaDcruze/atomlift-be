@@ -101,16 +101,33 @@ class InvoiceViewSet(SnippetViewSet):
         "discount", "payment_term", "status",
     ]
 
+    def get_add_url(self):
+        from django.urls import reverse
+        return reverse("add_invoice_custom")
+
+    def get_edit_url(self, instance):
+        from django.urls import reverse
+        return reverse("edit_invoice_custom", args=(instance.reference_id,))
+
+    def add_view(self, request):
+        from django.shortcuts import redirect
+        return redirect(self.get_add_url())
+
+    def edit_view(self, request, pk):
+        from django.shortcuts import redirect
+        instance = self.model.objects.get(pk=pk)
+        return redirect(self.get_edit_url(instance))
+
 
 # ---------- SNIPPET GROUP ----------
 class InvoiceGroup(SnippetViewSetGroup):
     # Only one ViewSet for this group
     items = (InvoiceViewSet,) 
     menu_icon = "group"
-    menu_label = "Billing & Invoicing"
+    menu_label = "Invoices"
     menu_name = "invoicing"
-    menu_order = 7
 
 
 # ---------- REGISTER GROUP ----------
-register_snippet(InvoiceGroup)
+# InvoiceGroup is now registered as part of SalesGroup in home/wagtail_hooks.py
+# register_snippet(InvoiceGroup)

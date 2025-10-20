@@ -271,6 +271,7 @@ class CustomerViewSet(SnippetViewSet):
 
     #edit_template_name = 'customer/add_customer_custom.html'
     create_template_name = 'customer/add_customer_custom.html'
+    inspect_template_name = 'customer/view_customer_custom.html'
 
 
 class CustomerLicenseViewSet(SnippetViewSet):
@@ -294,14 +295,13 @@ class CustomerLicenseGroup(SnippetViewSetGroup):
     menu_icon = "doc-full"
     menu_label = "Customer License"
     menu_name = "Customer_license"
-    menu_order =3
+    menu_order = 6
 
 class CustomerGroup(SnippetViewSetGroup):
     items = (CustomerViewSet, RouteViewSet, BranchViewSet, ProvinceStateViewSet)
     menu_icon = "group"
     menu_label = "Customer"
     menu_name = "customer"
-    menu_order = 5
 
 
 
@@ -310,5 +310,10 @@ class CustomerGroup(SnippetViewSetGroup):
 #  REGISTER GROUPS
 # ======================================================
 
-register_snippet(CustomerGroup)
+# CustomerGroup is now registered as part of SalesGroup in home/wagtail_hooks.py
+# CustomerLicenseGroup is still registered individually as it's not part of Sales
+# Register CustomerGroup only through SalesGroup in home/wagtail_hooks.py
+# Do NOT register it here
+# register_snippet(CustomerGroup)
+
 register_snippet(CustomerLicenseGroup)

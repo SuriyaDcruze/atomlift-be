@@ -1,6 +1,8 @@
 # recurring_invoice/models.py (Wagtail Integration)
 
 from django.db import models
+from django.urls import reverse
+from django.shortcuts import redirect
 from wagtail.admin.panels import FieldPanel, MultiFieldPanel, InlinePanel
 from wagtail.snippets.models import register_snippet
 from modelcluster.fields import ParentalKey
@@ -156,6 +158,21 @@ class RecurringInvoiceViewSet(SnippetViewSet):
         "status",
     )
 
+    def get_add_url(self):
+        return reverse("add_recurring_invoice_custom")
+
+    def get_edit_url(self, instance):
+        return reverse("edit_recurring_invoice_custom", args=(instance.reference_id,))
+
+    def add_view(self, request):
+        print("DEBUG: RecurringInvoiceViewSet.add_view called")
+        return redirect(self.get_add_url())
+
+    def edit_view(self, request, pk):
+        print(f"DEBUG: RecurringInvoiceViewSet.edit_view called with pk={pk}")
+        instance = self.model.objects.get(pk=pk)
+        return redirect(self.get_edit_url(instance))
+
 
 
 # ---------- SNIPPET GROUP ----------
@@ -163,10 +180,10 @@ class RecurringInvoiceGroup(SnippetViewSetGroup):
     # Only one ViewSet for this group
     items = (RecurringInvoiceViewSet,) 
     menu_icon = "group"
-    menu_label = "Recurring "
+    menu_label = "Recurring Invoices"
     menu_name = "recurring_billing"
-    menu_order = 9
 
 
 # ---------- REGISTER GROUP ----------
-register_snippet(RecurringInvoiceGroup)
+# RecurringInvoiceGroup is now registered as part of SalesGroup in home/wagtail_hooks.py
+# register_snippet(RecurringInvoiceGroup)

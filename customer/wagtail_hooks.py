@@ -7,6 +7,7 @@ from django.views.decorators.csrf import csrf_exempt
 from wagtail import hooks
 from wagtail.admin.menu import MenuItem
 from wagtail.admin.panels import FieldPanel, MultiFieldPanel
+from wagtail.snippets.widgets import SnippetListingButton
 import json
 
 from .models import Customer, Route, Branch, ProvinceState
@@ -17,6 +18,7 @@ def register_customer_form_url():
     return [
         path('customer/add-custom/', add_customer_custom, name='add_customer_custom'),
         path('customer/edit-custom/<int:pk>/', edit_customer_custom, name='edit_customer_custom'),
+        path('customer/view-custom/<int:pk>/', view_customer_custom, name='view_customer_custom'),
         # API endpoints for dropdown management
         path('api/customer/routes/', manage_routes, name='api_manage_routes'),
         path('api/customer/routes/<int:pk>/', manage_routes, name='api_manage_routes_detail'),
@@ -25,6 +27,22 @@ def register_customer_form_url():
         path('api/customer/states/', manage_states, name='api_manage_states'),
         path('api/customer/states/<int:pk>/', manage_states, name='api_manage_states_detail'),
     ]
+
+
+@hooks.register('register_snippet_listing_buttons')
+def add_view_customer_button(snippet, user, next_url=None):
+    """Add 'View' button in Customer listing."""
+    if isinstance(snippet, Customer):
+        url = f"/admin/customer/view-custom/{snippet.pk}/"
+        return [
+            SnippetListingButton(
+                label='View',
+                url=url,
+                priority=90,
+                icon_name='view',
+            )
+        ]
+    return []
 
 
 # @hooks.register('register_admin_menu_item')
@@ -210,6 +228,16 @@ def edit_customer_custom(request, pk):
         'states': ProvinceState.objects.all(),
     }
     return render(request, 'customer/add_customer_custom.html', context)
+
+
+def view_customer_custom(request, pk):
+    """Custom view for viewing customer details in read-only mode"""
+    customer = get_object_or_404(Customer, pk=pk)
+    
+    context = {
+        'customer': customer,
+    }
+    return render(request, 'customer/view_customer_custom.html', context)
 
 
 # API endpoints for dropdown management

@@ -3,6 +3,8 @@ from wagtail.admin.panels import FieldPanel, MultiFieldPanel
 from wagtail.snippets.models import register_snippet
 from wagtail.snippets.views.snippets import SnippetViewSet, SnippetViewSetGroup
 from django.forms.widgets import RadioSelect
+from django.urls import reverse
+from django.shortcuts import redirect
 
 from authentication.models import CustomUser
 from items.models import Item
@@ -88,6 +90,7 @@ class RequisitionViewSet(SnippetViewSet):
     icon = "form"
     menu_label = "Requisitions"
     inspect_view_enabled = True
+    
 
     # ✅ Fields shown in list view
     list_display = (
@@ -123,12 +126,26 @@ class RequisitionViewSet(SnippetViewSet):
     search_fields = ("reference_id", "item__name", "site__site_name", "employee__username")
     list_filter = ("status", "approve_for", "date")
 
+    def get_add_url(self):
+        return reverse("add_requisition_custom")
+
+    def get_edit_url(self, instance):
+        return reverse("edit_requisition_custom", args=(instance.reference_id,))
+
+    def add_view(self, request):
+        return redirect(self.get_add_url())
+
+    def edit_view(self, request, pk):
+        instance = self.model.objects.get(pk=pk)
+        return redirect(self.get_edit_url(instance))
+
 # ---------- GROUP ----------
 class InventoryGroup(SnippetViewSetGroup):
     items = (RequisitionViewSet,)
     icon = "folder-open-inverse"
     menu_label = "Inventory "
     menu_name = "inventory"
+    menu_order = 8
 
 
 # ---------- REGISTER GROUP ----------

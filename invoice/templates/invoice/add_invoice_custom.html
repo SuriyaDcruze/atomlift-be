@@ -1,0 +1,1225 @@
+{% extends "wagtailadmin/base.html" %}
+
+{% load static %}
+
+{% block extra_css %}
+<style>
+/* Modern Tailwind-like styles for Wagtail admin */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+.w-content-wrapper {
+  background: #f5f5f5;
+  min-height: calc(100vh - 4rem);
+  padding: 2rem;
+}
+
+.w-modal-overlay {
+  /* Align with Lift/Quotation pages: page container, not overlay */
+  position: static;
+  inset: auto;
+  background-color: transparent;
+  display: block;
+  padding: 0;
+}
+
+.w-modal-content {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.15);
+  width: 100%;
+  max-width: 72rem;
+  margin: 2rem auto;
+  max-height: none;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+}
+
+.w-modal-header {
+  background: linear-gradient(to right, #2D3A6B, #243158);
+  padding: 1.5rem;
+}
+
+.w-modal-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: white;
+}
+
+.w-modal-subtitle {
+  margin: 0;
+  color: white;
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
+
+.w-modal-body {
+  padding: 1.5rem;
+  max-height: none;
+  overflow: visible;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.form-section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 2px solid #E5E7EB;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.25rem;
+}
+
+.form-required {
+  color: #EF4444;
+  margin-left: 0.25rem;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.375rem;
+  border: 1px solid #D1D5DB;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #F97316;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+  z-index: 1;
+}
+
+.form-input:disabled {
+  background-color: #F9FAFB;
+  color: #6B7280;
+}
+
+.form-textarea {
+  min-height: 3rem;
+  resize: vertical;
+  padding: 0.625rem 0.75rem;
+}
+
+.form-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.75rem center;
+  background-repeat: no-repeat;
+  background-size: 1rem;
+  padding-right: 2.5rem;
+  font-size: 0.875rem;
+}
+
+.form-select-addon {
+  display: flex;
+  align-items: stretch;
+  position: relative;
+}
+
+.form-select-addon .form-select {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right: 0;
+}
+
+.form-select-addon button {
+  background: linear-gradient(to right, #3B82F6, #1D4ED8);
+  color: white;
+  border: 1px solid #D1D5DB;
+  border-left: 0;
+  border-top-right-radius: 0.375rem;
+  border-bottom-right-radius: 0.375rem;
+  padding: 0 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.5rem;
+}
+
+.form-select-addon button:hover {
+  background: linear-gradient(to right, #2563EB, #1E40AF);
+}
+
+.form-radio-group {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.form-radio-option {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background: #F9FAFB;
+  border: 1px solid #D1D5DB;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.form-radio-option input[type="radio"] {
+  margin-right: 0.5rem;
+}
+
+.form-radio-option:hover {
+  background: #F3F4F6;
+}
+
+.form-radio-option.selected {
+  background: #EBF4FF;
+  border-color: #3B82F6;
+}
+
+.form-error {
+  font-size: 0.75rem;
+  color: #EF4444;
+  margin-top: 0.25rem;
+}
+
+.w-modal-footer {
+  padding: 1rem 1.5rem;
+  background: #F9FAFB;
+  border-top: 1px solid #E5E7EB;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+}
+
+.btn {
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.btn-secondary {
+  background: #F3F4F6;
+  color: #374151;
+  border: 1px solid #D1D5DB;
+}
+
+.btn-secondary:hover {
+  background: #E5E7EB;
+}
+
+.btn-primary {
+  background: linear-gradient(to right, #2D3A6B, #243158);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(to right, #213066, #182755);
+}
+
+.btn-primary:disabled {
+  background: linear-gradient(to right, #4B5A8F, #3C4A7A);
+  cursor: not-allowed;
+}
+
+.btn-success {
+  background: linear-gradient(to right, #10B981, #059669);
+  color: white;
+}
+
+.btn-success:hover {
+  background: linear-gradient(to right, #059669, #047857);
+}
+
+.btn-danger {
+  background: linear-gradient(to right, #EF4444, #DC2626);
+  color: white;
+}
+
+.btn-danger:hover {
+  background: linear-gradient(to right, #DC2626, #B91C1C);
+}
+
+.items-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.items-table th,
+.items-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.items-table th {
+  background: #F3F4F6;
+  font-weight: 500;
+  color: #374151;
+}
+
+.items-table input[type="number"] {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #D1D5DB;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+}
+
+.items-table .btn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.option-modal {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 1rem;
+}
+
+.option-modal.active {
+  display: flex;
+}
+
+.option-modal-dialog {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  width: 100%;
+  max-width: 48rem;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.option-modal-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.option-modal-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.option-modal-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+.option-modal-footer {
+  padding: 1rem 1.5rem;
+  background: #F9FAFB;
+  border-top: 1px solid #E5E7EB;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.option-list {
+  max-height: 20rem;
+  overflow-y: auto;
+  border: 1px solid #D1D5DB;
+  border-radius: 0.375rem;
+}
+
+.option-table {
+  width: 100%;
+  font-size: 0.875rem;
+}
+
+.option-table thead {
+  background: #F3F4F6;
+}
+
+.option-table th {
+  padding: 0.75rem;
+  text-align: left;
+  font-weight: 500;
+  color: #374151;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.option-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.option-table .btn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.option-table .btn-edit {
+  color: #3B82F6;
+}
+
+.option-table .btn-edit:hover {
+  color: #2563EB;
+}
+
+.option-table .btn-delete {
+  color: #EF4444;
+}
+
+.option-table .btn-delete:hover {
+  color: #DC2626;
+}
+
+.toast-container {
+  position: fixed;
+  top: 1.25rem;
+  right: 1.25rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.toast {
+  background: white;
+  border-radius: 0.375rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  min-width: 20rem;
+  max-width: 31.25rem;
+  border-left: 4px solid;
+  animation: slideInRight 0.3s ease-out;
+}
+
+.toast--success {
+  border-left-color: #10B981;
+}
+
+.toast--error {
+  border-left-color: #EF4444;
+}
+
+.toast-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+}
+
+.toast-message {
+  flex: 1;
+  margin-right: 1rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.toast-message strong {
+  font-weight: 600;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6B7280;
+  padding: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.toast-close:hover {
+  color: #374151;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 10rem;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+  border-radius: 50%;
+  height: 2rem;
+  width: 2rem;
+  border: 2px solid #3B82F6;
+  border-top-color: transparent;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 768px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .w-modal-content {
+    margin: 1rem auto;
+  }
+
+  .option-modal-dialog {
+    max-width: 95vw;
+  }
+
+  .toast {
+    min-width: 17.5rem;
+    max-width: 90vw;
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="w-content-wrapper">
+  <div class="w-modal-overlay">
+    <div class="w-modal-content">
+      <!-- Modal Header -->
+      <div class="w-modal-header">
+        <h2 class="w-modal-title">
+          {% if is_edit %}Edit Invoice{% else %}Create New Invoice{% endif %}
+        </h2>
+        <p class="w-modal-subtitle">
+          Fill in all required fields (*) to {% if is_edit %}update{% else %}create{% endif %} an invoice
+        </p>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="w-modal-body">
+        {% if customers|length >= 0 and amc_types|length >= 0 and items|length >= 0 %}
+        <form id="invoiceForm">
+          <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+          <div class="form-grid">
+            <!-- Left Column -->
+            <div class="form-column">
+              <h3 class="form-section-title">Invoice Information</h3>
+
+              <div class="form-group">
+                <label class="form-label">Invoice Number</label>
+                <input
+                  type="text"
+                  value="{% if is_edit %}{{ invoice.reference_id }}{% endif %}"
+                  class="form-input"
+                  readonly
+                />
+                <p class="form-help">Auto-generated invoice number</p>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">
+                  Customer<span class="form-required">*</span>
+                </label>
+                <div class="form-select-addon">
+                  <select id="customer" name="customer" class="form-input form-select" required>
+                    <option value="">Loading customers...</option>
+                  </select>
+                  <button type="button" onclick="openModal('customer')">+</button>
+                </div>
+                <p id="customerError" class="form-error" style="display: none;"></p>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">AMC Type</label>
+                <div class="form-select-addon">
+                  <select id="amc_type" name="amc_type" class="form-input form-select">
+                    <option value="">Loading AMC types...</option>
+                  </select>
+                  <button type="button" onclick="openModal('amc_type')">+</button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">
+                  Start Date<span class="form-required">*</span>
+                </label>
+                <input
+                  type="date"
+                  id="start_date"
+                  name="start_date"
+                  value="{% if is_edit %}{{ invoice.start_date|date:'Y-m-d' }}{% endif %}"
+                  required
+                  class="form-input"
+                />
+                <p id="startDateError" class="form-error" style="display: none;"></p>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">
+                  Due Date<span class="form-required">*</span>
+                </label>
+                <input
+                  type="date"
+                  id="due_date"
+                  name="due_date"
+                  value="{% if is_edit %}{{ invoice.due_date|date:'Y-m-d' }}{% endif %}"
+                  required
+                  class="form-input"
+                />
+                <p id="dueDateError" class="form-error" style="display: none;"></p>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Discount (%)</label>
+                <input
+                  type="number"
+                  id="discount"
+                  name="discount"
+                  step="0.01"
+                  value="{% if is_edit %}{{ invoice.discount }}{% else %}0{% endif %}"
+                  class="form-input"
+                />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Payment Term</label>
+                <div class="form-radio-group">
+                  <label class="form-radio-option {% if not is_edit or invoice.payment_term == 'cash' %}selected{% endif %}">
+                    <input
+                      type="radio"
+                      name="payment_term"
+                      value="cash"
+                      {% if not is_edit or invoice.payment_term == 'cash' %}checked{% endif %}
+                    />
+                    Cash
+                  </label>
+                  <label class="form-radio-option {% if is_edit and invoice.payment_term == 'cheque' %}selected{% endif %}">
+                    <input
+                      type="radio"
+                      name="payment_term"
+                      value="cheque"
+                      {% if is_edit and invoice.payment_term == 'cheque' %}checked{% endif %}
+                    />
+                    Cheque
+                  </label>
+                  <label class="form-radio-option {% if is_edit and invoice.payment_term == 'neft' %}selected{% endif %}">
+                    <input
+                      type="radio"
+                      name="payment_term"
+                      value="neft"
+                      {% if is_edit and invoice.payment_term == 'neft' %}checked{% endif %}
+                    />
+                    NEFT
+                  </label>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Status</label>
+                <div class="form-radio-group">
+                  <label class="form-radio-option {% if not is_edit or invoice.status == 'open' %}selected{% endif %}">
+                    <input
+                      type="radio"
+                      name="status"
+                      value="open"
+                      {% if not is_edit or invoice.status == 'open' %}checked{% endif %}
+                    />
+                    Open
+                  </label>
+                  <label class="form-radio-option {% if is_edit and invoice.status == 'paid' %}selected{% endif %}">
+                    <input
+                      type="radio"
+                      name="status"
+                      value="paid"
+                      {% if is_edit and invoice.status == 'paid' %}checked{% endif %}
+                    />
+                    Paid
+                  </label>
+                  <label class="form-radio-option {% if is_edit and invoice.status == 'partially_paid' %}selected{% endif %}">
+                    <input
+                      type="radio"
+                      name="status"
+                      value="partially_paid"
+                      {% if is_edit and invoice.status == 'partially_paid' %}checked{% endif %}
+                    />
+                    Partially Paid
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="form-column">
+              <h3 class="form-section-title">Additional Details</h3>
+
+              <div class="form-group">
+                <label class="form-label">Upload Files</label>
+                <input
+                  type="file"
+                  id="uploads_files"
+                  name="uploads_files"
+                  class="form-input"
+                />
+              </div>
+
+              <div class="form-group">
+                <h4 class="form-section-title">Invoice Items</h4>
+                <button type="button" class="btn btn-success" onclick="addInvoiceItem()">
+                  + Add Item
+                </button>
+                
+                <table class="items-table" id="itemsTable">
+                  <thead>
+                    <tr>
+                      <th>Item</th>
+                      <th>Rate</th>
+                      <th>Qty</th>
+                      <th>Tax (%)</th>
+                      <th>Total</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="itemsTableBody">
+                    {% if is_edit and invoice.items.all %}
+                      {% for item in invoice.items.all %}
+                      <tr>
+                        <td>
+                          <select name="items[{{ forloop.counter0 }}][item]" class="form-input form-select">
+                            <option value="">Select Item</option>
+                          </select>
+                        </td>
+                        <td><input type="number" name="items[{{ forloop.counter0 }}][rate]" value="{{ item.rate }}" step="0.01" class="form-input" /></td>
+                        <td><input type="number" name="items[{{ forloop.counter0 }}][qty]" value="{{ item.qty }}" class="form-input" /></td>
+                        <td><input type="number" name="items[{{ forloop.counter0 }}][tax]" value="{{ item.tax }}" step="0.01" class="form-input" /></td>
+                        <td><span class="item-total">{{ item.total }}</span></td>
+                        <td><button type="button" class="btn btn-danger" onclick="removeInvoiceItem(this)">Remove</button></td>
+                      </tr>
+                      {% endfor %}
+                    {% endif %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </form>
+        {% else %}
+        <div class="loading-spinner">
+          <div class="spinner"></div>
+          <span>Loading options...</span>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="w-modal-footer">
+        <div class="flex gap-3">
+          <button type="button" class="btn btn-secondary" onclick="handleCancel()">Cancel</button>
+          <button
+            type="button"
+            id="submitBtn"
+            class="btn btn-primary"
+            onclick="handleFormSubmit()"
+          >
+            {% if is_edit %}Update Invoice{% else %}Create Invoice{% endif %}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Option Modal -->
+  <div id="optionModal" class="option-modal">
+    <div class="option-modal-dialog">
+      <div class="option-modal-header">
+        <h3 class="option-modal-title" id="modalTitle">Add New Option</h3>
+      </div>
+      <div class="option-modal-body">
+        <div class="form-group">
+          <label class="form-label">Name</label>
+          <input
+            type="text"
+            id="modalInput"
+            class="form-input"
+            placeholder="Enter value"
+          />
+          <p id="modalError" class="form-error" style="display: none;"></p>
+        </div>
+        <div class="option-list" id="existingOptions">
+          <table class="option-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th class="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="optionTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="option-modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        <button
+          type="button"
+          id="saveOptionBtn"
+          class="btn btn-primary"
+          onclick="saveOption()"
+        >
+          Save
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+</div>
+
+<script>
+let currentModalType = '';
+let currentEditId = null;
+let itemCounter = 0;
+const isEditMode = {% if is_edit %}true{% else %}false{% endif %};
+const submitUrl = "{% if is_edit %}{% url 'edit_invoice_custom' invoice.reference_id %}{% else %}{% url 'add_invoice_custom' %}{% endif %}";
+const adminHomeUrl = "{% url 'wagtailadmin_home' %}";
+
+const currentCustomerId = {% if is_edit and invoice.customer %}{{ invoice.customer.id }}{% else %}null{% endif %};
+const currentAmcTypeId = {% if is_edit and invoice.amc_type %}{{ invoice.amc_type.id }}{% else %}null{% endif %};
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadCustomers();
+  loadAmcTypes();
+  loadItems();
+  setupRadioButtonInteractions();
+  setupItemCalculations();
+  
+  // If in edit mode, populate existing items
+  if (isEditMode) {
+    populateExistingItems();
+  }
+});
+
+function setupRadioButtonInteractions() {
+  const paymentTermRadios = document.querySelectorAll('input[name="payment_term"]');
+  const statusRadios = document.querySelectorAll('input[name="status"]');
+
+  paymentTermRadios.forEach(radio => radio.addEventListener('change', updateRadioSelection));
+  statusRadios.forEach(radio => radio.addEventListener('change', updateRadioSelection));
+}
+
+function updateRadioSelection() {
+  document.querySelectorAll('.form-radio-option').forEach(option => {
+    const radio = option.querySelector('input[type="radio"]');
+    option.classList.toggle('selected', radio.checked);
+  });
+}
+
+function setupItemCalculations() {
+  document.addEventListener('input', function(e) {
+    if (e.target.matches('input[name*="[rate]"], input[name*="[qty]"], input[name*="[tax]"]')) {
+      calculateItemTotal(e.target.closest('tr'));
+    }
+  });
+}
+
+function calculateItemTotal(row) {
+  const rate = parseFloat(row.querySelector('input[name*="[rate]"]').value) || 0;
+  const qty = parseFloat(row.querySelector('input[name*="[qty]"]').value) || 0;
+  const tax = parseFloat(row.querySelector('input[name*="[tax]"]').value) || 0;
+  
+  const total = rate * qty * (1 + (tax / 100));
+  row.querySelector('.item-total').textContent = total.toFixed(2);
+}
+
+async function fetchOptions(endpoint, selectId, currentId) {
+  try {
+    const response = await fetch(`/invoice/api/${endpoint}/`, {
+      headers: { 'X-CSRFToken': getCsrfToken() }
+    });
+    if (!response.ok) throw new Error(`Failed to load ${endpoint}`);
+    const data = await response.json();
+    const select = document.getElementById(selectId);
+    select.innerHTML = '<option value="">Select ' + selectId.charAt(0).toUpperCase() + selectId.slice(1).replace('_', ' ') + '</option>';
+    data.forEach(item => {
+      const option = document.createElement('option');
+      option.value = item.id;
+      option.textContent = item.site_name || item.name || item.name;
+      if (currentId && item.id === currentId) option.selected = true;
+      select.appendChild(option);
+    });
+  } catch (error) {
+    console.error(`Error loading ${endpoint}:`, error);
+    document.getElementById(selectId).innerHTML = `<option value="">Error loading ${selectId}s</option>`;
+  }
+}
+
+function loadCustomers() { fetchOptions('customers', 'customer', currentCustomerId); }
+function loadAmcTypes() { fetchOptions('amc-types', 'amc_type', currentAmcTypeId); }
+function loadItems() { fetchOptions('items', 'item', null); }
+
+function addInvoiceItem() {
+  const tbody = document.getElementById('itemsTableBody');
+  const row = document.createElement('tr');
+  row.innerHTML = `
+    <td>
+      <select name="items[${itemCounter}][item]" class="form-input form-select">
+        <option value="">Select Item</option>
+      </select>
+    </td>
+    <td><input type="number" name="items[${itemCounter}][rate]" step="0.01" class="form-input" /></td>
+    <td><input type="number" name="items[${itemCounter}][qty]" value="1" class="form-input" /></td>
+    <td><input type="number" name="items[${itemCounter}][tax]" step="0.01" class="form-input" /></td>
+    <td><span class="item-total">0.00</span></td>
+    <td><button type="button" class="btn btn-danger" onclick="removeInvoiceItem(this)">Remove</button></td>
+  `;
+  
+  // Populate item dropdown
+  populateItemDropdown(row.querySelector('select[name*="[item]"]'));
+  tbody.appendChild(row);
+  itemCounter++;
+}
+
+function removeInvoiceItem(button) {
+  button.closest('tr').remove();
+}
+
+function populateItemDropdown(select) {
+  fetch('/invoice/api/items/')
+    .then(response => response.json())
+    .then(data => {
+      data.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.id;
+        option.textContent = `${item.name} - ₹${item.sale_price}`;
+        select.appendChild(option);
+      });
+    })
+    .catch(error => console.error('Error loading items:', error));
+}
+
+function populateExistingItems() {
+  // This function would populate existing items in edit mode
+  // The template already handles this with Django template tags
+}
+
+function openModal(type, editId = null, editValue = '') {
+  currentModalType = type;
+  currentEditId = editId;
+  const modal = document.getElementById('optionModal');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalInput = document.getElementById('modalInput');
+  const saveBtn = document.getElementById('saveOptionBtn');
+
+  modalTitle.textContent = editId ? `Edit ${type.charAt(0).toUpperCase() + type.slice(1)}` : `Add New ${type.charAt(0).toUpperCase() + type.slice(1)}`;
+  modalInput.value = editValue;
+  saveBtn.textContent = editId ? `Update ${type.charAt(0).toUpperCase() + type.slice(1)}` : `Add ${type.charAt(0).toUpperCase() + type.slice(1)}`;
+  saveBtn.disabled = !editValue.trim();
+  modal.classList.add('active');
+  loadExistingOptions(type);
+}
+
+function closeModal() {
+  document.getElementById('optionModal').classList.remove('active');
+  document.getElementById('modalInput').value = '';
+  document.getElementById('modalError').style.display = 'none';
+  currentEditId = null;
+}
+
+async function loadExistingOptions(type) {
+  try {
+    const response = await fetch(`/invoice/api/${type}s/`, {
+      headers: { 'X-CSRFToken': getCsrfToken() }
+    });
+    if (!response.ok) throw new Error(`Failed to load ${type}s`);
+    const data = await response.json();
+    const tbody = document.getElementById('optionTableBody');
+    tbody.innerHTML = data.length ? data.map(item => `
+      <tr>
+        <td>${item.site_name || item.name || item.name}</td>
+        <td class="text-right">
+          <button type="button" class="btn btn-edit" onclick="openModal('${type}', ${item.id}, '${(item.site_name || item.name || item.name).replace(/'/g, "\\'")}')">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+          </button>
+          <button type="button" class="btn btn-delete" onclick="deleteOption('${type}', ${item.id})">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-4h4M7 7h10m-9 3v8m4-8v8m4-8v8" />
+            </svg>
+          </button>
+        </td>
+      </tr>
+    `).join('') : `<tr><td colspan="2" class="text-center text-gray-500">No ${type}s found</td></tr>`;
+  } catch (error) {
+    console.error(`Error loading ${type}s:`, error);
+    document.getElementById('optionTableBody').innerHTML = `<tr><td colspan="2" class="text-center text-gray-500">Error loading ${type}s</td></tr>`;
+  }
+}
+
+async function saveOption() {
+  const value = document.getElementById('modalInput').value.trim();
+  const modalError = document.getElementById('modalError');
+  if (!value) {
+    modalError.textContent = `Please enter a ${currentModalType}`;
+    modalError.style.display = 'block';
+    return;
+  }
+
+  try {
+    const method = currentEditId ? 'PUT' : 'POST';
+    const url = currentEditId ? `/invoice/api/${currentModalType}s/${currentEditId}/` : `/invoice/api/${currentModalType}s/`;
+    const response = await fetch(url, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: JSON.stringify({ 
+        site_name: value,
+        name: value 
+      })
+    });
+    const data = await response.json();
+    if (data.success) {
+      const select = document.getElementById(currentModalType);
+      if (!currentEditId) {
+        const option = new Option(data.site_name || data.name, data.id);
+        select.appendChild(option);
+        select.value = data.id;
+      } else {
+        const option = select.querySelector(`option[value="${currentEditId}"]`);
+        if (option) option.textContent = data.site_name || data.name;
+      }
+      closeModal();
+      showMessage('success', `${currentModalType.charAt(0).toUpperCase() + currentModalType.slice(1)} ${currentEditId ? 'updated' : 'added'} successfully`);
+      loadExistingOptions(currentModalType);
+      fetchOptions(`${currentModalType}s`, currentModalType, select.value);
+    } else {
+      modalError.textContent = data.error || `Failed to ${currentEditId ? 'update' : 'add'} ${currentModalType}`;
+      modalError.style.display = 'block';
+    }
+  } catch (error) {
+    console.error(`Error ${currentEditId ? 'updating' : 'adding'} ${currentModalType}:`, error);
+    modalError.textContent = `Failed to ${currentEditId ? 'update' : 'add'} ${currentModalType}`;
+    modalError.style.display = 'block';
+  }
+}
+
+async function deleteOption(type, id) {
+  if (!confirm(`Are you sure you want to delete this ${type}?`)) return;
+
+  try {
+    const response = await fetch(`/invoice/api/${type}s/${id}/`, {
+      method: 'DELETE',
+      headers: { 'X-CSRFToken': getCsrfToken() }
+    });
+    const data = await response.json();
+    if (data.success) {
+      const select = document.getElementById(type);
+      const option = select.querySelector(`option[value="${id}"]`);
+      if (option) option.remove();
+      showMessage('success', `${type.charAt(0).toUpperCase() + type.slice(1)} deleted successfully`);
+      loadExistingOptions(type);
+      fetchOptions(`${type}s`, type, select.value);
+    } else {
+      showMessage('error', data.error || `Failed to delete ${type}`);
+    }
+  } catch (error) {
+    console.error(`Error deleting ${type}:`, error);
+    showMessage('error', `Failed to delete ${type}`);
+  }
+}
+
+function getCsrfToken() {
+  return document.querySelector('[name=csrfmiddlewaretoken]').value;
+}
+
+function showMessage(type, message, description = '') {
+  const toast = document.createElement('div');
+  toast.className = `toast toast--${type}`;
+  toast.innerHTML = `
+    <div class="toast-content">
+      <div class="toast-message">
+        <strong>${type.charAt(0).toUpperCase() + type.slice(1)}:</strong> ${message}
+        ${description ? `<div>${description}</div>` : ''}
+      </div>
+      <button class="toast-close" onclick="this.parentElement.parentElement.remove()">×</button>
+    </div>
+  `;
+  const toastContainer = document.getElementById('toastContainer');
+  toastContainer.appendChild(toast);
+  setTimeout(() => {
+    if (toast.parentElement) toast.remove();
+  }, type === 'success' ? 3000 : 5000);
+}
+
+function validateForm() {
+  const errors = {};
+  const customer = document.getElementById('customer').value;
+  const startDate = document.getElementById('start_date').value;
+  const dueDate = document.getElementById('due_date').value;
+
+  if (!customer) errors.customer = 'Customer is required';
+  if (!startDate) errors.startDate = 'Start date is required';
+  if (!dueDate) errors.dueDate = 'Due date is required';
+
+  document.getElementById('customerError').textContent = errors.customer || '';
+  document.getElementById('customerError').style.display = errors.customer ? 'block' : 'none';
+  document.getElementById('startDateError').textContent = errors.startDate || '';
+  document.getElementById('startDateError').style.display = errors.startDate ? 'block' : 'none';
+  document.getElementById('dueDateError').textContent = errors.dueDate || '';
+  document.getElementById('dueDateError').style.display = errors.dueDate ? 'block' : 'none';
+
+  return Object.keys(errors).length === 0;
+}
+
+function createFormData() {
+  const form = document.getElementById('invoiceForm');
+  const data = {};
+  const formData = new FormData(form);
+  
+  // Process regular fields
+  for (const [key, value] of formData.entries()) {
+    if (key.startsWith('items[')) {
+      // Handle items separately
+      continue;
+    }
+    if (key === 'discount') {
+      data[key] = parseFloat(value) || 0;
+    } else if (key === 'customer' || key === 'amc_type') {
+      data[key] = value ? parseInt(value) : null;
+    } else {
+      data[key] = value;
+    }
+  }
+  
+  // Process items
+  const items = [];
+  const itemRows = document.querySelectorAll('#itemsTableBody tr');
+  itemRows.forEach((row, index) => {
+    const item = {};
+    const inputs = row.querySelectorAll('input, select');
+    inputs.forEach(input => {
+      const name = input.name;
+      if (name.includes('[item]')) {
+        item.item = input.value ? parseInt(input.value) : null;
+      } else if (name.includes('[rate]')) {
+        item.rate = parseFloat(input.value) || 0;
+      } else if (name.includes('[qty]')) {
+        item.qty = parseInt(input.value) || 1;
+      } else if (name.includes('[tax]')) {
+        item.tax = parseFloat(input.value) || 0;
+      }
+    });
+    if (item.item) { // Only add items that have an item selected
+      items.push(item);
+    }
+  });
+  data.items = items;
+  
+  return data;
+}
+
+async function handleFormSubmit() {
+  if (!validateForm()) return;
+
+  const submitButton = document.getElementById('submitBtn');
+  const originalText = submitButton.textContent;
+  submitButton.textContent = 'Saving...';
+  submitButton.disabled = true;
+
+  try {
+    const data = createFormData();
+    const response = await fetch(submitUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: JSON.stringify(data)
+    });
+    const result = await response.json();
+    submitButton.textContent = originalText;
+    submitButton.disabled = false;
+
+    if (result.success) {
+      showMessage('success', result.message || (isEditMode ? 'Invoice updated successfully' : 'Invoice created successfully'));
+      setTimeout(() => {
+        window.location.href = adminHomeUrl;
+      }, 2000);
+    } else {
+      showMessage('error', result.error || 'Failed to save invoice');
+    }
+  } catch (error) {
+    console.error('Error saving invoice:', error);
+    submitButton.textContent = originalText;
+    submitButton.disabled = false;
+    showMessage('error', 'An error occurred while saving the invoice');
+  }
+}
+
+function handleCancel() {
+  document.getElementById('invoiceForm').reset();
+  document.getElementById('customerError').style.display = 'none';
+  document.getElementById('startDateError').style.display = 'none';
+  document.getElementById('dueDateError').style.display = 'none';
+  window.history.back();
+}
+
+document.getElementById('optionModal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('optionModal')) closeModal();
+});
+
+document.getElementById('modalInput').addEventListener('input', (e) => {
+  const saveBtn = document.getElementById('saveOptionBtn');
+  saveBtn.disabled = !e.target.value.trim();
+});
+</script>
+{% endblock %}
+
+
+
