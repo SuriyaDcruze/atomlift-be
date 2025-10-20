@@ -14,3 +14,7 @@ def lionsol_homepage(request):
         'open_complaints': open_complaints,
     }
     return render(request, 'home/lionsol_homepage.html', context)
+
+def custom_dashboard(request):
+    """View for the custom dashboard"""
+    return render(request, 'custom_dashboard.html')
