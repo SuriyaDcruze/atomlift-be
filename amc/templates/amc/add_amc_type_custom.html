@@ -258,7 +258,7 @@ body {
 <script>
 const isEditMode = {% if is_edit %}true{% else %}false{% endif %};
 const submitUrl = "{% if is_edit %}{% url 'edit_amc_type_custom' amc_type.id|stringformat:'s' %}{% else %}{% url 'add_amc_type_custom' %}{% endif %}";
-const adminHomeUrl = "{% url 'wagtailadmin_home' %}";
+const adminHomeUrl = "/admin/snippets/amc/amc";
 
 function validateForm() {
   const errors = {};

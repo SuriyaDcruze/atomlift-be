@@ -673,7 +673,7 @@ body {
 var isEditMode = {% if is_edit %}true{% else %}false{% endif %};
 // FIX: Use the correct endpoint for POST submissions ('create_quotation' or 'update_quotation')
 var submitUrl = "{% if is_edit %}{% url 'update_quotation' quotation.reference_id %}{% else %}{% url 'create_quotation' %}{% endif %}";
-var adminHomeUrl = "{% url 'wagtailadmin_home' %}";
+var adminHomeUrl = "/admin/snippets/Quotation/quotation";
 
 // Edit mode variables
 var currentCustomerId = {% if is_edit and quotation.customer %}{{ quotation.customer.id }}{% else %}null{% endif %};

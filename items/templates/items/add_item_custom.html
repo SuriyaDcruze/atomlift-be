@@ -781,7 +781,7 @@ let currentModalType = '';
 let currentEditId = null;
 const isEditMode = {% if is_edit %}true{% else %}false{% endif %};
 const submitUrl = "{% if is_edit %}{% url 'edit_item_custom' item.item_number %}{% else %}{% url 'add_item_custom' %}{% endif %}";
-const adminHomeUrl = "{% url 'wagtailadmin_home' %}";
+const adminHomeUrl = "/admin/snippets/items/item";
 
 const currentMakeId = {% if is_edit and item.make %}{{ item.make.id }}{% else %}null{% endif %};
 const currentTypeId = {% if is_edit and item.type %}{{ item.type.id }}{% else %}null{% endif %};

@@ -409,7 +409,7 @@ body {
 <script>
 const isEditMode = {{ is_edit|yesno:"true,false" }};
 const submitUrl = "{% if is_edit and requisition %}{% url 'edit_requisition_custom' requisition.reference_id %}{% else %}{% url 'add_requisition_custom' %}{% endif %}";
-const adminHomeUrl = "{% url 'wagtailadmin_home' %}";
+const adminHomeUrl = "/admin/snippets/Requisition/requisition";
 
 function getCsrfToken() {
   return document.querySelector('[name=csrfmiddlewaretoken]').value;

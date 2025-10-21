@@ -576,7 +576,7 @@ body {
 <script>
 var isEditMode = {% if is_edit %}true{% else %}false{% endif %};
 var submitUrl = "{% if is_edit %}{% url 'update_recurring_invoice' recurring_invoice.reference_id %}{% else %}{% url 'create_recurring_invoice' %}{% endif %}";
-var adminHomeUrl = "{% url 'wagtailadmin_home' %}";
+var adminHomeUrl = "/admin/snippets/recurringInvoice/recurringinvoice";
 
 // Edit mode variables
 var currentCustomerId = {% if is_edit and recurring_invoice.customer %}{{ recurring_invoice.customer.id }}{% else %}null{% endif %};

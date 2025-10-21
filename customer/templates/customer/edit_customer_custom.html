@@ -172,7 +172,7 @@ body { font-family: -apple-system,BlinkMacSystemFont,'Segoe UI','Roboto','Oxygen
 
 <script>
 const submitUrl = "{% url 'edit_customer_custom' customer.id %}";
-const adminHomeUrl = "{% url 'wagtailadmin_home' %}";
+const adminHomeUrl = "/admin/snippets/customer/customer";
 
 function updateSiteName(value){var jobNo=document.getElementById('job_no').value;if(jobNo){document.getElementById('site_name').value=value+' - '+jobNo;}}
 function updateJobNo(value){var siteName=document.getElementById('site_name').value;if(siteName&&siteName.indexOf(' - ')==-1){document.getElementById('site_name').value=siteName+' - '+value;}else if(siteName.indexOf(' - ')!==-1){var baseName=siteName.split(' - ')[0];document.getElementById('site_name').value=baseName+' - '+value;}}

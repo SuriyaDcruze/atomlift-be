@@ -801,7 +801,7 @@ function titleCaseFromType(type) {
 }
 var isEditMode = {% if is_edit %}true{% else %}false{% endif %};
 var submitUrl = "{% if is_edit %}{% url 'edit_lift_custom' lift.lift_code %}{% else %}{% url 'add_lift_custom' %}{% endif %}";
-var adminHomeUrl = "{% url 'wagtailadmin_home' %}";
+var adminHomeUrl = "/admin/snippets/lift/lift";
 
 // Edit mode variables
 var currentFloorId = {% if is_edit and lift.floor_id %}{{ lift.floor_id.id }}{% else %}null{% endif %};

@@ -801,7 +801,7 @@ let currentModalType = '';
 const isEditMode = {% if is_edit %}true{% else %}false{% endif %};
 const submitUrl = "{% if is_edit %}{% url 'edit_customer_custom' customer.id %}{% else %}{% url 'add_customer_custom' %}{% endif %}";
 const amcUrl = "/admin/amc/add-custom/";
-const adminHomeUrl = "{% url 'wagtailadmin_home' %}";
+const adminHomeUrl = "/admin/snippets/customer/customer";
 
 function updateSiteName(value) {
   var jobNo = document.getElementById('job_no').value;

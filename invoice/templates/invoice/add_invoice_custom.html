@@ -825,7 +825,7 @@ let currentEditId = null;
 let itemCounter = 0;
 const isEditMode = {% if is_edit %}true{% else %}false{% endif %};
 const submitUrl = "{% if is_edit %}{% url 'edit_invoice_custom' invoice.reference_id %}{% else %}{% url 'add_invoice_custom' %}{% endif %}";
-const adminHomeUrl = "{% url 'wagtailadmin_home' %}";
+const adminHomeUrl = "/admin/snippets/invoice/invoice";
 
 const currentCustomerId = {% if is_edit and invoice.customer %}{{ invoice.customer.id }}{% else %}null{% endif %};
 const currentAmcTypeId = {% if is_edit and invoice.amc_type %}{{ invoice.amc_type.id }}{% else %}null{% endif %};
