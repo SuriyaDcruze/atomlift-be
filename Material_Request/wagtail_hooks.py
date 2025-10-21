@@ -35,12 +35,12 @@ class MaterialRequestGroup(SnippetViewSetGroup):
 # Register the Material Request group
 register_snippet(MaterialRequestGroup)
 
-# Custom menu item for Material Request frontend
-@hooks.register('register_admin_menu_item')
-def register_material_request_menu_item():
-    return MenuItem(
-        'Material Request',
-        reverse('material_request:material_request_frontend'),
-        icon_name='form',
-        order=10000
-    )
+# # Custom menu item for Material Request frontend
+# @hooks.register('register_admin_menu_item')
+# def register_material_request_menu_item():
+#     return MenuItem(
+#         'Material Request',
+#         reverse('material_request:material_request_frontend'),
+#         icon_name='form',
+#         order=10000
+#     )
