@@ -17,7 +17,7 @@ class MonthlyLoadGroup(SnippetViewSetGroup):
     menu_icon = "calendar"
     menu_label = "Monthly Load"
     menu_name = "monthly_load"
-    menu_order = 7
+    menu_order = 9
 
 # Register the Monthly Load group
 register_snippet(MonthlyLoadGroup)

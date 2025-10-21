@@ -50,5 +50,5 @@ def register_reports_menu():
         submenu,
         name='custom_reports',
         icon_name='doc-full-inverse',
-        order=10
+        order=12
     )

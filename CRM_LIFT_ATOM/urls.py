@@ -24,6 +24,7 @@ urlpatterns = [
     path('material_request/', include('Material_Request.urls')),
     path('monthly_load/', include('monthly_load.urls')),
     path('service_schedule/', include('services_shedule.urls')),
+    path('routine-services/', include('Routine_services.urls')),
     path("django-admin/", admin.site.urls),
     path("admin/", include(wagtailadmin_urls)),
     path("documents/", include(wagtaildocs_urls)),

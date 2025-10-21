@@ -30,7 +30,7 @@ class MaterialRequestGroup(SnippetViewSetGroup):
     menu_icon = "form"
     menu_label = "Material Request"
     menu_name = "material_request"
-    menu_order = 7
+    menu_order = 11
 
 # Register the Material Request group
 register_snippet(MaterialRequestGroup)

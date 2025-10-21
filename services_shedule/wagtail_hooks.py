@@ -17,7 +17,7 @@ class ServiceScheduleGroup(SnippetViewSetGroup):
     menu_icon = "date"
     menu_label = "Service Schedule"
     menu_name = "service_schedule"
-    menu_order = 8
+    menu_order = 10
 
 # Register the Service Schedule group
 register_snippet(ServiceScheduleGroup)
