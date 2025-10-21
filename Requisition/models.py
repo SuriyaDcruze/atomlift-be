@@ -149,7 +149,7 @@ class InventoryGroup(SnippetViewSetGroup):
     icon = "folder-open-inverse"
     menu_label = "Inventory "
     menu_name = "inventory"
-    menu_order = 9
+    menu_order = 12
 
 
 # ---------- REGISTER GROUP ----------
