@@ -484,19 +484,29 @@ tr {
             <table>
               <thead>
                 <tr>
-                  <th>Lift ID</th>
-                  <th>Model</th>
-                  <th>Capacity</th>
+                  <th>Lift Code</th>
+                  <th>Name</th>
+                  <th>Floor</th>
                   <th>Brand</th>
+                  <th>Model</th>
+                  <th>Passengers</th>
+                  <th>Load (Kg)</th>
+                  <th>Speed</th>
+                  <th>Lift Type</th>
                 </tr>
               </thead>
               <tbody>
                 {% for lift in lifts %}
                 <tr>
-                  <td>{{ lift.lift_code|default:"N/A" }}</td>
+                  <td><strong>{{ lift.lift_code|default:"N/A" }}</strong></td>
+                  <td>{{ lift.name|default:"N/A" }}</td>
+                  <td>{{ lift.floor_id.value|default:"N/A" }}</td>
+                  <td>{{ lift.brand.value|default:"N/A" }}</td>
                   <td>{{ lift.model|default:"N/A" }}</td>
-                  <td>{{ lift.capacity|default:"N/A" }}</td>
-                  <td>{{ lift.brand|default:"N/A" }}</td>
+                  <td>{{ lift.no_of_passengers|default:"N/A" }}</td>
+                  <td>{{ lift.load_kg|default:"N/A" }}</td>
+                  <td>{{ lift.speed|default:"N/A" }}</td>
+                  <td>{{ lift.lift_type.value|default:"N/A" }}</td>
                 </tr>
                 {% endfor %}
               </tbody>
@@ -509,6 +519,106 @@ tr {
           </div>
           {% endif %}
         </div>
+
+        <!-- Lift Details Section -->
+        {% if lifts %}
+        <div class="mt-8">
+          <h3 class="form-section-title">Detailed Lift Information</h3>
+          {% for lift in lifts %}
+          <div style="background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem;">
+            <h4 style="font-weight: 600; color: #374151; margin-bottom: 0.5rem;">
+              Lift Code: {{ lift.lift_code|default:"N/A" }} - {{ lift.name|default:"N/A" }}
+            </h4>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Reference ID</label>
+                <div class="form-value">{{ lift.reference_id|default:"N/A" }}</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Lift Code</label>
+                <div class="form-value">{{ lift.lift_code|default:"N/A" }}</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Name</label>
+                <div class="form-value">{{ lift.name|default:"N/A" }}</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Floor ID</label>
+                <div class="form-value">{{ lift.floor_id.value|default:"N/A" }}</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Brand</label>
+                <div class="form-value">{{ lift.brand.value|default:"N/A" }}</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Model</label>
+                <div class="form-value">{{ lift.model|default:"N/A" }}</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">No. of Passengers</label>
+                <div class="form-value">{{ lift.no_of_passengers|default:"N/A" }}</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Load (Kg)</label>
+                <div class="form-value">{{ lift.load_kg|default:"N/A" }}</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Speed</label>
+                <div class="form-value">{{ lift.speed|default:"N/A" }}</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Lift Type</label>
+                <div class="form-value">{{ lift.lift_type.value|default:"N/A" }}</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Machine Type</label>
+                <div class="form-value">{{ lift.machine_type.value|default:"N/A" }}</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Machine Brand</label>
+                <div class="form-value">{{ lift.machine_brand.value|default:"N/A" }}</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Door Type</label>
+                <div class="form-value">{{ lift.door_type.value|default:"N/A" }}</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Door Brand</label>
+                <div class="form-value">{{ lift.door_brand.value|default:"N/A" }}</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Controller Brand</label>
+                <div class="form-value">{{ lift.controller_brand.value|default:"N/A" }}</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Cabin</label>
+                <div class="form-value">{{ lift.cabin.value|default:"N/A" }}</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Block</label>
+                <div class="form-value">{{ lift.block|default:"N/A" }}</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">License No</label>
+                <div class="form-value">{{ lift.license_no|default:"N/A" }}</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">License Start Date</label>
+                <div class="form-value">{{ lift.license_start_date|date:"M d, Y"|default:"N/A" }}</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">License End Date</label>
+                <div class="form-value">{{ lift.license_end_date|date:"M d, Y"|default:"N/A" }}</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Price</label>
+                <div class="form-value">{{ lift.price|default:"N/A" }}</div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
 
         <!-- Invoices Section -->
         <div class="mt-8">

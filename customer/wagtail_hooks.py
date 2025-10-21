@@ -232,10 +232,18 @@ def edit_customer_custom(request, pk):
 
 def view_customer_custom(request, pk):
     """Custom view for viewing customer details in read-only mode"""
+    from lift.models import Lift
+    
     customer = get_object_or_404(Customer, pk=pk)
+    
+    # Get lifts assigned to this customer (where lift_code equals customer's job_no)
+    lifts = []
+    if customer.job_no:
+        lifts = Lift.objects.filter(lift_code=customer.job_no)
     
     context = {
         'customer': customer,
+        'lifts': lifts,
     }
     return render(request, 'customer/view_customer_custom.html', context)
 
