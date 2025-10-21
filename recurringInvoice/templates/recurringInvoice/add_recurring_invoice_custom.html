@@ -303,6 +303,58 @@ body {
   }
 }
 
+/* Items table styles */
+.items-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.items-table th,
+.items-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.items-table th {
+  background: #F3F4F6;
+  font-weight: 500;
+  color: #374151;
+}
+
+.items-table input[type="number"],
+.items-table select {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #D1D5DB;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+}
+
+.items-table .btn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.btn-success {
+  background: linear-gradient(to right, #10B981, #059669);
+  color: white;
+}
+
+.btn-success:hover {
+  background: linear-gradient(to right, #059669, #047857);
+}
+
+.btn-danger {
+  background: linear-gradient(to right, #EF4444, #DC2626);
+  color: white;
+}
+
+.btn-danger:hover {
+  background: linear-gradient(to right, #DC2626, #B91C1C);
+}
+
 /* Responsive adjustments to match lift add page */
 @media (max-width: 768px) {
   .form-grid {
@@ -482,6 +534,30 @@ body {
             </div>
           </div>
         </div>
+
+        <!-- Items Section (Full Width) -->
+        <div class="form-group" style="margin-top: 2rem;">
+          <h3 class="form-section-title">Invoice Items</h3>
+          <button type="button" class="btn btn-success" onclick="addInvoiceItem()" style="background: linear-gradient(to right, #10B981, #059669); margin-bottom: 1rem;">
+            + Add Item
+          </button>
+          
+          <table class="items-table" id="itemsTable" style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
+            <thead>
+              <tr style="background: #F3F4F6;">
+                <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #E5E7EB; font-weight: 500; color: #374151;">Item</th>
+                <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #E5E7EB; font-weight: 500; color: #374151;">Rate</th>
+                <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #E5E7EB; font-weight: 500; color: #374151;">Qty</th>
+                <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #E5E7EB; font-weight: 500; color: #374151;">Tax (%)</th>
+                <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #E5E7EB; font-weight: 500; color: #374151;">Total</th>
+                <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #E5E7EB; font-weight: 500; color: #374151;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="itemsTableBody">
+              <!-- Items will be added dynamically here -->
+            </tbody>
+          </table>
+        </div>
         {% else %}
         <div class="loading-spinner">
           <div class="spinner"></div>
@@ -529,12 +605,16 @@ body {
 var isEditMode = false;
 var submitUrl = "{% url 'create_recurring_invoice' %}";
 var adminHomeUrl = "/admin/snippets/recurringInvoice/recurringinvoice";
+var itemCounter = 0;
+var allItems = [];
 
 document.addEventListener('DOMContentLoaded', function() {
   loadCustomers();
   loadSalesPersons();
+  loadItems();
   document.getElementById('submitBtn').addEventListener('click', handleFormSubmit);
   fetchNextReferenceId();
+  setupItemCalculations();
 });
 
 function fetchNextReferenceId() {
@@ -596,6 +676,81 @@ function loadSalesPersons() {
       document.getElementById('sales_person').innerHTML = '<option value="">Error loading sales persons</option>';
       showMessage('error', 'Failed to load sales persons');
     });
+}
+
+function loadItems() {
+  fetch('/recurringInvoice/api/items/')
+    .then(response => response.json())
+    .then(data => {
+      allItems = data;
+      console.log('Items loaded:', allItems.length);
+    })
+    .catch(error => {
+      console.error('Error loading items:', error);
+      showMessage('error', 'Failed to load items');
+    });
+}
+
+function addInvoiceItem() {
+  const tbody = document.getElementById('itemsTableBody');
+  const row = document.createElement('tr');
+  row.innerHTML = `
+    <td>
+      <select name="items[${itemCounter}][item]" class="form-input form-select" onchange="updateItemRate(this)">
+        <option value="">Select Item</option>
+      </select>
+    </td>
+    <td><input type="number" name="items[${itemCounter}][rate]" step="0.01" class="form-input" value="0" /></td>
+    <td><input type="number" name="items[${itemCounter}][qty]" value="1" class="form-input" /></td>
+    <td><input type="number" name="items[${itemCounter}][tax]" step="0.01" class="form-input" value="0" /></td>
+    <td><span class="item-total">0.00</span></td>
+    <td><button type="button" class="btn btn-danger" onclick="removeInvoiceItem(this)">Remove</button></td>
+  `;
+  
+  // Populate item dropdown
+  const select = row.querySelector('select[name*="[item]"]');
+  allItems.forEach(item => {
+    const option = document.createElement('option');
+    option.value = item.id;
+    option.textContent = `${item.name} - ₹${item.sale_price}`;
+    option.dataset.price = item.sale_price;
+    select.appendChild(option);
+  });
+  
+  tbody.appendChild(row);
+  itemCounter++;
+}
+
+function removeInvoiceItem(button) {
+  button.closest('tr').remove();
+}
+
+function updateItemRate(selectElement) {
+  const selectedOption = selectElement.options[selectElement.selectedIndex];
+  const price = selectedOption.dataset.price;
+  if (price) {
+    const row = selectElement.closest('tr');
+    const rateInput = row.querySelector('input[name*="[rate]"]');
+    rateInput.value = price;
+    calculateItemTotal(row);
+  }
+}
+
+function setupItemCalculations() {
+  document.addEventListener('input', function(e) {
+    if (e.target.matches('input[name*="[rate]"], input[name*="[qty]"], input[name*="[tax]"]')) {
+      calculateItemTotal(e.target.closest('tr'));
+    }
+  });
+}
+
+function calculateItemTotal(row) {
+  const rate = parseFloat(row.querySelector('input[name*="[rate]"]').value) || 0;
+  const qty = parseFloat(row.querySelector('input[name*="[qty]"]').value) || 0;
+  const tax = parseFloat(row.querySelector('input[name*="[tax]"]').value) || 0;
+  
+  const total = rate * qty * (1 + (tax / 100));
+  row.querySelector('.item-total').textContent = total.toFixed(2);
 }
 
 function getCsrfToken() {
@@ -700,7 +855,7 @@ function createFormData() {
   formData.append('csrfmiddlewaretoken', getCsrfToken());
   formData.append('reference_id', document.getElementById('reference_id').value);
 
-  const elements = document.querySelectorAll('input:not([type=checkbox]):not([readonly]), select, textarea');
+  const elements = document.querySelectorAll('input:not([type=checkbox]):not([readonly]):not([name*="items["]), select:not([name*="items["]), textarea');
   elements.forEach(element => {
     if (element.name) {
       if (element.type === 'file') {
@@ -712,6 +867,28 @@ function createFormData() {
       }
     }
   });
+
+  // Add items data
+  const items = [];
+  const itemRows = document.querySelectorAll('#itemsTableBody tr');
+  itemRows.forEach((row, index) => {
+    const itemSelect = row.querySelector('select[name*="[item]"]');
+    const rateInput = row.querySelector('input[name*="[rate]"]');
+    const qtyInput = row.querySelector('input[name*="[qty]"]');
+    const taxInput = row.querySelector('input[name*="[tax]"]');
+    
+    if (itemSelect && itemSelect.value) {
+      const item = {
+        item: parseInt(itemSelect.value),
+        rate: parseFloat(rateInput.value) || 0,
+        qty: parseInt(qtyInput.value) || 1,
+        tax: parseFloat(taxInput.value) || 0
+      };
+      items.push(item);
+    }
+  });
+  
+  formData.append('items', JSON.stringify(items));
 
   return formData;
 }

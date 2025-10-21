@@ -71,6 +71,22 @@ def create_recurring_invoice(request):
             recurring_invoice.uploads_files = request.FILES['uploads_files']
             recurring_invoice.save()
         
+        # Handle items
+        from .models import RecurringInvoiceItem
+        items_json = data.get('items', '[]')
+        try:
+            items_data = json.loads(items_json)
+            for item_data in items_data:
+                RecurringInvoiceItem.objects.create(
+                    recurring_invoice=recurring_invoice,
+                    item_id=item_data.get('item'),
+                    rate=item_data.get('rate', 0),
+                    qty=item_data.get('qty', 1),
+                    tax=item_data.get('tax', 0)
+                )
+        except json.JSONDecodeError:
+            pass  # If items is not valid JSON, just skip it
+        
         return JsonResponse({
             "success": True,
             "message": f"Recurring Invoice {recurring_invoice.reference_id} created successfully"
@@ -115,6 +131,25 @@ def update_recurring_invoice(request, reference_id):
             recurring_invoice.uploads_files = request.FILES['uploads_files']
         
         recurring_invoice.save()
+        
+        # Handle items - clear existing and add new ones
+        from .models import RecurringInvoiceItem
+        items_json = data.get('items', '[]')
+        try:
+            items_data = json.loads(items_json)
+            # Clear existing items
+            recurring_invoice.items.all().delete()
+            # Add new items
+            for item_data in items_data:
+                RecurringInvoiceItem.objects.create(
+                    recurring_invoice=recurring_invoice,
+                    item_id=item_data.get('item'),
+                    rate=item_data.get('rate', 0),
+                    qty=item_data.get('qty', 1),
+                    tax=item_data.get('tax', 0)
+                )
+        except json.JSONDecodeError:
+            pass  # If items is not valid JSON, just skip it
         
         return JsonResponse({
             "success": True,
@@ -165,6 +200,43 @@ def get_sales_persons(request):
             if not full_name:
                 full_name = user.username
             data.append({"id": user.id, "username": user.username, "name": full_name})
+        return JsonResponse(data, safe=False)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@require_http_methods(["GET"])
+def get_items(request):
+    """Get all items"""
+    try:
+        from items.models import Item
+        items = Item.objects.all().order_by('name')
+        data = [
+            {"id": item.id, "name": item.name, "sale_price": str(item.sale_price)}
+            for item in items
+        ]
+        return JsonResponse(data, safe=False)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@require_http_methods(["GET"])
+def get_recurring_invoice_items(request, reference_id):
+    """Get items for a specific recurring invoice"""
+    try:
+        recurring_invoice = get_object_or_404(RecurringInvoice, reference_id=reference_id)
+        items = recurring_invoice.items.all().select_related('item')
+        data = [
+            {
+                "id": item.id,
+                "item": {"id": item.item.id, "name": item.item.name} if item.item else None,
+                "rate": str(item.rate),
+                "qty": item.qty,
+                "tax": str(item.tax),
+                "total": str(item.total)
+            }
+            for item in items
+        ]
         return JsonResponse(data, safe=False)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)

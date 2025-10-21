@@ -16,6 +16,8 @@ urlpatterns = [
     path('api/customers/', views.get_customers, name='recurring_invoice_api_customers'),
     path('api/sales-persons/', views.get_sales_persons, name='recurring_invoice_api_sales_persons'),
     path('api/recurring-invoices/', views.get_recurring_invoices, name='recurring_invoice_api_recurring_invoices'),
+    path('api/items/', views.get_items, name='recurring_invoice_api_items'),
+    path('api/recurring-invoice-items/<str:reference_id>/', views.get_recurring_invoice_items, name='recurring_invoice_api_items_by_ref'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 
