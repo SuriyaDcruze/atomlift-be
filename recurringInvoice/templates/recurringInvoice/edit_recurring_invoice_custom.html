@@ -659,7 +659,6 @@ var allItems = [];
 // Edit mode variables
 var currentCustomerId = {% if is_edit and recurring_invoice.customer %}{{ recurring_invoice.customer.id }}{% else %}null{% endif %};
 var currentSalesPersonId = {% if is_edit and recurring_invoice.sales_person %}{{ recurring_invoice.sales_person.id }}{% else %}null{% endif %};
-var existingItems = {{ recurring_invoice.items.all|safe|default:"[]" }};
 
 document.addEventListener('DOMContentLoaded', function() {
   // Load various dropdowns dynamically on page load
@@ -730,7 +729,7 @@ function loadItems() {
       allItems = data;
       console.log('Items loaded:', allItems.length);
       // Load existing items if in edit mode
-      if (isEditMode && existingItems) {
+      if (isEditMode) {
         loadExistingItems();
       }
     })
@@ -743,15 +742,23 @@ function loadItems() {
 function loadExistingItems() {
   // Existing items should be loaded from the backend
   fetch('/recurringInvoice/api/recurring-invoice-items/{{ recurring_invoice.reference_id }}/')
-    .then(function(response) { return response.json(); })
+    .then(function(response) { 
+      if (!response.ok) {
+        throw new Error('Failed to load items');
+      }
+      return response.json(); 
+    })
     .then(function(items) {
-      items.forEach(function(item) {
-        addInvoiceItem(item);
-      });
+      console.log('Loaded existing items:', items);
+      if (Array.isArray(items)) {
+        items.forEach(function(item) {
+          addInvoiceItem(item);
+        });
+      }
     })
     .catch(function(error) {
       console.log('Note: Could not load existing items', error);
-      // This is OK if the API endpoint doesn't exist yet
+      // This is OK - invoice might not have items yet
     });
 }
 

@@ -888,6 +888,7 @@ function createFormData() {
     }
   });
   
+  console.log('Items to submit:', items);
   formData.append('items', JSON.stringify(items));
 
   return formData;

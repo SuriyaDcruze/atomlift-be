@@ -102,11 +102,41 @@ class RecurringInvoiceItem(models.Model):
     ]
 
     def save(self, *args, **kwargs):
-        self.total = self.rate * self.qty * (1 + (self.tax / 100))
+        from decimal import Decimal
+        # Ensure values are Decimal for accurate calculation
+        rate = Decimal(str(self.rate)) if self.rate else Decimal('0')
+        qty = Decimal(str(self.qty)) if self.qty else Decimal('1')
+        tax = Decimal(str(self.tax)) if self.tax else Decimal('0')
+        
+        self.total = rate * qty * (1 + (tax / 100))
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"Item for {self.recurring_invoice.reference_id}"
+        try:
+            # Handle item name safely
+            if self.item:
+                if hasattr(self.item, 'name'):
+                    item_name = str(self.item.name)
+                elif isinstance(self.item, dict):
+                    item_name = self.item.get('name', 'Unknown Item')
+                else:
+                    item_name = "Item"
+            else:
+                item_name = "No Item"
+            
+            # Handle invoice reference safely
+            if self.recurring_invoice:
+                if hasattr(self.recurring_invoice, 'reference_id'):
+                    invoice_ref = str(self.recurring_invoice.reference_id)
+                else:
+                    invoice_ref = "Invoice"
+            else:
+                invoice_ref = "Unknown Invoice"
+            
+            return f"{item_name} for {invoice_ref}"
+        except Exception as e:
+            # Last resort fallback
+            return f"RecurringInvoiceItem #{self.id if hasattr(self, 'id') and self.id else 'New'}"
     
 
 # recurring_invoice/models.py (ViewSet and Grouping)

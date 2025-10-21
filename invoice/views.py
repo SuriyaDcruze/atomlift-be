@@ -125,46 +125,49 @@ def download_invoice_pdf(request, pk):
         return HttpResponse(f"Error generating PDF: {str(e)}", status=500)
 
 
+from .models import Invoice, InvoiceItem
+
+@csrf_exempt
 def add_invoice_custom(request):
-    """Custom add invoice page"""
     from customer.models import Customer
     from amc.models import AMCType
     from items.models import Item
     
-    customers = Customer.objects.all()
-    amc_types = AMCType.objects.all()
-    items = Item.objects.all()
-
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            
-            # Create new invoice
+
             invoice = Invoice.objects.create(
-                customer_id=data.get('customer') if data.get('customer') else None,
-                amc_type_id=data.get('amc_type') if data.get('amc_type') else None,
+                customer_id=data.get('customer') or None,
+                amc_type_id=data.get('amc_type') or None,
                 start_date=data.get('start_date'),
                 due_date=data.get('due_date'),
                 discount=data.get('discount', 0),
                 payment_term=data.get('payment_term', 'cash'),
                 status=data.get('status', 'open'),
-                uploads_files=data.get('uploads_files')
             )
-            
-            # Add invoice items
-            items_data = data.get('items', [])
-            for item_data in items_data:
+
+            # ✅ Save invoice items correctly
+            for item_data in data.get('items', []):
+                if not item_data.get('item'):
+                    continue
                 InvoiceItem.objects.create(
                     invoice=invoice,
-                    item_id=item_data.get('item') if item_data.get('item') else None,
+                    item_id=item_data.get('item'),
                     rate=item_data.get('rate', 0),
                     qty=item_data.get('qty', 1),
-                    tax=item_data.get('tax', 0)
+                    tax=item_data.get('tax', 0),
                 )
-            
+
             return JsonResponse({'success': True, 'message': 'Invoice created successfully'})
+
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
+
+    # GET: render form
+    customers = Customer.objects.all()
+    amc_types = AMCType.objects.all()
+    items = Item.objects.all()
 
     return render(request, 'invoice/add_invoice_custom.html', {
         'customers': customers,
@@ -193,8 +196,8 @@ def edit_invoice_custom(request, reference_id):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            
-            # Update invoice
+
+            # Update invoice fields
             invoice.customer_id = data.get('customer') if data.get('customer') else None
             invoice.amc_type_id = data.get('amc_type') if data.get('amc_type') else None
             invoice.start_date = data.get('start_date')
@@ -205,20 +208,11 @@ def edit_invoice_custom(request, reference_id):
             if data.get('uploads_files'):
                 invoice.uploads_files = data.get('uploads_files')
             invoice.save()
-            
-            # Clear existing items and add new ones
-            invoice.items.all().delete()
-            items_data = data.get('items', [])
-            for item_data in items_data:
-                InvoiceItem.objects.create(
-                    invoice=invoice,
-                    item_id=item_data.get('item') if item_data.get('item') else None,
-                    rate=item_data.get('rate', 0),
-                    qty=item_data.get('qty', 1),
-                    tax=item_data.get('tax', 0)
-                )
+
+
 
             return JsonResponse({'success': True, 'message': 'Invoice updated successfully'})
+
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
 

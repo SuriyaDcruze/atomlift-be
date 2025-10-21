@@ -73,27 +73,50 @@ def create_recurring_invoice(request):
         
         # Handle items
         from .models import RecurringInvoiceItem
+        from items.models import Item
         items_json = data.get('items', '[]')
+        items_created = 0
         try:
             items_data = json.loads(items_json)
             for item_data in items_data:
-                RecurringInvoiceItem.objects.create(
-                    recurring_invoice=recurring_invoice,
-                    item_id=item_data.get('item'),
-                    rate=item_data.get('rate', 0),
-                    qty=item_data.get('qty', 1),
-                    tax=item_data.get('tax', 0)
-                )
-        except json.JSONDecodeError:
-            pass  # If items is not valid JSON, just skip it
+                try:
+                    item_id = item_data.get('item')
+                    if item_id:  # Only create if item is selected
+                        # Verify the item exists before creating
+                        try:
+                            item_obj = Item.objects.get(id=int(item_id))
+                        except Item.DoesNotExist:
+                            print(f"Item with id {item_id} does not exist, skipping")
+                            continue
+                        
+                        RecurringInvoiceItem.objects.create(
+                            recurring_invoice=recurring_invoice,
+                            item=item_obj,
+                            rate=float(item_data.get('rate', 0)),
+                            qty=int(item_data.get('qty', 1)),
+                            tax=float(item_data.get('tax', 0))
+                        )
+                        items_created += 1
+                except (ValueError, TypeError) as e:
+                    print(f"Error creating item: {e}, data: {item_data}")
+                    continue  # Skip invalid items
+        except json.JSONDecodeError as e:
+            print(f"Error parsing items JSON: {e}")
+        
+        message = f"Recurring Invoice {recurring_invoice.reference_id} created successfully"
+        if items_created > 0:
+            message += f" with {items_created} item(s)"
         
         return JsonResponse({
             "success": True,
-            "message": f"Recurring Invoice {recurring_invoice.reference_id} created successfully"
+            "message": message
         })
         
     except Exception as e:
-        return JsonResponse({"success": False, "error": str(e)}, status=500)
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Error creating recurring invoice: {error_details}")
+        return JsonResponse({"success": False, "error": f"Error: {str(e)}"}, status=500)
 
 
 @csrf_exempt
@@ -134,30 +157,53 @@ def update_recurring_invoice(request, reference_id):
         
         # Handle items - clear existing and add new ones
         from .models import RecurringInvoiceItem
+        from items.models import Item
         items_json = data.get('items', '[]')
+        items_created = 0
         try:
             items_data = json.loads(items_json)
             # Clear existing items
             recurring_invoice.items.all().delete()
             # Add new items
             for item_data in items_data:
-                RecurringInvoiceItem.objects.create(
-                    recurring_invoice=recurring_invoice,
-                    item_id=item_data.get('item'),
-                    rate=item_data.get('rate', 0),
-                    qty=item_data.get('qty', 1),
-                    tax=item_data.get('tax', 0)
-                )
-        except json.JSONDecodeError:
-            pass  # If items is not valid JSON, just skip it
+                try:
+                    item_id = item_data.get('item')
+                    if item_id:  # Only create if item is selected
+                        # Verify the item exists before creating
+                        try:
+                            item_obj = Item.objects.get(id=int(item_id))
+                        except Item.DoesNotExist:
+                            print(f"Item with id {item_id} does not exist, skipping")
+                            continue
+                        
+                        RecurringInvoiceItem.objects.create(
+                            recurring_invoice=recurring_invoice,
+                            item=item_obj,
+                            rate=float(item_data.get('rate', 0)),
+                            qty=int(item_data.get('qty', 1)),
+                            tax=float(item_data.get('tax', 0))
+                        )
+                        items_created += 1
+                except (ValueError, TypeError) as e:
+                    print(f"Error creating item: {e}, data: {item_data}")
+                    continue  # Skip invalid items
+        except json.JSONDecodeError as e:
+            print(f"Error parsing items JSON: {e}")
+        
+        message = f"Recurring Invoice {recurring_invoice.reference_id} updated successfully"
+        if items_created > 0:
+            message += f" with {items_created} item(s)"
         
         return JsonResponse({
             "success": True,
-            "message": f"Recurring Invoice {recurring_invoice.reference_id} updated successfully"
+            "message": message
         })
         
     except Exception as e:
-        return JsonResponse({"success": False, "error": str(e)}, status=500)
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Error updating recurring invoice: {error_details}")
+        return JsonResponse({"success": False, "error": f"Error: {str(e)}"}, status=500)
 
 
 # API endpoints for fetching dropdown options
@@ -226,17 +272,38 @@ def get_recurring_invoice_items(request, reference_id):
     try:
         recurring_invoice = get_object_or_404(RecurringInvoice, reference_id=reference_id)
         items = recurring_invoice.items.all().select_related('item')
-        data = [
-            {
-                "id": item.id,
-                "item": {"id": item.item.id, "name": item.item.name} if item.item else None,
-                "rate": str(item.rate),
-                "qty": item.qty,
-                "tax": str(item.tax),
-                "total": str(item.total)
-            }
-            for item in items
-        ]
+        data = []
+        
+        for item in items:
+            try:
+                # Build item data safely
+                item_data = {
+                    "id": item.id,
+                    "rate": str(item.rate),
+                    "qty": item.qty,
+                    "tax": str(item.tax),
+                    "total": str(item.total)
+                }
+                
+                # Handle the item relationship safely
+                if item.item:
+                    if hasattr(item.item, 'id') and hasattr(item.item, 'name'):
+                        item_data["item"] = {
+                            "id": item.item.id, 
+                            "name": str(item.item.name)
+                        }
+                    else:
+                        item_data["item"] = None
+                else:
+                    item_data["item"] = None
+                
+                data.append(item_data)
+            except Exception as e:
+                print(f"Error serializing item {item.id}: {e}")
+                continue  # Skip items that can't be serialized
+        
         return JsonResponse(data, safe=False)
     except Exception as e:
+        import traceback
+        print(f"Error getting recurring invoice items: {traceback.format_exc()}")
         return JsonResponse({"error": str(e)}, status=500)

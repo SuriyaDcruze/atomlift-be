@@ -64,8 +64,19 @@ async function fetchOptions(endpoint, selectId, currentId) {
     });
     if (!response.ok) throw new Error(`Failed to load ${endpoint}`);
     const data = await response.json();
+
     const select = document.getElementById(selectId);
-    select.innerHTML = '<option value="">Select ' + selectId.charAt(0).toUpperCase() + selectId.slice(1).replace('_', ' ') + '</option>';
+    if (!select) {
+      // No select element yet — skip updating the DOM
+      console.warn(`⚠️ Skipping ${endpoint} load: no element with id="${selectId}"`);
+      return;
+    }
+
+    select.innerHTML = '<option value="">Select ' +
+      selectId.charAt(0).toUpperCase() +
+      selectId.slice(1).replace('_', ' ') +
+      '</option>';
+
     data.forEach(item => {
       const option = document.createElement('option');
       option.value = item.id;
@@ -75,9 +86,13 @@ async function fetchOptions(endpoint, selectId, currentId) {
     });
   } catch (error) {
     console.error(`Error loading ${endpoint}:`, error);
-    document.getElementById(selectId).innerHTML = `<option value="">Error loading ${selectId}s</option>`;
+    const select = document.getElementById(selectId);
+    if (select) {
+      select.innerHTML = `<option value="">Error loading ${selectId}s</option>`;
+    }
   }
 }
+
 
 function loadCustomers() { 
   const currentCustomerId = window.currentCustomerId || null;
