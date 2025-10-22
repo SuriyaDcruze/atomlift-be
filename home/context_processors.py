@@ -21,7 +21,7 @@ def dashboard_metrics(request):
     open_invoices = Invoice.objects.filter(status__in=['open', 'partially_paid']).count()
 
     # Recent complaints for dashboard table
-    recent_complaints = Complaint.objects.order_by('-created')[:5]
+    recent_complaints = Complaint.objects.select_related('assign_to').order_by('-created')[:5]
 
     return {
         'total_customers': total_customers,
