@@ -11,7 +11,10 @@ ALLOWED_HOSTS = ["*"]
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
-
+CSRF_TRUSTED_ORIGINS = [
+    "https://*.technuob.com",
+    "https://*.vercel.app/",
+]
 try:
     from .local import *
 except ImportError:
