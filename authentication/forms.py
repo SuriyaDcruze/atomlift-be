@@ -1,11 +1,15 @@
 from django import forms
 from wagtail.users.forms import UserCreationForm, UserEditForm
 
-from .models import CustomUser
+from .models import CustomUser, UserProfile
 
 
 class CustomUserCreationForm(UserCreationForm):
     phone_number = forms.CharField(required=False, max_length=15, label="Phone number")
+    branch = forms.CharField(required=False, max_length=100, label="Branch")
+    route = forms.CharField(required=False, max_length=100, label="Route")
+    code = forms.CharField(required=False, max_length=50, label="Code")
+    designation = forms.CharField(required=False, max_length=100, label="Designation")
 
     class Meta(UserCreationForm.Meta):
         model = CustomUser
@@ -16,21 +20,54 @@ class CustomUserCreationForm(UserCreationForm):
         user.phone_number = self.cleaned_data.get("phone_number", "")
         if commit:
             user.save()
+            # Update profile with additional fields
+            if hasattr(user, 'profile'):
+                profile = user.profile
+                profile.phone_number = self.cleaned_data.get("phone_number", "")
+                profile.branch = self.cleaned_data.get("branch", "")
+                profile.route = self.cleaned_data.get("route", "")
+                profile.code = self.cleaned_data.get("code", "")
+                profile.designation = self.cleaned_data.get("designation", "")
+                profile.save()
         return user
 
 
 class CustomUserEditForm(UserEditForm):
     phone_number = forms.CharField(required=False, max_length=15, label="Phone number")
+    branch = forms.CharField(required=False, max_length=100, label="Branch")
+    route = forms.CharField(required=False, max_length=100, label="Route")
+    code = forms.CharField(required=False, max_length=50, label="Code")
+    designation = forms.CharField(required=False, max_length=100, label="Designation")
 
     class Meta(UserEditForm.Meta):
         model = CustomUser
         fields = ("email", "first_name", "last_name", "phone_number", "is_active", "is_staff", "is_superuser", "groups", "user_permissions")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Pre-populate profile fields if editing existing user
+        if self.instance and self.instance.pk and hasattr(self.instance, 'profile'):
+            profile = self.instance.profile
+            self.fields['phone_number'].initial = profile.phone_number or self.instance.phone_number
+            self.fields['branch'].initial = profile.branch
+            self.fields['route'].initial = profile.route
+            self.fields['code'].initial = profile.code
+            self.fields['designation'].initial = profile.designation
 
     def save(self, commit=True):
         user = super().save(commit=False)
         user.phone_number = self.cleaned_data.get("phone_number", "")
         if commit:
             user.save()
+            # Update profile with additional fields
+            if hasattr(user, 'profile'):
+                profile = user.profile
+                profile.phone_number = self.cleaned_data.get("phone_number", "")
+                profile.branch = self.cleaned_data.get("branch", "")
+                profile.route = self.cleaned_data.get("route", "")
+                profile.code = self.cleaned_data.get("code", "")
+                profile.designation = self.cleaned_data.get("designation", "")
+                profile.save()
         return user
 
 

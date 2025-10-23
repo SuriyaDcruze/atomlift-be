@@ -210,4 +210,6 @@ AUTHENTICATION_BACKENDS = [
 WAGTAIL_USER_CREATION_FORM = "authentication.forms.CustomUserCreationForm"
 WAGTAIL_USER_EDIT_FORM = "authentication.forms.CustomUserEditForm"
 # Ensure extra model fields are shown on default Wagtail user forms
-WAGTAIL_USER_CUSTOM_FIELDS = ["phone_number"]
+WAGTAIL_USER_CUSTOM_FIELDS = ["phone_number", "branch", "route", "code", "designation"]
+# Custom user listing columns
+WAGTAIL_USER_LISTING_COLUMNS = ['name', 'get_profile_phone', 'username', 'is_active']

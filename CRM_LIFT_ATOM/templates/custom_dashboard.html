@@ -119,6 +119,21 @@
         
       </header>
 
+      <!-- Messages Display -->
+      {% if messages %}
+      <div class="px-4 md:px-6 pt-4">
+        {% for message in messages %}
+          <div class="mb-3 px-4 py-3 rounded-lg {% if message.tags == 'success' or 'login-success' in message.tags %}bg-green-100 border border-green-400 text-green-700{% elif message.tags == 'error' %}bg-red-100 border border-red-400 text-red-700{% elif message.tags == 'warning' %}bg-yellow-100 border border-yellow-400 text-yellow-700{% else %}bg-blue-100 border border-blue-400 text-blue-700{% endif %} flex items-center justify-between message-alert" role="alert">
+            <div class="flex items-center">
+              <i class="fas {% if message.tags == 'success' or 'login-success' in message.tags %}fa-check-circle{% elif message.tags == 'error' %}fa-exclamation-circle{% elif message.tags == 'warning' %}fa-exclamation-triangle{% else %}fa-info-circle{% endif %} mr-3"></i>
+              <span>{{ message }}</span>
+            </div>
+            <button type="button" class="ml-4 text-lg font-bold hover:opacity-75" onclick="this.parentElement.remove()">&times;</button>
+          </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
       <!-- Main Content -->
       <main class="flex-1 p-4 md:p-8 bg-white overflow-auto">
         <div class="mb-6 md:mb-8">
@@ -200,6 +215,41 @@
         closeMobileSidebar();
       }
     });
+
+    // Auto-hide messages after 5 seconds
+    document.addEventListener('DOMContentLoaded', function() {
+      var messages = document.querySelectorAll('.message-alert');
+      messages.forEach(function(message) {
+        // Add slide-in animation
+        message.style.animation = 'slideIn 0.3s ease-out';
+        
+        // Auto-hide after 5 seconds
+        setTimeout(function() {
+          if (message && message.parentNode) {
+            message.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out';
+            message.style.opacity = '0';
+            message.style.transform = 'translateY(-10px)';
+            setTimeout(function() {
+              if (message && message.parentNode) {
+                message.remove();
+              }
+            }, 500);
+          }
+        }, 5000);
+      });
+    });
   </script>
+  <style>
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
 </body>
 </html>

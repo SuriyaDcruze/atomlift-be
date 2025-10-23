@@ -130,11 +130,12 @@ class ItemViewSet(SnippetViewSet):
     list_display = (
         "item_number",
         "name",
-        "make",
-        "model",
         "type",
-        "capacity",
+        "unit",
+        "type",
         "sale_price",
+        "tax_preference",
+
     )
     search_fields = (
         "item_number",
