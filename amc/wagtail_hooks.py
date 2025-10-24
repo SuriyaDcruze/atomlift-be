@@ -80,9 +80,7 @@ def add_amc_custom(request):
             if data.get('amc_type'):
                 amc_type = AMCType.objects.filter(id=data['amc_type']).first()
             
-            payment_terms = None
-            if data.get('payment_terms'):
-                payment_terms = PaymentTerms.objects.filter(id=data['payment_terms']).first()
+            # Payment terms removed
             
             amc_service_item = None
             if data.get('amc_service_item'):
@@ -104,7 +102,6 @@ def add_amc_custom(request):
                 amcname=data.get('amcname', ''),  # Changed from 'amc_name' to 'amcname'
                 invoice_frequency=data.get('invoice_frequency', 'annually'),
                 amc_type=amc_type,
-                payment_terms=payment_terms,
                 start_date=data['start_date'],
                 end_date=data['end_date'],
                 equipment_no=data.get('equipment_no', ''),
@@ -155,10 +152,10 @@ def add_amc_custom(request):
         'is_edit': False,
         'customers': Customer.objects.all(),
         'amc_types': AMCType.objects.all(),
-        'payment_terms': PaymentTerms.objects.all(),
+        'payment_terms': [],
         'items': Item.objects.all(),
         'selected_customer': selected_customer,
-        'customer_id_param': customer_id,
+        'customer_id': customer_id,  # Fixed: changed from customer_id_param to customer_id
     }
     return render(request, 'amc/add_amc_custom.html', context)
 
@@ -195,8 +192,7 @@ def edit_amc_custom(request, pk):
             if data.get('amc_type'):
                 amc.amc_type = AMCType.objects.filter(id=data['amc_type']).first()
             
-            if data.get('payment_terms'):
-                amc.payment_terms = PaymentTerms.objects.filter(id=data['payment_terms']).first()
+            # Payment terms removed
             
             if data.get('amc_service_item'):
                 amc.amc_service_item = Item.objects.filter(id=data['amc_service_item']).first()
@@ -220,7 +216,7 @@ def edit_amc_custom(request, pk):
         'amc': amc,
         'customers': Customer.objects.all(),
         'amc_types': AMCType.objects.all(),
-        'payment_terms': PaymentTerms.objects.all(),
+        'payment_terms': [],
         'items': Item.objects.all(),
     }
     return render(request, 'amc/edit_amc_custom.html', context)
@@ -272,43 +268,20 @@ def manage_amc_types_detail(request, pk):
 @csrf_exempt
 @require_http_methods(["GET", "POST"])
 def manage_payment_terms(request):
-    """API for managing payment terms"""
+    """API for managing payment terms - DISABLED"""
     if request.method == 'GET':
-        payment_terms = PaymentTerms.objects.all().values('id', 'name')
-        return JsonResponse(list(payment_terms), safe=False)
+        # Payment terms removed - return empty list
+        return JsonResponse([], safe=False)
     
     elif request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            payment_term = PaymentTerms.objects.create(name=data['name'])
-            return JsonResponse({
-                'success': True,
-                'id': payment_term.id,
-                'name': payment_term.name
-            })
-        except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)}, status=400)
+        return JsonResponse({'success': False, 'error': 'Payment terms feature is disabled'}, status=400)
 
 
 @csrf_exempt
 @require_http_methods(["PUT", "DELETE"])
 def manage_payment_terms_detail(request, pk):
-    """API for updating/deleting payment terms"""
-    try:
-        payment_term = get_object_or_404(PaymentTerms, pk=pk)
-        
-        if request.method == 'PUT':
-            data = json.loads(request.body)
-            payment_term.name = data['name']
-            payment_term.save()
-            return JsonResponse({'success': True, 'message': 'Payment Term updated'})
-        
-        elif request.method == 'DELETE':
-            payment_term.delete()
-            return JsonResponse({'success': True, 'message': 'Payment Term deleted'})
-            
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+    """API for updating/deleting payment terms - DISABLED"""
+    return JsonResponse({'success': False, 'error': 'Payment terms feature is disabled'}, status=400)
 
 
 @require_http_methods(["GET"])

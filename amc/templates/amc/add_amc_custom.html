@@ -454,14 +454,9 @@ body {
         <form id="amcForm" method="post" enctype="multipart/form-data">
           {% csrf_token %}
           
-          <!-- Navigation Link Section - Show when customer_id is provided or from session storage -->
+          <!-- Navigation Link Section - Show when customer_id is provided -->
           <div id="navigationSection" class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6" style="display: none;">
             <div class="flex items-center">
-              <div class="flex-shrink-0">
-                <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-                </svg>
-              </div>
               <div class="ml-3">
                 <p class="text-sm text-gray-700">
                   <strong>Add lifts </strong>
@@ -866,15 +861,24 @@ function fetchCustomerDetails() {
     const siteAddress = selectedOption.getAttribute('data-site-address') || '';
 
     const equipmentNoInput = document.getElementById('equipment_no');
-    if (jobNo && equipmentNoInput.value === '') {
+    const latitudeInput = document.getElementById('latitude');
+    
+    var filled = false;
+    
+    // Auto-fill Equipment No with Job No (only if empty)
+    if (jobNo && equipmentNoInput && equipmentNoInput.value === '') {
       equipmentNoInput.value = jobNo;
-      showMessage('success', `Equipment number auto-populated with job number: ${jobNo}`);
+      filled = true;
     }
 
-    const latitudeInput = document.getElementById('latitude');
-    if (siteAddress && siteAddress.trim() !== '') {
+    // Auto-fill Latitude with Site Address
+    if (siteAddress && siteAddress.trim() !== '' && latitudeInput) {
       latitudeInput.value = siteAddress;
-      showMessage('info', `Site Address populated: ${siteAddress}`);
+      filled = true;
+    }
+    
+    if (filled) {
+      showMessage('success', 'Customer details auto-filled successfully!');
     }
   }
 }
@@ -1092,17 +1096,19 @@ function showMessage(type, message) {
 document.addEventListener('DOMContentLoaded', function() {
   toggleContractFields();
 
+  // Get customer ID from URL parameter
+  var urlCustomerId = '{{ customer_id }}';
+  var customerIdToSelect = (urlCustomerId && urlCustomerId !== 'None' && urlCustomerId !== '') ? urlCustomerId : null;
+
   // Load customers and AMC types dynamically on page load
-  loadCustomersDropdown();
+  loadCustomersDropdown(customerIdToSelect);
   loadAMCTypesDropdown();
   // Also attempt to load items initially
   loadItemsDropdown();
 
-  // Check for customer ID from URL parameter or session storage
-  var customerId = '{{ customer_id }}' || sessionStorage.getItem('recentCustomerId');
-  if (customerId) {
-    prefillCustomer(customerId);
-    showNavigationSection(customerId);
+  // Show navigation section if customer ID is present
+  if (customerIdToSelect) {
+    showNavigationSection(customerIdToSelect);
   }
 
   if (!isEditAMC) {
@@ -1113,6 +1119,9 @@ document.addEventListener('DOMContentLoaded', function() {
           var ref = document.getElementById('reference_id');
           if (ref) ref.value = d.reference_id;
         }
+      })
+      .catch(function(error) {
+        console.error('Error fetching next AMC reference:', error);
       });
   }
 
@@ -1129,10 +1138,26 @@ function prefillCustomer(customerId) {
         var option = customerSelect.options[i];
         if (option.value === customerId) {
           customerSelect.value = customerId;
-          // Trigger the change event to load customer details
-          if (typeof fetchCustomerDetails === 'function') {
-            fetchCustomerDetails();
+          
+          // Auto-fill equipment number and latitude from customer data
+          var jobNo = option.getAttribute('data-job-no') || '';
+          var siteAddress = option.getAttribute('data-site-address') || '';
+          
+          var equipmentNoInput = document.getElementById('equipment_no');
+          if (jobNo && equipmentNoInput) {
+            equipmentNoInput.value = jobNo;
           }
+          
+          var latitudeInput = document.getElementById('latitude');
+          if (siteAddress && latitudeInput) {
+            latitudeInput.value = siteAddress;
+          }
+          
+          // Show success message
+          if (jobNo || siteAddress) {
+            showMessage('success', 'Customer details auto-filled successfully!');
+          }
+          
           break;
         }
       }
@@ -1187,33 +1212,28 @@ function showNavigationSection(customerId) {
   if (navigationSection && customerViewLink) {
     navigationSection.style.display = 'block';
     customerViewLink.href = '/admin/customer/view-custom/' + customerId + '/';
-    
-    // Clear the session storage after showing the link
-    sessionStorage.removeItem('recentCustomerId');
   }
 }
 
-function loadCustomersDropdown() {
+function loadCustomersDropdown(customerIdToSelect) {
   {% if is_edit and amc.customer %}
   var currentCustomerId = {{ amc.customer.id }};
   {% else %}
   var currentCustomerId = null;
   {% endif %}
 
-  // Check sessionStorage for recentCustomerId if not editing
-  if (!currentCustomerId) {
-    currentCustomerId = sessionStorage.getItem('recentCustomerId');
-    // Optionally clear it after use to prevent reuse on refresh
-    if (currentCustomerId) {
-      sessionStorage.removeItem('recentCustomerId');
-    }
+  // Use the passed customerIdToSelect parameter or fall back to currentCustomerId
+  if (!currentCustomerId && customerIdToSelect) {
+    currentCustomerId = customerIdToSelect;
   }
 
-  fetch('/admin/api/amc/customers/')  // Updated URL with /admin/
+  fetch('/admin/api/amc/customers/')
     .then(function(response) { return response.json(); })
     .then(function(data) {
       var customerSelect = document.getElementById('customer');
       customerSelect.innerHTML = '<option value="">Select Customer</option>';
+
+      var selectedOption = null;
 
       data.forEach(function(customer) {
         var option = document.createElement('option');
@@ -1224,21 +1244,42 @@ function loadCustomersDropdown() {
         }
 
         // Store customer data as attributes for later use
-        option.setAttribute('data-job-no', customer.job_no);
-        option.setAttribute('data-site-address', customer.site_address);
+        option.setAttribute('data-job-no', customer.job_no || '');
+        option.setAttribute('data-site-address', customer.site_address || '');
 
-        // Select the current or recent customer
+        // Select the customer if ID matches
         if (currentCustomerId && customer.id == currentCustomerId) {
           option.selected = true;
+          selectedOption = option;
         }
 
         customerSelect.appendChild(option);
       });
 
-      // If a customer is pre-selected (edit or recent), trigger the change event to autofill fields
-      if (currentCustomerId) {
-        var changeEvent = new Event('change');
-        customerSelect.dispatchEvent(changeEvent);
+      // If a customer was pre-selected, auto-fill the fields
+      if (selectedOption) {
+        customerSelect.value = selectedOption.value;
+        
+        // Auto-fill equipment number and latitude
+        var jobNo = selectedOption.getAttribute('data-job-no') || '';
+        var siteAddress = selectedOption.getAttribute('data-site-address') || '';
+        
+        var equipmentNoInput = document.getElementById('equipment_no');
+        if (jobNo && equipmentNoInput) {
+          equipmentNoInput.value = jobNo;
+        }
+        
+        var latitudeInput = document.getElementById('latitude');
+        if (siteAddress && latitudeInput) {
+          latitudeInput.value = siteAddress;
+        }
+        
+        // Show success message
+        if (jobNo || siteAddress) {
+          setTimeout(function() {
+            showMessage('success', 'Customer details auto-filled successfully!');
+          }, 500);
+        }
       }
     })
     .catch(function(error) {
@@ -1254,7 +1295,7 @@ function loadAMCTypesDropdown() {
   var currentAMCTypeId = null;
   {% endif %}
 
-  fetch('/amc/api/amc/amc-types/')
+  fetch('/admin/api/amc/amc-types/')
     .then(function(response) { return response.json(); })
     .then(function(data) {
       var amcTypeSelect = document.getElementById('amc_type');

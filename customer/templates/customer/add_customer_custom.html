@@ -1211,9 +1211,8 @@ function handleCreateSuccess(result) {
   setTimeout(function() {
     var createAMC = confirm('Do you want to create an AMC for this customer?');
     if (createAMC) {
-      // Store customer ID in session storage for AMC form to use
-      sessionStorage.setItem('recentCustomerId', result.customer.id);
-      window.location.href = '/admin/amc/add-custom/'; // Fixed URL
+      // Pass customer ID as URL parameter
+      window.location.href = '/admin/amc/add-custom/?customerId=' + result.customer.id;
     } else {
       window.location.href = adminHomeUrl;
     }
