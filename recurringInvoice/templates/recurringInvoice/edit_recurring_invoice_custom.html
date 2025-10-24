@@ -576,7 +576,7 @@ body {
                 accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
               />
               {% if recurring_invoice.uploads_files %}
-              <p class="form-help">Current file: {{ recurring_invoice.uploads_files.name|basename }}</p>
+              <p class="form-help">Current file: <a href="{{ recurring_invoice.uploads_files.url }}" target="_blank">{{ recurring_invoice.uploads_files.name }}</a></p>
               {% endif %}
             </div>
           </div>
@@ -620,7 +620,6 @@ body {
           type="button"
           id="submitBtn"
           class="btn btn-primary"
-          onclick="handleFormSubmit({target: document.getElementById('recurringInvoiceForm')})"
         >
           {% if is_edit %}Update Recurring Invoice{% else %}Create Recurring Invoice{% endif %}
         </button>
@@ -659,14 +658,6 @@ var allItems = [];
 // Edit mode variables
 var currentCustomerId = {% if is_edit and recurring_invoice.customer %}{{ recurring_invoice.customer.id }}{% else %}null{% endif %};
 var currentSalesPersonId = {% if is_edit and recurring_invoice.sales_person %}{{ recurring_invoice.sales_person.id }}{% else %}null{% endif %};
-
-document.addEventListener('DOMContentLoaded', function() {
-  // Load various dropdowns dynamically on page load
-  loadCustomers();
-  loadSalesPersons();
-  loadItems();
-  setupItemCalculations();
-});
 
 function loadCustomers() {
   fetch('/recurringInvoice/api/customers/')
@@ -916,7 +907,9 @@ function createFormData() {
 }
 
 function handleFormSubmit(event) {
-  if (event) event.preventDefault();
+  if (event && event.preventDefault) {
+    event.preventDefault();
+  }
 
   var customer = document.getElementById('customer').value;
   var profileName = document.getElementById('profile_name').value;
@@ -943,7 +936,12 @@ function handleFormSubmit(event) {
     },
     body: formData
   })
-  .then(function(response) { return response.json(); })
+  .then(function(response) {
+    if (!response.ok) {
+      throw new Error('HTTP error! Status: ' + response.status);
+    }
+    return response.json();
+  })
   .then(function(result) {
     submitButton.textContent = originalText;
     submitButton.disabled = false;
@@ -954,19 +952,31 @@ function handleFormSubmit(event) {
         window.location.href = adminHomeUrl;
       }, 1500);
     } else {
-      showMessage('error', result.error);
+      showMessage('error', result.error || 'An error occurred');
     }
   })
   .catch(function(error) {
     submitButton.textContent = originalText;
     submitButton.disabled = false;
     console.error('Error:', error);
-    showMessage('error', 'An error occurred while saving the recurring invoice');
+    showMessage('error', 'An error occurred while saving the recurring invoice: ' + error.message);
   });
 }
 
-// Add click event listener to submit button
-document.getElementById('submitBtn').addEventListener('click', handleFormSubmit);
+// Add click event listener to submit button when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+  // Load various dropdowns dynamically on page load
+  loadCustomers();
+  loadSalesPersons();
+  loadItems();
+  setupItemCalculations();
+  
+  // Add submit button event listener
+  var submitBtn = document.getElementById('submitBtn');
+  if (submitBtn) {
+    submitBtn.addEventListener('click', handleFormSubmit);
+  }
+});
 </script>
 {% endblock %}
 

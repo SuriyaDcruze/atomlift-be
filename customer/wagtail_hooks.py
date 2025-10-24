@@ -31,13 +31,20 @@ def register_customer_form_url():
 
 @hooks.register('register_snippet_listing_buttons')
 def add_view_customer_button(snippet, user, next_url=None):
-    """Add 'View' button in Customer listing."""
+    """Add custom 'Edit' and 'View' buttons in Customer listing (default edit button disabled via edit_view_enabled=False)"""
     if isinstance(snippet, Customer):
-        url = f"/admin/customer/view-custom/{snippet.pk}/"
+        view_url = f"/admin/customer/view-custom/{snippet.pk}/"
+        edit_url = f"/admin/customer/edit-custom/{snippet.pk}/"
         return [
             SnippetListingButton(
+                label='Edit',
+                url=edit_url,
+                priority=10,
+                icon_name='edit',
+            ),
+            SnippetListingButton(
                 label='View',
-                url=url,
+                url=view_url,
                 priority=90,
                 icon_name='view',
             )
@@ -219,7 +226,7 @@ def edit_customer_custom(request, pk):
                 'error': str(e)
             }, status=500)
     
-    # GET request - render form
+    # GET request - render form with same template as add (uses is_edit flag)
     context = {
         'is_edit': True,
         'customer': customer,

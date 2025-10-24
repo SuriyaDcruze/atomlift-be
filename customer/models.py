@@ -264,14 +264,29 @@ class CustomerViewSet(SnippetViewSet):
     icon = "user"
     menu_label = "Customers"
     inspect_view_enabled = True
+    
+    # Disable default edit view to use custom styled pages
+    edit_view_enabled = False
+    
     list_display = (
         "reference_id", "site_name", "job_no", "email", "phone", "city", "branch", "routes", "sector",
     )
     list_export = list_display
 
-    #edit_template_name = 'customer/add_customer_custom.html'
     create_template_name = 'customer/add_customer_custom.html'
     inspect_template_name = 'customer/view_customer_custom.html'
+    
+    @property
+    def add_url(self):
+        """Override add URL to use custom styled page"""
+        from django.urls import reverse
+        return reverse('add_customer_custom')
+    
+    def get_list_buttons_item_classnames(self):
+        """Customize which buttons appear - hide default edit"""
+        classnames = super().get_list_buttons_item_classnames()
+        # Remove edit from the classnames to prevent default edit button
+        return [cn for cn in classnames if 'edit' not in cn]
 
 
 class CustomerLicenseViewSet(SnippetViewSet):
