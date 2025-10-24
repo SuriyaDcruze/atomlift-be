@@ -183,6 +183,8 @@ class LiftViewSet(SnippetViewSet):
     )
 
     list_export = list_display
+    
+    export_formats = ["csv", "xlsx"]
 
     search_fields = (
         "reference_id",

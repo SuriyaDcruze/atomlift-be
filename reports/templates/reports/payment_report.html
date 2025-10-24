@@ -1,15 +1,15 @@
 {% extends "reports/base_report.html" %}
 
-{% block report_title %}Routine Services Reports{% endblock %}
+{% block report_title %}Payment Reports{% endblock %}
 
 {% block export_links %}
-<a href="{% url 'reports:export_routine_service_csv' %}">
+<a href="{% url 'reports:export_payments_csv' %}">
     <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
     </svg>
     Export CSV
 </a>
-<a href="{% url 'reports:export_routine_service_xlsx' %}">
+<a href="{% url 'reports:export_payments_xlsx' %}">
     <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
     </svg>
@@ -29,43 +29,27 @@
         </select>
     </div>
     <div class="filter-field">
-        <label>By</label>
-        <select name="by">
-            <option value="DATE" {% if selected_by == 'DATE' %}selected{% endif %}>DATE</option>
-            <option value="AMC TYPE">AMC TYPE</option>
-            <option value="CUSTOMER">CUSTOMER</option>
-        </select>
-    </div>
-    <div class="filter-field">
-        <label>Routes</label>
-        <select name="routes">
-            <option value="">SELECT</option>
-            <option value="Route 1">Route 1</option>
-            <option value="Route 2">Route 2</option>
-        </select>
-    </div>
-    <div class="filter-field">
         <label>Status</label>
         <select name="status">
             <option value="ALL" {% if selected_status == 'ALL' %}selected{% endif %}>ALL</option>
-            <option value="Active">Active</option>
-            <option value="Completed">Completed</option>
+            <option value="Paid">Paid</option>
+            <option value="Pending">Pending</option>
         </select>
     </div>
     <div class="filter-field">
-        <label>AMC Types</label>
-        <select name="amc_types">
-            <option value="">SELECT</option>
-            <option value="Comprehensive">Comprehensive</option>
-            <option value="Basic">Basic</option>
+        <label>Payment Mode</label>
+        <select name="payment_mode">
+            <option value="MONTH" {% if selected_payment_mode == 'MONTH' %}selected{% endif %}>MONTH</option>
+            <option value="Cheque">Cheque</option>
+            <option value="Online">Online</option>
         </select>
     </div>
     <div class="filter-field">
         <label>Period</label>
         <select name="period">
-            <option value="MONTH" {% if selected_period == 'MONTH' %}selected{% endif %}>MONTH</option>
-            <option value="WEEK">WEEK</option>
-            <option value="QUARTER">QUARTER</option>
+            <option value="ALL" {% if selected_period == 'ALL' %}selected{% endif %}>ALL</option>
+            <option value="This Month">This Month</option>
+            <option value="Last Quarter">Last Quarter</option>
         </select>
     </div>
     <div class="filter-field">
@@ -94,35 +78,37 @@
 <table>
     <thead>
         <tr>
-            <th>DATE</th>
-            <th>AMC ID</th>
-            <th>START DATE</th>
-            <th>END DATE</th>
-            <th>AMC TYPE</th>
-            <th>CONTRACT AMOUNT</th>
-            <th>PAID AMOUNT</th>
-            <th>DUE AMOUNT</th>
-            <th>CUSTOMER</th>
-            <th>SITE ADDRESS</th>
+            <th>S.NO</th>
+            <th>RECEIPT NO</th>
+            <th>PAYMENT DATE</th>
+            <th>LTMA NO</th>
+            <th>SITE NAME</th>
+            <th>MOBILE NO</th>
+            <th>QUOTATION NO</th>
+            <th>AMC ORDER/CONTRACT NO</th>
+            <th>PAYMENT TYPE</th>
+            <th>CHEQUE NO</th>
+            <th>CHEQUE DATE</th>
         </tr>
     </thead>
     <tbody>
-        {% for amc in amc_records %}
+        {% for payment in payments %}
         <tr>
-            <td>{{ amc.contract_start_date|date:"d.m.Y" }}</td>
-            <td>{{ amc.amc_id|default:"N/A" }}</td>
-            <td>{{ amc.contract_start_date|date:"d.m.Y" }}</td>
-            <td>{{ amc.contract_end_date|date:"d.m.Y" }}</td>
-            <td>{{ amc.amctype.amc_type_name|default:"N/A" }}</td>
-            <td>{{ amc.contract_amount|floatformat:2 }}</td>
-            <td>{{ amc.total_paid|floatformat:2|default:"0.00" }}</td>
-            <td>{{ amc.amount_due|floatformat:2|default:"0.00" }}</td>
-            <td>{{ amc.customer.site_name|default:"Unknown" }}</td>
-            <td>{{ amc.site_address|default:"N/A" }}</td>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ payment.id }}</td>
+            <td>{{ payment.payment_date }}</td>
+            <td>{{ payment.invoice.ltma_id|default:"N/A" }}</td>
+            <td>{{ payment.customer.site_name|default:"N/A" }}</td>
+            <td>{{ payment.customer.mobile_number|default:"N/A" }}</td>
+            <td>{{ payment.invoice.reference_id|default:"N/A" }}</td>
+            <td>{{ payment.invoice.amc_type|default:"N/A" }}</td>
+            <td>{{ payment.payment_type|default:"N/A" }}</td>
+            <td>{{ payment.cheque_no|default:"-" }}</td>
+            <td>{{ payment.cheque_date|default:"-" }}</td>
         </tr>
         {% empty %}
         <tr>
-            <td colspan="10" class="no-data">No service reports found for the selected filters</td>
+            <td colspan="11" class="no-data">No payment records found for the selected filters</td>
         </tr>
         {% endfor %}
     </tbody>
@@ -130,5 +116,5 @@
 {% endblock %}
 
 {% block pagination %}
-Showing 1-{{ amc_records|length }} of {{ amc_records|length }}
+Showing 1-{{ payments|length }} of {{ payments|length }}
 {% endblock %}

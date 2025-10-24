@@ -9,6 +9,12 @@
     </svg>
     Export CSV
 </a>
+<a href="{% url 'reports:export_complaints_xlsx' %}">
+    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    </svg>
+    Export XLSX
+</a>
 {% endblock %}
 
 {% block filters %}
@@ -56,14 +62,14 @@
         <tr>
             <th>COMPLAINT NO</th>
             <th>DATE</th>
-            <th>AMC ID</th>
-            <th>SITE ID</th>
             <th>CUSTOMER</th>
+            <th>CONTACT PERSON</th>
+            <th>MOBILE</th>
             <th>TYPE</th>
             <th>PROBLEM</th>
             <th>RESOLUTION</th>
-            <th>DONE BY</th>
-            <th>STATUS</th>
+            <th>ASSIGNED TO</th>
+            <th>PRIORITY</th>
         </tr>
     </thead>
     <tbody>
@@ -71,24 +77,24 @@
         <tr>
             <td>{{ complaint.reference|default:complaint.id }}</td>
             <td>{{ complaint.date|date:"d.m.Y" }}</td>
-            <td>{{ complaint.amc_id|default:"N/A" }}</td>
-            <td>{{ complaint.site_id|default:"N/A" }}</td>
             <td>{{ complaint.customer.site_name|default:"Unknown" }}</td>
+            <td>{{ complaint.contact_person_name|default:"N/A" }}</td>
+            <td>{{ complaint.contact_person_mobile|default:"N/A" }}</td>
             <td>
-                <span class="badge badge-blue">{{ complaint.complaint_type|default:"General" }}</span>
+                <span class="badge badge-blue">{{ complaint.complaint_type.name|default:"General" }}</span>
             </td>
             <td>{{ complaint.subject|default:"N/A" }}</td>
             <td>{{ complaint.solution|default:"Pending" }}</td>
             <td>{{ complaint.assign_to.get_full_name|default:"Unassigned" }}</td>
             <td>
-                {% if complaint.priority == "Closed" %}
+                {% if complaint.priority.name == "Closed" %}
                     <span class="badge badge-green">Closed</span>
-                {% elif complaint.priority == "In Progress" %}
+                {% elif complaint.priority.name == "In Progress" %}
                     <span class="badge badge-purple">In Progress</span>
-                {% elif complaint.priority == "Open" %}
+                {% elif complaint.priority.name == "Open" %}
                     <span class="badge badge-yellow">Open</span>
                 {% else %}
-                    <span class="badge badge-gray">{{ complaint.priority|default:"Open" }}</span>
+                    <span class="badge badge-gray">{{ complaint.priority.name|default:"Open" }}</span>
                 {% endif %}
             </td>
         </tr>
