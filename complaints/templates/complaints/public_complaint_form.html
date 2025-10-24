@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File a Complaint - {{ customer.site_name }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            padding: 0;
+            margin: 0;
+        }
+
+        .w-content-wrapper {
+            background: #f5f5f5;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+
+        .w-modal-content {
+            background: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.15);
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            overflow: hidden;
+        }
+
+        .w-modal-header {
+            background: linear-gradient(to right, #2D3A6B, #243158);
+            padding: 1.5rem;
+        }
+
+        .w-modal-title {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: white;
+        }
+
+        .w-modal-subtitle {
+            margin: 0.5rem 0 0 0;
+            color: white;
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+
+        .customer-info {
+            background: linear-gradient(135deg, #5a2d82 0%, #4a1f6b 100%);
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #E5E7EB;
+        }
+
+        .customer-info p {
+            color: #f0c674;
+            font-size: 0.875rem;
+            margin: 0.25rem 0;
+        }
+
+        .customer-info strong {
+            color: #fff;
+        }
+
+        .w-modal-body {
+            padding: 1.5rem;
+        }
+
+        .form-section-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 2px solid #E5E7EB;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-required {
+            color: #EF4444;
+            margin-left: 0.25rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.375rem;
+            border: 1px solid #D1D5DB;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            font-size: 0.875rem;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #2D3A6B;
+            box-shadow: 0 0 0 3px rgba(45, 58, 107, 0.1);
+        }
+
+        .form-input:read-only {
+            background-color: #F9FAFB;
+            color: #6B7280;
+        }
+
+        .form-textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .form-select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 0.75rem center;
+            background-repeat: no-repeat;
+            background-size: 1rem;
+            padding-right: 2.5rem;
+        }
+
+        .checkbox-group {
+            background: #F9FAFB;
+            padding: 1rem;
+            border-radius: 0.375rem;
+            border: 1px solid #E5E7EB;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem;
+            border-bottom: 1px solid #E5E7EB;
+        }
+
+        .checkbox-item:last-child {
+            border-bottom: none;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: 1.125rem;
+            height: 1.125rem;
+            margin-right: 0.75rem;
+            cursor: pointer;
+            accent-color: #2D3A6B;
+        }
+
+        .checkbox-item label {
+            margin: 0;
+            color: #374151;
+            font-size: 0.875rem;
+            font-weight: normal;
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .w-modal-footer {
+            padding: 1rem 1.5rem;
+            background: #F9FAFB;
+            border-top: 1px solid #E5E7EB;
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+        }
+
+        .btn {
+            padding: 0.625rem 1.25rem;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(to right, #2D3A6B, #243158);
+            color: white;
+            width: 100%;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(to right, #213066, #182755);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .alert {
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 0.375rem;
+            display: none;
+        }
+
+        .alert-success {
+            background: #D1FAE5;
+            color: #065F46;
+            border: 1px solid #10B981;
+        }
+
+        .alert-error {
+            background: #FEE2E2;
+            color: #991B1B;
+            border: 1px solid #EF4444;
+        }
+
+        @media (max-width: 768px) {
+            .w-content-wrapper {
+                padding: 1rem 0.5rem;
+            }
+
+            .w-modal-content {
+                border-radius: 0.5rem;
+            }
+
+            .w-modal-header {
+                padding: 1rem;
+            }
+
+            .w-modal-title {
+                font-size: 1.25rem;
+            }
+
+            .w-modal-body {
+                padding: 1rem;
+            }
+
+            .customer-info {
+                padding: 0.75rem 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="w-content-wrapper">
+        <div class="w-modal-content">
+            <!-- Header -->
+            <div class="w-modal-header">
+                <h1 class="w-modal-title">File a Complaint</h1>
+                <p class="w-modal-subtitle">Submit your lift complaint - Our team will respond shortly</p>
+            </div>
+
+            <!-- Customer Info Banner -->
+            <div class="customer-info">
+                <p><strong>Site Name:</strong> {{ customer.site_name }}</p>
+                <p><strong>Site Address:</strong> {{ customer.site_address|default:"N/A" }}</p>
+            </div>
+
+            <!-- Form Body -->
+            <div class="w-modal-body">
+                <div id="successMessage" class="alert alert-success"></div>
+                <div id="errorMessage" class="alert alert-error"></div>
+
+                <form id="complaintForm">
+                    {% csrf_token %}
+                    
+                    <h3 class="form-section-title">Contact Information</h3>
+
+                    <div class="form-group">
+                        <label class="form-label" for="reference_id">
+                            Reference ID
+                        </label>
+                        <input 
+                            type="text" 
+                            id="reference_id" 
+                            name="reference_id" 
+                            value="{{ customer.reference_id|default:'' }}"
+                            readonly
+                            class="form-input"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="contact_person_name">
+                            Your Name<span class="form-required">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="contact_person_name" 
+                            name="contact_person_name" 
+                            placeholder="Enter your name"
+                            value="{{ customer.contact_person_name|default:'' }}"
+                            required
+                            class="form-input"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="contact_person_mobile">
+                            Your Mobile Number<span class="form-required">*</span>
+                        </label>
+                        <input 
+                            type="tel" 
+                            id="contact_person_mobile" 
+                            name="contact_person_mobile" 
+                            placeholder="Enter your mobile number"
+                            value="{{ customer.phone|default:'' }}"
+                            required
+                            class="form-input"
+                        >
+                    </div>
+
+                    <h3 class="form-section-title">Complaint Details</h3>
+
+                    {% if lifts %}
+                    <div class="form-group">
+                        <label class="form-label" for="lift">
+                            Select Lift
+                        </label>
+                        <select id="lift" name="lift" class="form-input form-select">
+                            <option value="">-- Select Lift --</option>
+                            {% for lift in lifts %}
+                            <option value="{{ lift.lift_code }} - {{ lift.name }}">
+                                {{ lift.lift_code }} - {{ lift.name }} {% if lift.block %}({{ lift.block }}){% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+
+                    <div class="form-group">
+                        <label class="form-label" for="block_wing">
+                            Block / Wing
+                        </label>
+                        <input 
+                            type="text" 
+                            id="block_wing" 
+                            name="block_wing" 
+                            placeholder="Enter block or wing"
+                            value="{{ customer.site_address|default:'' }}"
+                            class="form-input"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">
+                            Complaint Type<span class="form-required">*</span>
+                        </label>
+                        <div class="checkbox-group">
+                            {% for template in complaint_templates %}
+                            <div class="checkbox-item">
+                                <input 
+                                    type="checkbox" 
+                                    id="template_{{ forloop.counter }}" 
+                                    name="complaint_templates"
+                                    value="{{ template }}"
+                                >
+                                <label for="template_{{ forloop.counter }}">{{ template }}</label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="complaint_details">
+                            Additional Details
+                        </label>
+                        <textarea 
+                            id="complaint_details" 
+                            name="complaint_details" 
+                            placeholder="Provide additional details about your complaint..."
+                            class="form-input form-textarea"
+                        ></textarea>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Footer -->
+            <div class="w-modal-footer">
+                <button type="submit" class="btn btn-primary" id="submitBtn" form="complaintForm">
+                    Submit Complaint
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('complaintForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const successMessage = document.getElementById('successMessage');
+            const errorMessage = document.getElementById('errorMessage');
+            
+            // Hide previous messages
+            successMessage.style.display = 'none';
+            errorMessage.style.display = 'none';
+            
+            // Validate at least one checkbox is selected
+            const checkboxes = document.querySelectorAll('input[name="complaint_templates"]:checked');
+            if (checkboxes.length === 0) {
+                errorMessage.textContent = 'Please select at least one complaint type';
+                errorMessage.style.display = 'block';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                return;
+            }
+            
+            // Disable submit button
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
+            
+            try {
+                const formData = new FormData(this);
+                
+                const response = await fetch('{% url "submit_public_complaint" customer.id %}', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    successMessage.innerHTML = `<strong>Success!</strong><br>${data.message}<br><strong>Reference: ${data.complaint_reference}</strong>`;
+                    successMessage.style.display = 'block';
+                    
+                    // Reset form
+                    document.getElementById('complaintForm').reset();
+                    document.getElementById('reference_id').value = '{{ customer.reference_id|default:"" }}';
+                    
+                    // Scroll to top to show message
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    
+                    // Re-enable button after 3 seconds
+                    setTimeout(() => {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Submit Complaint';
+                    }, 3000);
+                } else {
+                    errorMessage.innerHTML = '<strong>Error!</strong><br>' + (data.error || 'Failed to submit complaint');
+                    errorMessage.style.display = 'block';
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Submit Complaint';
+                }
+            } catch (error) {
+                errorMessage.innerHTML = '<strong>Network Error!</strong><br>Please check your connection and try again.';
+                errorMessage.style.display = 'block';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit Complaint';
+            }
+        });
+    </script>
+</body>
+</html>

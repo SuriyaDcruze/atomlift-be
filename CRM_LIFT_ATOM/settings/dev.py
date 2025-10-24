@@ -14,6 +14,9 @@ EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 CSRF_TRUSTED_ORIGINS = [
     "https://*.technuob.com",
     "https://*.vercel.app/",
+    "http://192.168.8.103:8000",
+    "http://127.0.0.1:8000",
+    "http://localhost:8000",
 ]
 try:
     from .local import *

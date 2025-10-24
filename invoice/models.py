@@ -51,6 +51,29 @@ class Invoice(ClusterableModel):
             last_id = int(last_invoice.reference_id.replace(self.REFERENCE_PREFIX, '')) if last_invoice and last_invoice.reference_id.startswith(self.REFERENCE_PREFIX) else 0
             self.reference_id = f'{self.REFERENCE_PREFIX}{str(last_id + 1).zfill(3)}'
         super().save(*args, **kwargs)
+    
+    def get_total(self):
+        """Calculate total amount from all invoice items"""
+        total = sum(item.total for item in self.items.all())
+        # Apply discount if any
+        if self.discount:
+            total = total * (1 - (self.discount / 100))
+        return round(total, 2)
+    
+    @property
+    def invoice_no(self):
+        """Alias for reference_id for template compatibility"""
+        return self.reference_id
+    
+    @property
+    def invoice_date(self):
+        """Alias for start_date for template compatibility"""
+        return self.start_date
+    
+    @property
+    def total(self):
+        """Calculate and return total amount"""
+        return self.get_total()
 
     def __str__(self):
         return self.reference_id

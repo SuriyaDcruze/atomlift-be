@@ -3,11 +3,14 @@ from django.shortcuts import get_object_or_404, render
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
+from django.urls import reverse
 from io import BytesIO
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+import qrcode
+import base64
 import logging
 
 from .models import Complaint, ComplaintType, ComplaintPriority
@@ -258,5 +261,144 @@ def update_complaint(request, reference):
         complaint.save()
         return JsonResponse({'success': True, 'message': f'Complaint {complaint.reference} updated successfully'})
     except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+# QR Code Generation for Customer
+def generate_customer_complaint_qr(request, customer_id):
+    """
+    Generate a QR code that links to the public complaint form for a specific customer.
+    Returns the QR code as base64 image.
+    """
+    try:
+        customer = get_object_or_404(Customer, id=customer_id)
+        
+        # Generate the public complaint URL
+        public_url = request.build_absolute_uri(
+            reverse('public_complaint_form', args=[customer_id])
+        )
+        
+        # Create QR code
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(public_url)
+        qr.make(fit=True)
+        
+        # Create image
+        img = qr.make_image(fill_color="black", back_color="white")
+        
+        # Convert to base64
+        buffer = BytesIO()
+        img.save(buffer, format='PNG')
+        buffer.seek(0)
+        img_str = base64.b64encode(buffer.getvalue()).decode()
+        
+        return JsonResponse({
+            'success': True,
+            'qr_code': f'data:image/png;base64,{img_str}',
+            'url': public_url,
+            'customer_name': customer.site_name
+        })
+    except Exception as e:
+        logger.error(f"Error generating QR code: {str(e)}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+# Public Complaint Form (No Authentication Required)
+from django.views.decorators.cache import never_cache
+
+@never_cache
+def public_complaint_form(request, customer_id):
+    """
+    Public-facing complaint form that can be accessed via QR code.
+    No authentication required.
+    """
+    try:
+        from lift.models import Lift
+        customer = get_object_or_404(Customer, id=customer_id)
+        
+        # Get lifts for this customer
+        lifts = []
+        if customer.job_no:
+            lifts = Lift.objects.filter(lift_code=customer.job_no)
+        
+        # Complaint templates (common issues)
+        complaint_templates = [
+            "Controller Not in ON Position",
+            "Abnormal Noise From Motor",
+            "Display Not Working",
+            "Cabin Vibration",
+            "Door Not Opening/Closing",
+            "Lift Not Moving",
+            "Emergency Light Not Working",
+            "Intercom Not Working",
+        ]
+        
+        context = {
+            'customer': customer,
+            'lifts': lifts,
+            'complaint_templates': complaint_templates,
+            'complaint_types': ComplaintType.objects.all().order_by('name'),
+            'priorities': ComplaintPriority.objects.all().order_by('name'),
+        }
+        
+        return render(request, 'complaints/public_complaint_form.html', context)
+    except Exception as e:
+        logger.error(f"Error loading public complaint form: {str(e)}")
+        return HttpResponse(f"Error loading form: {str(e)}", status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def submit_public_complaint(request, customer_id):
+    """
+    Handle public complaint submission (no authentication required).
+    """
+    try:
+        customer = get_object_or_404(Customer, id=customer_id)
+        
+        # Get selected complaint templates (checkboxes)
+        complaint_templates = request.POST.getlist('complaint_templates[]') or request.POST.getlist('complaint_templates')
+        templates_text = ", ".join(complaint_templates) if complaint_templates else ""
+        
+        # Get lift selection
+        lift_info = request.POST.get('lift', '')
+        
+        # Build the message
+        message_parts = []
+        if lift_info:
+            message_parts.append(f"Lift: {lift_info}")
+        if templates_text:
+            message_parts.append(f"Issues: {templates_text}")
+        if request.POST.get('complaint_details'):
+            message_parts.append(f"Details: {request.POST.get('complaint_details')}")
+        
+        final_message = "\n".join(message_parts)
+        
+        # Get data from POST
+        complaint = Complaint.objects.create(
+            complaint_type=ComplaintType.objects.get(id=request.POST.get('complaint_type')) if request.POST.get('complaint_type') else None,
+            customer=customer,
+            contact_person_name=request.POST.get('contact_person_name', customer.contact_person_name or ''),
+            contact_person_mobile=request.POST.get('contact_person_mobile', customer.phone or ''),
+            block_wing=request.POST.get('block_wing', customer.site_address or ''),
+            lift_info=lift_info,  # Store lift selection
+            complaint_templates=templates_text,  # Store selected templates
+            priority=ComplaintPriority.objects.get(id=request.POST.get('priority')) if request.POST.get('priority') else None,
+            subject=templates_text or "Lift Complaint",
+            message=final_message,
+        )
+        
+        return JsonResponse({
+            'success': True, 
+            'message': f'Complaint {complaint.reference} submitted successfully. Our team will contact you soon.',
+            'complaint_reference': complaint.reference
+        })
+    except Exception as e:
+        logger.error(f"Error submitting public complaint: {str(e)}")
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 

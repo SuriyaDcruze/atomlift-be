@@ -119,6 +119,42 @@ class AMC(models.Model):
 
         super().save(*args, **kwargs)
 
+    def get_current_status(self):
+        """Calculate current status based on dates (dynamic calculation)"""
+        from django.utils import timezone
+        today = timezone.now().date()
+        
+        # If manually cancelled, respect that
+        if self.status == 'cancelled':
+            return 'cancelled'
+        
+        # Check if expired
+        if self.end_date and today > self.end_date:
+            return 'expired'
+        
+        # Check if not started yet (on hold)
+        if self.start_date and today < self.start_date:
+            return 'on_hold'
+        
+        # Otherwise active
+        return 'active'
+    
+    def get_status_display_name(self):
+        """Get display name for current status"""
+        status = self.get_current_status()
+        status_map = {
+            'active': 'Active',
+            'expired': 'Expired',
+            'cancelled': 'Cancelled',
+            'on_hold': 'On Hold',
+        }
+        return status_map.get(status, status.title())
+    
+    @property
+    def current_status(self):
+        """Property to get current status for display in admin"""
+        return self.get_status_display_name()
+
     def __str__(self):
         return self.reference_id
 
@@ -193,7 +229,7 @@ class AMCViewSet(SnippetViewSet):
         "reference_id",
         "customer",
         "amcname",
-        "status",
+        "current_status",
         "start_date",
         "end_date",
         "amount_due",
@@ -288,7 +324,7 @@ class AMCExpiringThisMonthViewSet(SnippetViewSet):
         "reference_id",
         "customer",
         "amcname",
-        "status",
+        "current_status",
         "start_date",
         "end_date",
         "amount_due",
@@ -353,7 +389,7 @@ class AMCExpiringLastMonthViewSet(SnippetViewSet):
         "reference_id",
         "customer",
         "amcname",
-        "status",
+        "current_status",
         "start_date",
         "end_date",
         "amount_due",
@@ -415,7 +451,7 @@ class AMCExpiringNextMonthViewSet(SnippetViewSet):
         "reference_id",
         "customer",
         "amcname",
-        "status",
+        "current_status",
         "start_date",
         "end_date",
         "amount_due",

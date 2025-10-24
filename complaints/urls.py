@@ -12,6 +12,11 @@ urlpatterns = [
     path('create/', views.create_complaint, name='create_complaint'),
     path('update/<str:reference>/', views.update_complaint, name='update_complaint'),
 
+    # QR Code & Public Complaint
+    path('qr/<int:customer_id>/', views.generate_customer_complaint_qr, name='generate_complaint_qr'),
+    path('public/<int:customer_id>/', views.public_complaint_form, name='public_complaint_form'),
+    path('public/<int:customer_id>/submit/', views.submit_public_complaint, name='submit_public_complaint'),
+
     # APIs
     path('api/complaints/customers/', views.get_customers, name='complaints_api_customers'),
     path('api/complaints/types/', views.get_complaint_types, name='complaints_api_types'),

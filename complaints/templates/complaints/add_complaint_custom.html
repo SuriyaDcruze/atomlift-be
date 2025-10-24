@@ -79,18 +79,6 @@
           <label class="form-label">Subject</label>
           <input id="subject" class="form-input" type="text" />
         </div>
-        <div class="form-group">
-          <label class="form-label">Message</label>
-          <textarea id="message" class="form-textarea" rows="3"></textarea>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Technician Remark</label>
-          <textarea id="technician_remark" class="form-textarea" rows="2"></textarea>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Solution</label>
-          <textarea id="solution" class="form-textarea" rows="2"></textarea>
-        </div>
       </div>
       <div class="w-modal-footer">
         <button type="button" class="btn btn-secondary" onclick="window.history.back()">Cancel</button>
@@ -122,9 +110,6 @@ document.addEventListener('DOMContentLoaded',function(){
       contact_person_mobile:document.getElementById('contact_person_mobile').value,
       block_wing:document.getElementById('block_wing').value,
       subject:document.getElementById('subject').value,
-      message:document.getElementById('message').value,
-      technician_remark:document.getElementById('technician_remark').value,
-      solution:document.getElementById('solution').value,
     };
     fetch('/complaints/create/',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':getCsrfToken()},body:JSON.stringify(payload)}).then(r=>r.json()).then(res=>{
       if(res.success){window.location.href='{% url "wagtailadmin_home" %}'}

@@ -240,6 +240,11 @@ def edit_customer_custom(request, pk):
 def view_customer_custom(request, pk):
     """Custom view for viewing customer details in read-only mode"""
     from lift.models import Lift
+    from invoice.models import Invoice
+    from amc.models import AMC
+    from PaymentReceived.models import PaymentReceived
+    from Routine_services.models import RoutineService
+    from complaints.models import Complaint
     
     customer = get_object_or_404(Customer, pk=pk)
     
@@ -248,9 +253,56 @@ def view_customer_custom(request, pk):
     if customer.job_no:
         lifts = Lift.objects.filter(lift_code=customer.job_no)
     
+    # Get invoices for this customer
+    invoices = Invoice.objects.filter(customer=customer).select_related('customer').prefetch_related('items').order_by('-start_date')
+    
+    # Get AMCs for this customer
+    try:
+        amcs = AMC.objects.filter(customer=customer).order_by('-start_date')
+    except:
+        amcs = []
+    
+    # Get payments for this customer (field is 'date' not 'payment_date')
+    try:
+        payments = PaymentReceived.objects.filter(customer=customer).order_by('-date')
+    except:
+        payments = []
+    
+    # Get routine services for this customer
+    try:
+        routine_services = RoutineService.objects.filter(customer=customer).order_by('-id')
+    except:
+        routine_services = []
+    
+    # Get complaints for this customer
+    try:
+        complaints = Complaint.objects.filter(customer=customer).order_by('-date')
+    except:
+        complaints = []
+    
+    # Get feedback (if you have a feedback model)
+    feedbacks = []
+    # feedbacks = Feedback.objects.filter(customer=customer).order_by('-created_date')
+    
+    # Get follow-ups (if you have a follow-up model)
+    follow_ups = []
+    # follow_ups = FollowUp.objects.filter(customer=customer).order_by('-created_date')
+    
+    # Get contacts (if you have a contacts model)
+    contacts = []
+    # contacts = Contact.objects.filter(customer=customer).order_by('first_name')
+    
     context = {
         'customer': customer,
         'lifts': lifts,
+        'invoices': invoices,
+        'amcs': amcs,
+        'payments': payments,
+        'routine_services': routine_services,
+        'complaints': complaints,
+        'feedbacks': feedbacks,
+        'follow_ups': follow_ups,
+        'contacts': contacts,
     }
     return render(request, 'customer/view_customer_custom.html', context)
 

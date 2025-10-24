@@ -2,3 +2,5 @@ Django>=5.2,<5.3
 wagtail>=7.1,<7.2
 wagtail-modeladmin
 openpyxl>=3.1.0
+qrcode>=7.4.2
+Pillow>=10.0.0

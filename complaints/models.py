@@ -37,6 +37,10 @@ class Complaint(models.Model):
     contact_person_name = models.CharField(max_length=100, blank=True, null=True)
     contact_person_mobile = models.CharField(max_length=20, blank=True, null=True)
     block_wing = models.CharField(max_length=200, blank=True, null=True)
+    
+    # Lift and Template fields
+    lift_info = models.CharField(max_length=200, blank=True, null=True, help_text="Selected lift information")
+    complaint_templates = models.TextField(blank=True, null=True, help_text="Selected complaint templates (comma-separated)")
 
     assign_to = models.ForeignKey(
         CustomUser,
@@ -95,6 +99,8 @@ class Complaint(models.Model):
             FieldPanel("contact_person_name"),
             FieldPanel("contact_person_mobile"),
             FieldPanel("block_wing"),
+            FieldPanel("lift_info"),
+            FieldPanel("complaint_templates"),
         ], heading="Customer Details"),
 
         MultiFieldPanel([
@@ -153,6 +159,8 @@ class ComplaintViewSet(SnippetViewSet):
         "contact_person_name",
         "contact_person_mobile",
         "block_wing",
+        "lift_info",
+        "complaint_templates",
         "assign_to",
         "priority",
         "subject",
