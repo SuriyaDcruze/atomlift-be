@@ -236,6 +236,23 @@ class AMCViewSet(SnippetViewSet):
         "equipment_no",
     )
 
+    def get_add_url(self):
+        from django.urls import reverse
+        return reverse("add_amc_custom")
+
+    def get_edit_url(self, instance):
+        from django.urls import reverse
+        return reverse("edit_amc_custom", args=(instance.pk,))
+
+    def add_view(self, request):
+        from django.shortcuts import redirect
+        return redirect(self.get_add_url())
+
+    def edit_view(self, request, pk):
+        from django.shortcuts import redirect
+        instance = self.model.objects.get(pk=pk)
+        return redirect(self.get_edit_url(instance))
+
 
 class AMCExpiringThisMonth(AMC):
     class Meta:
