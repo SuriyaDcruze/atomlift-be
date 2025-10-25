@@ -154,6 +154,30 @@ class AMC(models.Model):
     def current_status(self):
         """Property to get current status for display in admin"""
         return self.get_status_display_name()
+    
+    @property
+    def contract_period(self):
+        """Property to display contract period as 'start_date - end_date'"""
+        if self.start_date and self.end_date:
+            return f"{self.start_date} - {self.end_date}"
+        elif self.start_date:
+            return f"{self.start_date} - (No end date)"
+        return "Not set"
+    
+    def amount_details(self):
+        """Method to display all amount details in a single column"""
+        from django.utils.html import format_html
+        return format_html(
+            '<div style="line-height: 1.6;">'
+            '<strong>Total Amount:</strong> ₹{}<br>'
+            '<strong>Total Amount Paid:</strong> ₹{}<br>'
+            '<strong>Due Amount:</strong> ₹{}'
+            '</div>',
+            self.contract_amount,
+            self.total_amount_paid,
+            self.amount_due
+        )
+    amount_details.short_description = 'Amount'
 
     def __str__(self):
         return self.reference_id
@@ -230,9 +254,8 @@ class AMCViewSet(SnippetViewSet):
         "customer",
         "amcname",
         "current_status",
-        "start_date",
-        "end_date",
-        "amount_due",
+        "contract_period",
+        "amount_details",
     )
 
     # 👇 Export ALL model fields to CSV & XLSX
@@ -325,9 +348,8 @@ class AMCExpiringThisMonthViewSet(SnippetViewSet):
         "customer",
         "amcname",
         "current_status",
-        "start_date",
-        "end_date",
-        "amount_due",
+        "contract_period",
+        "amount_details",
     )
 
     list_export = [
@@ -390,9 +412,8 @@ class AMCExpiringLastMonthViewSet(SnippetViewSet):
         "customer",
         "amcname",
         "current_status",
-        "start_date",
-        "end_date",
-        "amount_due",
+        "contract_period",
+        "amount_details",
     )
 
     list_export = [
@@ -452,9 +473,8 @@ class AMCExpiringNextMonthViewSet(SnippetViewSet):
         "customer",
         "amcname",
         "current_status",
-        "start_date",
-        "end_date",
-        "amount_due",
+        "contract_period",
+        "amount_details",
     )
 
     list_export = [

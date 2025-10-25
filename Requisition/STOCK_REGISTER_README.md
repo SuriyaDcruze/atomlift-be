@@ -156,3 +156,4 @@ Potential features for future versions:
 - [ ] Integration with requisitions for automatic stock updates
 
 
+
