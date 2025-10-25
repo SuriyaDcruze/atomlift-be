@@ -1,2 +1,2 @@
-# This file is intentionally empty as URLs are registered in the main urls.py
-# The RequisitionViewSet in models.py handles the admin integration
+# This file is intentionally empty as the Stock Register is integrated
+# into the Inventory Group via the InventoryGroup SnippetViewSetGroup in models.py

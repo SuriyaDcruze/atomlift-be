@@ -1,0 +1,27 @@
+/* Import Inter font from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap');
+
+/* Global font family override */
+* {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif !important;
+}
+
+body {
+    font-family: 'Inter', sans-serif !important;
+}
+
+/* Ensure Inter is used in all headings */
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Inter', sans-serif !important;
+}
+
+/* Input and form elements */
+input, textarea, select, button {
+    font-family: 'Inter', sans-serif !important;
+}
+
+/* Tables */
+table, th, td {
+    font-family: 'Inter', sans-serif !important;
+}
+

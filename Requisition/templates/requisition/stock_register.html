@@ -1,0 +1,198 @@
+{% extends "wagtailadmin/base.html" %}
+{% load static wagtailadmin_tags %}
+
+{% block titletag %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stock-register-container {
+        padding: 2rem;
+        background-color: #f9fafb;
+        min-height: 100vh;
+    }
+    
+    .stock-register-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+    
+    .stock-register-title {
+        font-size: 1.875rem;
+        font-weight: bold;
+        color: #1f2937;
+    }
+    
+    .stock-register-actions {
+        display: flex;
+        gap: 1rem;
+    }
+    
+    .btn-export {
+        background-color: #243158;
+        color: white;
+        padding: 0.5rem 1.5rem;
+        border-radius: 0.375rem;
+        border: none;
+        cursor: pointer;
+        font-weight: 500;
+        transition: background-color 0.2s;
+    }
+    
+    .btn-export:hover {
+        background-color: #1a2440;
+    }
+    
+    .stock-register-table {
+        background: white;
+        border-radius: 0.5rem;
+        overflow: hidden;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    }
+    
+    .stock-register-table table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .stock-register-table th {
+        background-color: #243158;
+        color: white;
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .stock-register-table th:last-child {
+        border-right: none;
+    }
+    
+    .stock-register-table td {
+        padding: 1rem;
+        border-bottom: 1px solid #e5e7eb;
+        border-right: 1px solid #e5e7eb;
+        font-size: 0.875rem;
+    }
+    
+    .stock-register-table td:last-child {
+        border-right: none;
+    }
+    
+    .stock-register-table tbody tr:hover {
+        background-color: #f9fafb;
+    }
+    
+    .text-center {
+        text-align: center;
+    }
+    
+    .text-right {
+        text-align: right;
+    }
+    
+    .stock-positive {
+        color: #059669;
+        font-weight: 600;
+    }
+    
+    .stock-negative {
+        color: #dc2626;
+        font-weight: 600;
+    }
+    
+    .stock-zero {
+        color: #6b7280;
+        font-weight: 600;
+    }
+    
+    .no-data {
+        text-align: center;
+        padding: 3rem;
+        color: #6b7280;
+        font-size: 1rem;
+    }
+    
+    .description-cell {
+        max-width: 200px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    .currency {
+        font-family: monospace;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="stock-register-container">
+    <div class="stock-register-header">
+        <h1 class="stock-register-title">{{ title }}</h1>
+        <div class="stock-register-actions">
+            <button class="btn-export" onclick="window.print()">
+                <svg style="width:16px;height:16px;display:inline-block;vertical-align:middle;margin-right:4px;" viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M19,12H17V15H14V17H17V20H19V17H22V15H19V12M18,10V7A2,2 0 0,0 16,5H5A2,2 0 0,0 3,7V10H2V15H9V17H3V19H13.35C13.13,18.37 13,17.7 13,17C13,14.24 15.24,12 18,12M5,7H16V10H5V7Z" />
+                </svg>
+                Print
+            </button>
+        </div>
+    </div>
+
+    <div class="stock-register-table">
+        <table>
+            <thead>
+                <tr>
+                    <th class="text-center">NO</th>
+                    <th>ITEM</th>
+                    <th class="text-center">UNIT</th>
+                    <th>DESCRIPTION</th>
+                    <th>TYPE</th>
+                    <th class="text-right">VALUE</th>
+                    <th class="text-right">INWARD STOCK</th>
+                    <th class="text-right">OUTWARD STOCK</th>
+                    <th class="text-right">AVAILABLE STOCK</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stock in stock_data %}
+                <tr>
+                    <td class="text-center">{{ stock.no }}</td>
+                    <td>
+                        <strong>{{ stock.item.item_number }}</strong><br>
+                        {{ stock.item.name }}
+                    </td>
+                    <td class="text-center">{{ stock.unit }}</td>
+                    <td class="description-cell" title="{{ stock.description }}">
+                        {{ stock.description }}
+                    </td>
+                    <td>{{ stock.type }}</td>
+                    <td class="text-right currency">₹ {{ stock.value|floatformat:2 }}</td>
+                    <td class="text-right stock-positive">{{ stock.inward_stock }}</td>
+                    <td class="text-right stock-negative">{{ stock.outward_stock }}</td>
+                    <td class="text-right 
+                        {% if stock.available_stock > 0 %}stock-positive
+                        {% elif stock.available_stock < 0 %}stock-negative
+                        {% else %}stock-zero{% endif %}">
+                        {{ stock.available_stock }}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="9" class="no-data">
+                        No stock data available
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}
+
+

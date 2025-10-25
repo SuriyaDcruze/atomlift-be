@@ -84,6 +84,82 @@ class Requisition(models.Model):
         return f"{self.reference_id} - {self.item or 'No Item'}"
 
 
+# ---------- STOCK REGISTER MODEL ----------
+class StockRegister(models.Model):
+    """Stock Register to track inventory movements"""
+    
+    TRANSACTION_CHOICES = [
+        ('INWARD', 'Inward'),
+        ('OUTWARD', 'Outward'),
+    ]
+    
+    register_no = models.CharField(max_length=10, unique=True, editable=False)
+    date = models.DateField()
+    item = models.ForeignKey(Item, on_delete=models.CASCADE, related_name='stock_entries')
+    description = models.TextField(blank=True, null=True)
+    transaction_type = models.CharField(max_length=10, choices=TRANSACTION_CHOICES)
+    inward_qty = models.PositiveIntegerField(default=0, help_text="Quantity received/added to stock")
+    outward_qty = models.PositiveIntegerField(default=0, help_text="Quantity issued/removed from stock")
+    unit_value = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="Value per unit")
+    total_value = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, editable=False)
+    reference = models.CharField(max_length=100, blank=True, help_text="Reference document number")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    panels = [
+        MultiFieldPanel([
+            FieldPanel("register_no", read_only=True),
+            FieldPanel("date"),
+            FieldPanel("item"),
+            FieldPanel("description"),
+        ], heading="Basic Information"),
+        
+        MultiFieldPanel([
+            FieldPanel("transaction_type", widget=RadioSelect),
+            FieldPanel("inward_qty"),
+            FieldPanel("outward_qty"),
+            FieldPanel("unit_value"),
+            FieldPanel("reference"),
+        ], heading="Transaction Details"),
+    ]
+
+    class Meta:
+        verbose_name = "Stock Register"
+        verbose_name_plural = "Stock Register"
+        ordering = ['-date', '-created_at']
+
+    def save(self, *args, **kwargs):
+        # Auto-generate register number
+        if not self.register_no:
+            last_entry = StockRegister.objects.all().order_by('id').last()
+            if last_entry and last_entry.register_no.startswith('STK'):
+                last_id = int(last_entry.register_no.replace('STK', ''))
+                self.register_no = f'STK{str(last_id + 1).zfill(4)}'
+            else:
+                self.register_no = 'STK0001'
+        
+        # Calculate total value
+        if self.transaction_type == 'INWARD':
+            self.total_value = self.inward_qty * self.unit_value
+            self.outward_qty = 0
+        else:  # OUTWARD
+            self.total_value = self.outward_qty * self.unit_value
+            self.inward_qty = 0
+            
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.register_no} - {self.item.name if self.item else 'N/A'} ({self.transaction_type})"
+
+    @staticmethod
+    def get_available_stock(item):
+        """Calculate available stock for a specific item"""
+        entries = StockRegister.objects.filter(item=item)
+        total_inward = sum(entry.inward_qty for entry in entries)
+        total_outward = sum(entry.outward_qty for entry in entries)
+        return total_inward - total_outward
+
+
 # ---------- SNIPPET VIEWSET ----------
 class RequisitionViewSet(SnippetViewSet):
     model = Requisition
@@ -143,9 +219,48 @@ class RequisitionViewSet(SnippetViewSet):
             from django.shortcuts import render
             return render(request, '404.html', status=404)
 
+
+# ---------- STOCK REGISTER VIEWSET ----------
+class StockRegisterViewSet(SnippetViewSet):
+    model = StockRegister
+    icon = "doc-full-inverse"
+    menu_label = "Stock Register"
+    inspect_view_enabled = True
+    
+    list_display = (
+        "register_no",
+        "date",
+        "item",
+        "transaction_type",
+        "inward_qty",
+        "outward_qty",
+        "unit_value",
+        "total_value",
+        "reference",
+    )
+    
+    list_export = [
+        "register_no",
+        "date",
+        "item",
+        "description",
+        "transaction_type",
+        "inward_qty",
+        "outward_qty",
+        "unit_value",
+        "total_value",
+        "reference",
+    ]
+    
+    export_formats = ["csv", "xlsx"]
+    
+    search_fields = ("register_no", "item__name", "reference", "description")
+    list_filter = ("transaction_type", "date", "item__type")
+
+
 # ---------- GROUP ----------
 class InventoryGroup(SnippetViewSetGroup):
-    items = (RequisitionViewSet,)
+    items = (RequisitionViewSet, StockRegisterViewSet)
     icon = "folder-open-inverse"
     menu_label = "Inventory "
     menu_name = "inventory"

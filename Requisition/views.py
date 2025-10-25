@@ -3,7 +3,9 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
 from django.urls import reverse
-from .models import Requisition
+from django.contrib.auth.decorators import login_required
+from django.db.models import Sum, Q
+from .models import Requisition, StockRegister
 from items.models import Item
 from customer.models import Customer
 from amc.models import AMC
@@ -120,3 +122,51 @@ def edit_requisition_custom(request, reference_id):
         'employees': employees,
         'is_edit': True
     })
+
+
+@login_required
+def stock_register_view(request):
+    """Display Stock Register with calculated available stock"""
+    
+    # Get all items
+    items = Item.objects.all()
+    
+    # Prepare stock data for each item
+    stock_data = []
+    
+    for idx, item in enumerate(items, start=1):
+        # Calculate total inward and outward for this item
+        stock_entries = StockRegister.objects.filter(item=item)
+        
+        total_inward = stock_entries.aggregate(
+            total=Sum('inward_qty')
+        )['total'] or 0
+        
+        total_outward = stock_entries.aggregate(
+            total=Sum('outward_qty')
+        )['total'] or 0
+        
+        available_stock = total_inward - total_outward
+        
+        # Calculate total value (using latest unit value if available)
+        latest_entry = stock_entries.order_by('-date').first()
+        unit_value = latest_entry.unit_value if latest_entry else item.sale_price
+        
+        stock_data.append({
+            'no': idx,
+            'item': item,
+            'unit': item.unit.value if item.unit else 'N/A',
+            'description': item.description or '-',
+            'type': item.type.value if item.type else 'N/A',
+            'value': unit_value,
+            'inward_stock': total_inward,
+            'outward_stock': total_outward,
+            'available_stock': available_stock,
+        })
+    
+    context = {
+        'stock_data': stock_data,
+        'title': 'Stock Register'
+    }
+    
+    return render(request, 'requisition/stock_register.html', context)

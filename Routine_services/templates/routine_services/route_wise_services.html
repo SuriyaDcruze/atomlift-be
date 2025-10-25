@@ -1,0 +1,151 @@
+{% extends "wagtailadmin/base.html" %}
+{% load static wagtailadmin_tags %}
+
+{% block titletag %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .services-container {
+        padding: 2rem;
+        background-color: #f9fafb;
+        min-height: 100vh;
+    }
+    .services-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+    .services-title {
+        font-size: 1.875rem;
+        font-weight: bold;
+        color: #1f2937;
+    }
+    .route-section {
+        background: white;
+        border-radius: 0.5rem;
+        overflow: hidden;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        margin-bottom: 1.5rem;
+    }
+    .route-header {
+        background-color: #243158;
+        color: white;
+        padding: 1rem;
+        font-size: 1.125rem;
+        font-weight: 600;
+    }
+    .services-table table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .services-table th {
+        background-color: #f3f4f6;
+        color: #374151;
+        padding: 0.75rem;
+        text-align: left;
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+    .services-table td {
+        padding: 0.75rem;
+        border-bottom: 1px solid #e5e7eb;
+        font-size: 0.875rem;
+    }
+    .services-table tbody tr:hover {
+        background-color: #f9fafb;
+    }
+    .badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    .badge-pending {
+        background-color: #fef3c7;
+        color: #92400e;
+    }
+    .badge-completed {
+        background-color: #d1fae5;
+        color: #065f46;
+    }
+    .badge-overdue {
+        background-color: #fee2e2;
+        color: #991b1b;
+    }
+    .badge-in-progress {
+        background-color: #dbeafe;
+        color: #1e40af;
+    }
+    .no-data {
+        text-align: center;
+        padding: 2rem;
+        color: #6b7280;
+        font-size: 0.875rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="services-container">
+    <div class="services-header">
+        <h1 class="services-title">{{ title }}</h1>
+    </div>
+
+    {% if route_services %}
+        {% for route, services in route_services.items %}
+        <div class="route-section">
+            <div class="route-header">
+                Route: {{ route }}
+            </div>
+            <div class="services-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Service Date</th>
+                            <th>Customer</th>
+                            <th>Lift</th>
+                            <th>Service Type</th>
+                            <th>Status</th>
+                            <th>Assigned Technician</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for service in services %}
+                        <tr>
+                            <td>{{ service.service_date|date:"d.m.Y" }}</td>
+                            <td>{{ service.customer.site_name|default:"N/A" }}</td>
+                            <td>{{ service.lift|default:"N/A" }}</td>
+                            <td>{{ service.service_type }}</td>
+                            <td>
+                                {% if service.status == "completed" %}
+                                    <span class="badge badge-completed">Completed</span>
+                                {% elif service.status == "pending" %}
+                                    <span class="badge badge-pending">Pending</span>
+                                {% elif service.status == "overdue" %}
+                                    <span class="badge badge-overdue">Overdue</span>
+                                {% elif service.status == "in_progress" %}
+                                    <span class="badge badge-in-progress">In Progress</span>
+                                {% else %}
+                                    <span class="badge">{{ service.get_status_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ service.assigned_technician.get_full_name|default:"Unassigned" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="route-section">
+            <div class="no-data">
+                No routine services found for any route
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
