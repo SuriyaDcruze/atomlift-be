@@ -161,6 +161,33 @@ class Customer(models.Model):
         # Reset checkbox without recursion
         if self.generate_license_now:
             Customer.objects.filter(pk=self.pk).update(generate_license_now=False)
+    
+    def number_of_lifts(self):
+        """Count the number of lifts assigned to this customer through licenses"""
+        try:
+            # Count lifts through CustomerLicense relationship
+            return self.licenses.count()
+        except Exception:
+            return 0
+    number_of_lifts.short_description = 'No. of Lifts'
+    
+    def number_of_routine_services(self):
+        """Count the number of routine services for this customer"""
+        try:
+            from Routine_services.models import RoutineService
+            return RoutineService.objects.filter(customer=self).count()
+        except Exception:
+            return 0
+    number_of_routine_services.short_description = 'Routine Services'
+    
+    def number_of_invoices(self):
+        """Count the number of invoices for this customer"""
+        try:
+            from invoice.models import Invoice
+            return Invoice.objects.filter(customer=self).count()
+        except Exception:
+            return 0
+    number_of_invoices.short_description = 'Invoices'
 
 
 # ======================================================
@@ -269,9 +296,9 @@ class CustomerViewSet(SnippetViewSet):
     edit_view_enabled = False
     
     list_display = (
-        "reference_id", "site_name", "job_no", "email", "phone", "city", "branch", "routes", "sector",
+        "reference_id", "site_name", "job_no", "email", "phone", "number_of_lifts", "number_of_routine_services", "number_of_invoices",
     )
-    list_export = list_display
+    list_export = ("reference_id", "site_name", "job_no", "email", "phone", "city", "branch", "routes", "sector")
 
     create_template_name = 'customer/add_customer_custom.html'
     inspect_template_name = 'customer/view_customer_custom.html'

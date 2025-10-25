@@ -1,6 +1,84 @@
 {% extends "wagtailadmin/base.html" %}
 {% load static %}
-{% block extra_css %}<style>.w-content-wrapper{background:#f5f5f5;min-height:calc(100vh - 4rem);padding:2rem}.w-modal-overlay{position:static;inset:auto;background-color:transparent;display:block;padding:0}.w-modal-content{background:#fff;border-radius:.75rem;box-shadow:0 10px 20px -10px rgba(0,0,0,.15);width:100%;max-width:72rem;margin:2rem auto;max-height:none;overflow:visible;display:flex;flex-direction:column}.w-modal-header{background:linear-gradient(to right,#2D3A6B,#243158);padding:1.5rem;color:#fff}.w-modal-title{margin:0;font-size:1.25rem;font-weight:600}.w-modal-body{padding:1.5rem}.form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1.5rem}.form-group{margin-bottom:1rem}.form-label{display:block;font-size:.875rem;font-weight:500;color:#374151;margin-bottom:.25rem}.form-input,.form-select{width:100%;padding:.625rem 1rem;border-radius:.5rem;border:1px solid #D1D5DB;background:#fff;font-size:.875rem}.w-modal-footer{padding:1rem 1.5rem;background:#F9FAFB;border-top:1px solid #E5E7EB;display:flex;justify-content:flex-end;gap:.75rem;position:sticky;bottom:0;z-index:1}.btn{padding:.625rem 1.25rem;border-radius:.5rem;font-size:.875rem;font-weight:500}.btn-primary{background:linear-gradient(to right,#2D3A6B,#243158);color:#fff}.btn-secondary{background:#F3F4F6;border:1px solid #D1D5DB}</style>{% endblock %}
+{% block extra_css %}
+<style>
+.w-content-wrapper{background:#f5f5f5;min-height:calc(100vh - 4rem);padding:2rem}
+.w-modal-overlay{position:static;inset:auto;background-color:transparent;display:block;padding:0}
+.w-modal-content{background:#fff;border-radius:.75rem;box-shadow:0 10px 20px -10px rgba(0,0,0,.15);width:100%;max-width:72rem;margin:2rem auto;max-height:none;overflow:visible;display:flex;flex-direction:column}
+.w-modal-header{background:linear-gradient(to right,#2D3A6B,#243158);padding:1.5rem;color:#fff}
+.w-modal-title{margin:0;font-size:1.25rem;font-weight:600}
+.w-modal-body{padding:1.5rem}
+.form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1.5rem}
+.form-group{margin-bottom:1rem}
+.form-label{display:block;font-size:.875rem;font-weight:500;color:#374151;margin-bottom:.25rem}
+.form-input,.form-select{width:100%;padding:.625rem 1rem;border-radius:.5rem;border:1px solid #D1D5DB;background:#fff;font-size:.875rem}
+.w-modal-footer{padding:1rem 1.5rem;background:#F9FAFB;border-top:1px solid #E5E7EB;display:flex;justify-content:flex-end;gap:.75rem;position:sticky;bottom:0;z-index:1}
+.btn{padding:.625rem 1.25rem;border-radius:.5rem;font-size:.875rem;font-weight:500}
+.btn-primary{background:linear-gradient(to right,#2D3A6B,#243158);color:#fff}
+.btn-secondary{background:#F3F4F6;border:1px solid #D1D5DB}
+
+.customer-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #D1D5DB;
+  border-top: none;
+  border-radius: 0 0 0.375rem 0.375rem;
+  max-height: 300px;
+  overflow-y: auto;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  margin-top: -1px;
+}
+
+.customer-item {
+  padding: 0.75rem;
+  cursor: pointer;
+  border-bottom: 1px solid #F3F4F6;
+  transition: background-color 0.2s;
+}
+
+.customer-item:hover {
+  background-color: #F9FAFB;
+}
+
+.customer-item:last-child {
+  border-bottom: none;
+}
+
+.customer-item-name {
+  font-weight: 500;
+  color: #374151;
+  font-size: 0.875rem;
+}
+
+.customer-item-details {
+  font-size: 0.75rem;
+  color: #6B7280;
+  margin-top: 0.25rem;
+}
+
+.customer-item.selected {
+  background-color: #EBF4FF;
+  border-left: 3px solid #3B82F6;
+}
+
+.no-results {
+  padding: 1rem;
+  text-align: center;
+  color: #6B7280;
+  font-size: 0.875rem;
+}
+
+#customerSearch:focus {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="w-content-wrapper">
   <div class="w-modal-overlay">
@@ -10,7 +88,22 @@
         <div class="form-grid">
           <div>
             <div class="form-group"><label class="form-label">Payment No</label><input id="payment_number" class="form-input" type="text" readonly /></div>
-            <div class="form-group"><label class="form-label">Customer</label><select id="customer" class="form-select"></select></div>
+            <div class="form-group">
+              <label class="form-label">Customer</label>
+              <div style="position: relative;">
+                <input 
+                  type="text" 
+                  id="customerSearch" 
+                  class="form-input" 
+                  placeholder="Search customer..."
+                  autocomplete="off"
+                />
+                <select id="customer" class="form-select" style="display: none;"></select>
+                <div id="customerDropdown" class="customer-dropdown" style="display: none;">
+                  <div id="customerList"></div>
+                </div>
+              </div>
+            </div>
             <div class="form-group"><label class="form-label">Invoice</label><select id="invoice" class="form-select"></select></div>
           </div>
           <div>
@@ -29,20 +122,158 @@
   </div>
 </div>
 <script>
-function getCsrfToken(){var t=document.querySelector('[name=csrfmiddlewaretoken]');return t?t.value:''}
-function loadSelect(id,url,map){fetch(url).then(r=>r.json()).then(d=>{const s=document.getElementById(id);s.innerHTML='<option value="">Select</option>';d.forEach(i=>{const o=document.createElement('option');o.value=i.id;o.textContent=map?map(i):(i.site_name||i.number);s.appendChild(o);});});}
+let allCustomers = [];
+let selectedCustomerId = null;
+
+function getCsrfToken(){
+  var t=document.querySelector('[name=csrfmiddlewaretoken]');
+  return t?t.value:''
+}
+
+function loadSelect(id,url,map){
+  fetch(url).then(r=>r.json()).then(d=>{
+    const s=document.getElementById(id);
+    s.innerHTML='<option value="">Select</option>';
+    d.forEach(i=>{
+      const o=document.createElement('option');
+      o.value=i.id;
+      o.textContent=map?map(i):(i.site_name||i.number);
+      s.appendChild(o);
+    });
+  });
+}
+
+function loadCustomers() {
+  fetch('/payments/api/payments/customers/')
+    .then(r=>r.json())
+    .then(d=>{
+      allCustomers = d;
+      const s=document.getElementById('customer');
+      s.innerHTML='<option value="">Select</option>';
+      d.forEach(i=>{
+        const o=document.createElement('option');
+        o.value=i.id;
+        o.textContent=i.site_name;
+        s.appendChild(o);
+      });
+    });
+}
+
 document.addEventListener('DOMContentLoaded',function(){
-  fetch('/payments/api/payments/next-number/').then(r=>r.json()).then(d=>{if(d.payment_number){document.getElementById('payment_number').value=d.payment_number}});
-  const today=new Date().toISOString().split('T')[0];document.getElementById('date').value=today;
-  loadSelect('customer','/payments/api/payments/customers/');
+  fetch('/payments/api/payments/next-number/').then(r=>r.json()).then(d=>{
+    if(d.payment_number){
+      document.getElementById('payment_number').value=d.payment_number
+    }
+  });
+  
+  const today=new Date().toISOString().split('T')[0];
+  document.getElementById('date').value=today;
+  
+  loadCustomers();
+  setupCustomerSearch();
   loadSelect('invoice','/payments/api/payments/invoices/',i=>i.number);
+  
   document.getElementById('submitBtn').addEventListener('click',function(){
-    const payload={customer:document.getElementById('customer').value,invoice:document.getElementById('invoice').value,amount:document.getElementById('amount').value,date:document.getElementById('date').value,payment_type:document.getElementById('payment_type').value,tax_deducted:document.getElementById('tax_deducted').value};
-    fetch('/payments/create/',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':getCsrfToken()},body:JSON.stringify(payload)}).then(r=>r.json()).then(res=>{if(res.success){window.location.href='{% url "wagtailadmin_home" %}'}else{alert(res.error||'Failed')}});
+    const payload={
+      customer:document.getElementById('customer').value,
+      invoice:document.getElementById('invoice').value,
+      amount:document.getElementById('amount').value,
+      date:document.getElementById('date').value,
+      payment_type:document.getElementById('payment_type').value,
+      tax_deducted:document.getElementById('tax_deducted').value
+    };
+    fetch('/payments/create/',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-CSRFToken':getCsrfToken()},
+      body:JSON.stringify(payload)
+    }).then(r=>r.json()).then(res=>{
+      if(res.success){
+        window.location.href='{% url "wagtailadmin_home" %}'
+      }else{
+        alert(res.error||'Failed')
+      }
+    });
   });
 });
+
+// Customer search functionality
+function setupCustomerSearch() {
+  const searchInput = document.getElementById('customerSearch');
+  const dropdown = document.getElementById('customerDropdown');
+  const customerList = document.getElementById('customerList');
+  
+  searchInput.addEventListener('focus', () => {
+    if (allCustomers.length > 0) {
+      filterCustomers(searchInput.value);
+      dropdown.style.display = 'block';
+    }
+  });
+  
+  searchInput.addEventListener('input', (e) => {
+    filterCustomers(e.target.value);
+  });
+  
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.form-group')) {
+      dropdown.style.display = 'none';
+    }
+  });
+}
+
+function filterCustomers(searchTerm) {
+  const dropdown = document.getElementById('customerDropdown');
+  
+  if (!searchTerm.trim()) {
+    displayCustomers(allCustomers);
+  } else {
+    const term = searchTerm.toLowerCase();
+    const filtered = allCustomers.filter(customer => {
+      return (
+        (customer.site_name && customer.site_name.toLowerCase().includes(term)) ||
+        (customer.job_no && customer.job_no.toLowerCase().includes(term)) ||
+        (customer.site_id && customer.site_id.toLowerCase().includes(term)) ||
+        (customer.reference_id && customer.reference_id.toLowerCase().includes(term)) ||
+        (customer.email && customer.email.toLowerCase().includes(term)) ||
+        (customer.phone && customer.phone.toLowerCase().includes(term))
+      );
+    });
+    displayCustomers(filtered);
+  }
+  
+  dropdown.style.display = 'block';
+}
+
+function displayCustomers(customers) {
+  const customerList = document.getElementById('customerList');
+  
+  if (customers.length === 0) {
+    customerList.innerHTML = '<div class="no-results">No customers found</div>';
+    return;
+  }
+  
+  customerList.innerHTML = customers.map(customer => `
+    <div class="customer-item ${selectedCustomerId === customer.id ? 'selected' : ''}" 
+         onclick="selectCustomer(${JSON.stringify(customer).replace(/"/g, '&quot;')})">
+      <div class="customer-item-name">${customer.site_name || 'N/A'}</div>
+      <div class="customer-item-details">
+        ${customer.job_no ? 'Job No: ' + customer.job_no : ''} 
+        ${customer.site_id ? '| Site ID: ' + customer.site_id : ''}
+        ${customer.email ? '| ' + customer.email : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function selectCustomer(customer) {
+  selectedCustomerId = customer.id;
+  const searchInput = document.getElementById('customerSearch');
+  const dropdown = document.getElementById('customerDropdown');
+  const hiddenSelect = document.getElementById('customer');
+  
+  searchInput.value = `${customer.site_name}${customer.job_no ? ' (' + customer.job_no + ')' : ''}`;
+  hiddenSelect.value = customer.id;
+  dropdown.style.display = 'none';
+}
 </script>
 {% endblock %}
-
-
 

@@ -384,6 +384,66 @@ body {
 }
 
 /* Responsive adjustments to match lift add page */
+.customer-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #D1D5DB;
+  border-top: none;
+  border-radius: 0 0 0.375rem 0.375rem;
+  max-height: 300px;
+  overflow-y: auto;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  margin-top: -1px;
+}
+
+.customer-item {
+  padding: 0.75rem;
+  cursor: pointer;
+  border-bottom: 1px solid #F3F4F6;
+  transition: background-color 0.2s;
+}
+
+.customer-item:hover {
+  background-color: #F9FAFB;
+}
+
+.customer-item:last-child {
+  border-bottom: none;
+}
+
+.customer-item-name {
+  font-weight: 500;
+  color: #374151;
+  font-size: 0.875rem;
+}
+
+.customer-item-details {
+  font-size: 0.75rem;
+  color: #6B7280;
+  margin-top: 0.25rem;
+}
+
+.customer-item.selected {
+  background-color: #EBF4FF;
+  border-left: 3px solid #3B82F6;
+}
+
+.no-results {
+  padding: 1rem;
+  text-align: center;
+  color: #6B7280;
+  font-size: 0.875rem;
+}
+
+#customerSearch:focus {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
 @media (max-width: 768px) {
   .form-grid {
     grid-template-columns: 1fr;
@@ -433,9 +493,21 @@ body {
 
             <div class="form-group">
               <label class="form-label">Customer<span class="form-required">*</span></label>
-              <select id="customer" name="customer" class="form-select" required>
-                <option value="">Loading customers...</option>
-              </select>
+              <div style="position: relative;">
+                <input 
+                  type="text" 
+                  id="customerSearch" 
+                  class="form-input" 
+                  placeholder="Search customer by name, job no, or site ID..."
+                  autocomplete="off"
+                />
+                <select id="customer" name="customer" class="form-select" required style="display: none;">
+                  <option value="">Loading customers...</option>
+                </select>
+                <div id="customerDropdown" class="customer-dropdown" style="display: none;">
+                  <div id="customerList"></div>
+                </div>
+              </div>
               <p id="customer-error" class="form-error-message" style="display: none;"></p>
             </div>
 
@@ -589,6 +661,9 @@ var isEditMode = false;
 var submitUrl = "{% url 'create_quotation' %}";
 var adminHomeUrl = "/admin/snippets/Quotation/quotation";
 
+let allCustomers = [];
+let selectedCustomerId = null;
+
 document.addEventListener('DOMContentLoaded', function() {
   loadCustomers();
   loadAmcTypes();
@@ -596,6 +671,7 @@ document.addEventListener('DOMContentLoaded', function() {
   loadLifts();
   document.getElementById('submitBtn').addEventListener('click', handleFormSubmit);
   fetchNextReferenceId();
+  setupCustomerSearch();
 });
 
 function fetchNextReferenceId() {
@@ -620,12 +696,15 @@ function loadCustomers() {
   fetch('/quotation/api/customers/')
     .then(response => response.json())
     .then(data => {
+      allCustomers = data;
+      
+      // Populate hidden select for form submission
       const select = document.getElementById('customer');
       select.innerHTML = '<option value="">Select Customer</option>';
-      data.forEach(item => {
+      allCustomers.forEach(customer => {
         const option = document.createElement('option');
-        option.value = item.id;
-        option.textContent = item.site_name;
+        option.value = customer.id;
+        option.textContent = customer.site_name;
         select.appendChild(option);
       });
     })
@@ -855,6 +934,100 @@ function handleFormSubmit() {
     console.error('Error:', error);
     showMessage('error', 'An error occurred while saving the quotation');
   });
+}
+
+// Customer search functionality
+function setupCustomerSearch() {
+  const searchInput = document.getElementById('customerSearch');
+  const dropdown = document.getElementById('customerDropdown');
+  const customerList = document.getElementById('customerList');
+  
+  // Show dropdown on focus
+  searchInput.addEventListener('focus', () => {
+    if (allCustomers.length > 0) {
+      filterCustomers(searchInput.value);
+      dropdown.style.display = 'block';
+    }
+  });
+  
+  // Filter on input
+  searchInput.addEventListener('input', (e) => {
+    filterCustomers(e.target.value);
+  });
+  
+  // Close dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.form-group')) {
+      dropdown.style.display = 'none';
+    }
+  });
+}
+
+function filterCustomers(searchTerm) {
+  const dropdown = document.getElementById('customerDropdown');
+  const customerList = document.getElementById('customerList');
+  
+  if (!searchTerm.trim()) {
+    // Show all customers if search is empty
+    displayCustomers(allCustomers);
+  } else {
+    // Filter customers
+    const term = searchTerm.toLowerCase();
+    const filtered = allCustomers.filter(customer => {
+      return (
+        (customer.site_name && customer.site_name.toLowerCase().includes(term)) ||
+        (customer.job_no && customer.job_no.toLowerCase().includes(term)) ||
+        (customer.site_id && customer.site_id.toLowerCase().includes(term)) ||
+        (customer.reference_id && customer.reference_id.toLowerCase().includes(term)) ||
+        (customer.email && customer.email.toLowerCase().includes(term)) ||
+        (customer.phone && customer.phone.toLowerCase().includes(term))
+      );
+    });
+    displayCustomers(filtered);
+  }
+  
+  dropdown.style.display = 'block';
+}
+
+function displayCustomers(customers) {
+  const customerList = document.getElementById('customerList');
+  
+  if (customers.length === 0) {
+    customerList.innerHTML = '<div class="no-results">No customers found</div>';
+    return;
+  }
+  
+  customerList.innerHTML = customers.map(customer => `
+    <div class="customer-item ${selectedCustomerId === customer.id ? 'selected' : ''}" 
+         onclick="selectCustomer(${JSON.stringify(customer).replace(/"/g, '&quot;')})">
+      <div class="customer-item-name">${customer.site_name || 'N/A'}</div>
+      <div class="customer-item-details">
+        ${customer.job_no ? 'Job No: ' + customer.job_no : ''} 
+        ${customer.site_id ? '| Site ID: ' + customer.site_id : ''}
+        ${customer.email ? '| ' + customer.email : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function selectCustomer(customer) {
+  selectedCustomerId = customer.id;
+  const searchInput = document.getElementById('customerSearch');
+  const dropdown = document.getElementById('customerDropdown');
+  const hiddenSelect = document.getElementById('customer');
+  
+  // Update search input display
+  searchInput.value = `${customer.site_name}${customer.job_no ? ' (' + customer.job_no + ')' : ''}`;
+  
+  // Update hidden select
+  hiddenSelect.value = customer.id;
+  
+  // Hide dropdown
+  dropdown.style.display = 'none';
+  
+  // Clear error if any
+  const errorElement = document.getElementById('customer-error');
+  if (errorElement) errorElement.style.display = 'none';
 }
 </script>
 {% endblock %}

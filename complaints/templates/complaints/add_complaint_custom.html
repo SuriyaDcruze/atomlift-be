@@ -19,6 +19,66 @@
 .btn{padding:.625rem 1.25rem;border-radius:.5rem;font-size:.875rem;font-weight:500}
 .btn-primary{background:linear-gradient(to right,#2D3A6B,#243158);color:#fff}
 .btn-secondary{background:#F3F4F6;border:1px solid #D1D5DB}
+
+.customer-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #D1D5DB;
+  border-top: none;
+  border-radius: 0 0 0.375rem 0.375rem;
+  max-height: 300px;
+  overflow-y: auto;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  margin-top: -1px;
+}
+
+.customer-item {
+  padding: 0.75rem;
+  cursor: pointer;
+  border-bottom: 1px solid #F3F4F6;
+  transition: background-color 0.2s;
+}
+
+.customer-item:hover {
+  background-color: #F9FAFB;
+}
+
+.customer-item:last-child {
+  border-bottom: none;
+}
+
+.customer-item-name {
+  font-weight: 500;
+  color: #374151;
+  font-size: 0.875rem;
+}
+
+.customer-item-details {
+  font-size: 0.75rem;
+  color: #6B7280;
+  margin-top: 0.25rem;
+}
+
+.customer-item.selected {
+  background-color: #EBF4FF;
+  border-left: 3px solid #3B82F6;
+}
+
+.no-results {
+  padding: 1rem;
+  text-align: center;
+  color: #6B7280;
+  font-size: 0.875rem;
+}
+
+#customerSearch:focus {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
 </style>
 {% endblock %}
 
@@ -55,7 +115,19 @@
             <h3 class="form-section-title">Customer & Assignment</h3>
             <div class="form-group">
               <label class="form-label">Customer</label>
-              <select id="customer" class="form-select"></select>
+              <div style="position: relative;">
+                <input 
+                  type="text" 
+                  id="customerSearch" 
+                  class="form-input" 
+                  placeholder="Search customer..."
+                  autocomplete="off"
+                />
+                <select id="customer" class="form-select" style="display: none;"></select>
+                <div id="customerDropdown" class="customer-dropdown" style="display: none;">
+                  <div id="customerList"></div>
+                </div>
+              </div>
             </div>
             <div class="form-group">
               <label class="form-label">Assign To</label>
@@ -89,16 +161,63 @@
 </div>
 
 <script>
-function getCsrfToken(){var t=document.querySelector('[name=csrfmiddlewaretoken]');return t?t.value:''}
-function loadSelect(id,url,placeholder){fetch(url).then(r=>r.json()).then(d=>{const s=document.getElementById(id);s.innerHTML=`<option value="">Select</option>`;d.forEach(i=>{const o=document.createElement('option');o.value=i.id;o.textContent=i.name||i.site_name||i.full_name;s.appendChild(o);});});}
+let allCustomers = [];
+let selectedCustomerId = null;
+
+function getCsrfToken(){
+  var t=document.querySelector('[name=csrfmiddlewaretoken]');
+  return t?t.value:''
+}
+
+function loadSelect(id,url,placeholder){
+  fetch(url).then(r=>r.json()).then(d=>{
+    const s=document.getElementById(id);
+    s.innerHTML=`<option value="">Select</option>`;
+    d.forEach(i=>{
+      const o=document.createElement('option');
+      o.value=i.id;
+      o.textContent=i.name||i.site_name||i.full_name;
+      s.appendChild(o);
+    });
+  });
+}
+
+function loadCustomers() {
+  fetch('/complaints/api/complaints/customers/')
+    .then(r=>r.json())
+    .then(d=>{
+      allCustomers = d;
+      const s=document.getElementById('customer');
+      s.innerHTML='<option value="">Select</option>';
+      d.forEach(i=>{
+        const o=document.createElement('option');
+        o.value=i.id;
+        o.textContent=i.site_name;
+        s.appendChild(o);
+      });
+    });
+}
+
 document.addEventListener('DOMContentLoaded',function(){
-  fetch('/complaints/api/complaints/next-reference/').then(r=>r.json()).then(d=>{if(d.reference){document.getElementById('reference').value=d.reference}});
-  const today=new Date().toISOString().split('T')[0];document.getElementById('date').value=today;
+  fetch('/complaints/api/complaints/next-reference/').then(r=>r.json()).then(d=>{
+    if(d.reference){
+      document.getElementById('reference').value=d.reference
+    }
+  });
+  
+  const today=new Date().toISOString().split('T')[0];
+  document.getElementById('date').value=today;
+  
   loadSelect('complaint_type','/complaints/api/complaints/types/');
   loadSelect('priority','/complaints/api/complaints/priorities/');
-  loadSelect('customer','/complaints/api/complaints/customers/');
+  loadCustomers();
+  setupCustomerSearch();
   loadSelect('assign_to','/complaints/api/complaints/executives/');
-  document.getElementById('customer').addEventListener('change',function(){const opt=this.options[this.selectedIndex];});
+  
+  document.getElementById('customer').addEventListener('change',function(){
+    const opt=this.options[this.selectedIndex];
+  });
+  
   document.getElementById('submitBtn').addEventListener('click',function(){
     const payload={
       complaint_type:document.getElementById('complaint_type').value,
@@ -111,12 +230,99 @@ document.addEventListener('DOMContentLoaded',function(){
       block_wing:document.getElementById('block_wing').value,
       subject:document.getElementById('subject').value,
     };
-    fetch('/complaints/create/',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':getCsrfToken()},body:JSON.stringify(payload)}).then(r=>r.json()).then(res=>{
-      if(res.success){window.location.href='{% url "wagtailadmin_home" %}'}
-      else{alert(res.error||'Failed');}
+    fetch('/complaints/create/',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-CSRFToken':getCsrfToken()},
+      body:JSON.stringify(payload)
+    }).then(r=>r.json()).then(res=>{
+      if(res.success){
+        window.location.href='{% url "wagtailadmin_home" %}'
+      }
+      else{
+        alert(res.error||'Failed');
+      }
     });
   });
 });
+
+// Customer search functionality
+function setupCustomerSearch() {
+  const searchInput = document.getElementById('customerSearch');
+  const dropdown = document.getElementById('customerDropdown');
+  const customerList = document.getElementById('customerList');
+  
+  searchInput.addEventListener('focus', () => {
+    if (allCustomers.length > 0) {
+      filterCustomers(searchInput.value);
+      dropdown.style.display = 'block';
+    }
+  });
+  
+  searchInput.addEventListener('input', (e) => {
+    filterCustomers(e.target.value);
+  });
+  
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.form-group')) {
+      dropdown.style.display = 'none';
+    }
+  });
+}
+
+function filterCustomers(searchTerm) {
+  const dropdown = document.getElementById('customerDropdown');
+  
+  if (!searchTerm.trim()) {
+    displayCustomers(allCustomers);
+  } else {
+    const term = searchTerm.toLowerCase();
+    const filtered = allCustomers.filter(customer => {
+      return (
+        (customer.site_name && customer.site_name.toLowerCase().includes(term)) ||
+        (customer.job_no && customer.job_no.toLowerCase().includes(term)) ||
+        (customer.site_id && customer.site_id.toLowerCase().includes(term)) ||
+        (customer.reference_id && customer.reference_id.toLowerCase().includes(term)) ||
+        (customer.email && customer.email.toLowerCase().includes(term)) ||
+        (customer.phone && customer.phone.toLowerCase().includes(term))
+      );
+    });
+    displayCustomers(filtered);
+  }
+  
+  dropdown.style.display = 'block';
+}
+
+function displayCustomers(customers) {
+  const customerList = document.getElementById('customerList');
+  
+  if (customers.length === 0) {
+    customerList.innerHTML = '<div class="no-results">No customers found</div>';
+    return;
+  }
+  
+  customerList.innerHTML = customers.map(customer => `
+    <div class="customer-item ${selectedCustomerId === customer.id ? 'selected' : ''}" 
+         onclick="selectCustomer(${JSON.stringify(customer).replace(/"/g, '&quot;')})">
+      <div class="customer-item-name">${customer.site_name || 'N/A'}</div>
+      <div class="customer-item-details">
+        ${customer.job_no ? 'Job No: ' + customer.job_no : ''} 
+        ${customer.site_id ? '| Site ID: ' + customer.site_id : ''}
+        ${customer.email ? '| ' + customer.email : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function selectCustomer(customer) {
+  selectedCustomerId = customer.id;
+  const searchInput = document.getElementById('customerSearch');
+  const dropdown = document.getElementById('customerDropdown');
+  const hiddenSelect = document.getElementById('customer');
+  
+  searchInput.value = `${customer.site_name}${customer.job_no ? ' (' + customer.job_no + ')' : ''}`;
+  hiddenSelect.value = customer.id;
+  dropdown.style.display = 'none';
+}
 </script>
 {% endblock %}
 
