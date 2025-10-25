@@ -456,7 +456,7 @@ tr {
         <div class="flex gap-2">
           <a href="{% url 'edit_customer_custom' customer.id %}" class="btn btn-primary">Edit Customer</a>
           <a href="{% url 'add_quotation_custom' %}" class="btn btn-green">Create Quotation</a>
-          <a href="{% url 'amc_form' customer.id %}?customerId={{ customer.id }}" class="btn btn-cyan">New AMC</a>
+          <a href="{% url 'add_amc_custom' %}?customerId={{ customer.id }}" class="btn btn-cyan">New AMC</a>
           <button id="openComplaintQR" class="btn btn-orange"> Complaint QR Code</button>
         </div>
       </div>
