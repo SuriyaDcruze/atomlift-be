@@ -29,27 +29,34 @@ def register_customer_form_url():
     ]
 
 
-@hooks.register('register_snippet_listing_buttons')
-def add_view_customer_button(snippet, user, next_url=None):
-    """Add custom 'Edit' and 'View' buttons in Customer listing (default edit button disabled via edit_view_enabled=False)"""
+@hooks.register('construct_snippet_listing_buttons')
+def customize_customer_listing_buttons(buttons, snippet, user, context=None):
+    """Customize Customer listing buttons - remove default edit, add custom edit and view"""
     if isinstance(snippet, Customer):
+        # Remove any default edit buttons
+        buttons[:] = [btn for btn in buttons if not (hasattr(btn, 'label') and btn.label == 'Edit')]
+        
+        # Add custom buttons
         view_url = f"/admin/customer/view-custom/{snippet.pk}/"
         edit_url = f"/admin/customer/edit-custom/{snippet.pk}/"
-        return [
-            SnippetListingButton(
-                label='Edit',
-                url=edit_url,
-                priority=10,
-                icon_name='edit',
-            ),
-            SnippetListingButton(
-                label='View',
-                url=view_url,
-                priority=90,
-                icon_name='view',
-            )
-        ]
-    return []
+        
+        # Insert custom edit button at the beginning
+        buttons.insert(0, SnippetListingButton(
+            label='Edit',
+            url=edit_url,
+            priority=10,
+            icon_name='edit',
+        ))
+        
+        # Add custom view button
+        buttons.append(SnippetListingButton(
+            label='View',
+            url=view_url,
+            priority=90,
+            icon_name='view',
+        ))
+    
+    return buttons
 
 
 # @hooks.register('register_admin_menu_item')

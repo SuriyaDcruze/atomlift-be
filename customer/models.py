@@ -308,12 +308,6 @@ class CustomerViewSet(SnippetViewSet):
         """Override add URL to use custom styled page"""
         from django.urls import reverse
         return reverse('add_customer_custom')
-    
-    def get_list_buttons_item_classnames(self):
-        """Customize which buttons appear - hide default edit"""
-        classnames = super().get_list_buttons_item_classnames()
-        # Remove edit from the classnames to prevent default edit button
-        return [cn for cn in classnames if 'edit' not in cn]
 
 
 class CustomerLicenseViewSet(SnippetViewSet):
