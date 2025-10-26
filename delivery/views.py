@@ -25,7 +25,6 @@ def add_delivery_challan_custom(request):
                 customer_id=data.get('customer') or None,
                 place_of_supply_id=data.get('place_of_supply') or None,
                 date=data.get('date'),
-                reference_number=data.get('reference_number', ''),
                 challan_type=data.get('challan_type', 'Supply of Liquid Gas'),
                 currency=data.get('currency', 'INR'),
                 discount_amount=data.get('discount_amount', 0),
@@ -104,7 +103,6 @@ def edit_delivery_challan_custom(request, reference_id):
             challan.customer_id = data.get('customer') if data.get('customer') else None
             challan.place_of_supply_id = data.get('place_of_supply') if data.get('place_of_supply') else None
             challan.date = data.get('date')
-            challan.reference_number = data.get('reference_number', '')
             challan.challan_type = data.get('challan_type', 'Supply of Liquid Gas')
             challan.currency = data.get('currency', 'INR')
             challan.discount_amount = data.get('discount_amount', 0)

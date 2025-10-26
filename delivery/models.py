@@ -66,7 +66,6 @@ class DeliveryChallan(ClusterableModel):
             FieldPanel('customer'),
             FieldPanel('place_of_supply'),
             FieldPanel('date'),
-            FieldPanel('reference_number'),
             FieldPanel('challan_type'),
         ], heading="Challan Details"),
         
@@ -180,11 +179,11 @@ class DeliveryChallanViewSet(SnippetViewSet):
     inspect_view_enabled = True
     
     list_display = ('reference_id', 'customer', 'date', 'challan_type', 'total')
-    search_fields = ('reference_id', 'customer__site_name', 'reference_number')
+    search_fields = ('reference_id', 'customer__site_name')
     list_filter = ('challan_type', 'date')
     
     list_export = [
-        'reference_id', 'customer', 'date', 'reference_number',
+        'reference_id', 'customer', 'date',
         'challan_type', 'place_of_supply', 'currency', 'total',
         'customer_note', 'terms_conditions'
     ]

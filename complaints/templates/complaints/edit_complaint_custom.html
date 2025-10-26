@@ -32,7 +32,20 @@
             <h3 class="form-section-title">Customer & Assignment</h3>
             <div class="form-group">
               <label class="form-label">Customer</label>
-              <select id="customer" class="form-select"></select>
+              <div style="position: relative;">
+                <input 
+                  type="text"
+                  id="customerSearch" 
+                  class="form-input" 
+                  placeholder="Search customer..."
+                  autocomplete="off"
+                  value="{% if complaint.customer %}{{ complaint.customer.site_name }}{% endif %}"
+                />
+                <select id="customer" class="form-select" style="display: none;"></select>
+                <div id="customerDropdown" class="customer-dropdown" style="display: none;">
+                  <div id="customerList"></div>
+                </div>
+              </div>
             </div>
             <div class="form-group">
               <label class="form-label">Assign To</label>
@@ -66,12 +79,113 @@
 </div>
 
 <script>
+let allCustomers = [];
+let selectedCustomerId = {% if complaint.customer %}{{ complaint.customer.id }}{% else %}null{% endif %};
+
 function getCsrfToken(){var t=document.querySelector('[name=csrfmiddlewaretoken]');return t?t.value:''}
 function loadSelect(id,url,placeholder,current){fetch(url).then(r=>r.json()).then(d=>{const s=document.getElementById(id);s.innerHTML=`<option value="">Select</option>`;d.forEach(i=>{const o=document.createElement('option');o.value=i.id;o.textContent=i.name||i.site_name||i.full_name;if(current && i.id===current){o.selected=true} s.appendChild(o);});});}
+
+function loadCustomers() {
+  fetch('/complaints/api/complaints/customers/')
+    .then(r=>r.json())
+    .then(d=>{
+      allCustomers = d;
+      const s=document.getElementById('customer');
+      s.innerHTML='<option value="">Select</option>';
+      d.forEach(i=>{
+        const o=document.createElement('option');
+        o.value=i.id;
+        o.textContent=i.site_name;
+        if(i.id === selectedCustomerId) {
+          o.selected = true;
+        }
+        s.appendChild(o);
+      });
+    });
+}
+
+function setupCustomerSearch() {
+  const searchInput = document.getElementById('customerSearch');
+  const dropdown = document.getElementById('customerDropdown');
+  
+  searchInput.addEventListener('focus', () => {
+    if (allCustomers.length > 0) {
+      filterCustomers(searchInput.value);
+      dropdown.style.display = 'block';
+    }
+  });
+  
+  searchInput.addEventListener('input', (e) => {
+    filterCustomers(e.target.value);
+  });
+  
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.form-group')) {
+      dropdown.style.display = 'none';
+    }
+  });
+}
+
+function filterCustomers(searchTerm) {
+  const dropdown = document.getElementById('customerDropdown');
+  
+  if (!searchTerm.trim()) {
+    displayCustomers(allCustomers);
+  } else {
+    const term = searchTerm.toLowerCase();
+    const filtered = allCustomers.filter(customer => {
+      return (
+        (customer.site_name && customer.site_name.toLowerCase().includes(term)) ||
+        (customer.job_no && customer.job_no.toLowerCase().includes(term)) ||
+        (customer.site_id && customer.site_id.toLowerCase().includes(term)) ||
+        (customer.reference_id && customer.reference_id.toLowerCase().includes(term)) ||
+        (customer.email && customer.email.toLowerCase().includes(term)) ||
+        (customer.phone && customer.phone.toLowerCase().includes(term))
+      );
+    });
+    displayCustomers(filtered);
+  }
+  
+  dropdown.style.display = 'block';
+}
+
+function displayCustomers(customers) {
+  const customerList = document.getElementById('customerList');
+  
+  if (customers.length === 0) {
+    customerList.innerHTML = '<div class="no-results">No customers found</div>';
+    return;
+  }
+  
+  customerList.innerHTML = customers.map(customer => `
+    <div class="customer-item ${selectedCustomerId === customer.id ? 'selected' : ''}" 
+         onclick="selectCustomer(${JSON.stringify(customer).replace(/"/g, '&quot;')})">
+      <div class="customer-item-name">${customer.reference_id || ''} ${customer.site_name || 'N/A'}</div>
+      <div class="customer-item-details">
+        ${customer.job_no ? 'Job No: ' + customer.job_no : ''} 
+        ${customer.site_id ? '| Site ID: ' + customer.site_id : ''}
+        ${customer.email ? '| ' + customer.email : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function selectCustomer(customer) {
+  selectedCustomerId = customer.id;
+  const searchInput = document.getElementById('customerSearch');
+  const dropdown = document.getElementById('customerDropdown');
+  const hiddenSelect = document.getElementById('customer');
+  
+  searchInput.value = customer.site_name || '';
+  hiddenSelect.value = customer.id;
+  dropdown.style.display = 'none';
+}
+
 document.addEventListener('DOMContentLoaded',function(){
   loadSelect('complaint_type','/complaints/api/complaints/types/', null, {% if complaint.complaint_type %}{{ complaint.complaint_type.id }}{% else %}null{% endif %});
   loadSelect('priority','/complaints/api/complaints/priorities/', null, {% if complaint.priority %}{{ complaint.priority.id }}{% else %}null{% endif %});
-  loadSelect('customer','/complaints/api/complaints/customers/', null, {% if complaint.customer %}{{ complaint.customer.id }}{% else %}null{% endif %});
+  loadCustomers();
+  setupCustomerSearch();
   loadSelect('assign_to','/complaints/api/complaints/executives/', null, {% if complaint.assign_to %}{{ complaint.assign_to.id }}{% else %}null{% endif %});
   document.getElementById('submitBtn').addEventListener('click',function(){
     const payload={

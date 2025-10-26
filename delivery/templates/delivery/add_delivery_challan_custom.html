@@ -297,6 +297,66 @@ body {
   color: #6B7280;
   margin-top: 0.25rem;
 }
+
+.customer-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #D1D5DB;
+  border-top: none;
+  border-radius: 0 0 0.375rem 0.375rem;
+  max-height: 300px;
+  overflow-y: auto;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  margin-top: -1px;
+}
+
+.customer-item {
+  padding: 0.75rem;
+  cursor: pointer;
+  border-bottom: 1px solid #F3F4F6;
+  transition: background-color 0.2s;
+}
+
+.customer-item:hover {
+  background-color: #F9FAFB;
+}
+
+.customer-item:last-child {
+  border-bottom: none;
+}
+
+.customer-item-name {
+  font-weight: 500;
+  color: #374151;
+  font-size: 0.875rem;
+}
+
+.customer-item-details {
+  font-size: 0.75rem;
+  color: #6B7280;
+  margin-top: 0.25rem;
+}
+
+.customer-item.selected {
+  background-color: #EBF4FF;
+  border-left: 3px solid #3B82F6;
+}
+
+.no-results {
+  padding: 1rem;
+  text-align: center;
+  color: #6B7280;
+  font-size: 0.875rem;
+}
+
+#customerSearch:focus {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
 </style>
 {% endblock %}
 
@@ -324,16 +384,46 @@ body {
 
               <div class="form-group">
                 <label class="form-label">
+                  DELIVERY CHALLAN#<span class="form-required">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="reference_id"
+                  value="{% if is_edit %}{{ challan.reference_id }}{% else %}Loading...{% endif %}"
+                  class="form-input"
+                  readonly
+                  style="background-color: #F9FAFB; font-weight: 500;"
+                />
+                <p class="form-help" style="font-size: 0.75rem; color: #6B7280; margin-top: 0.25rem;">
+                  Auto-generated delivery challan number
+                </p>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">
                   CUSTOMER<span class="form-required">*</span>
                 </label>
-                <select id="customer" name="customer" class="form-input form-select" required>
-                  <option value="">Select Customer</option>
-                  {% for customer in customers %}
-                  <option value="{{ customer.id }}" {% if is_edit and challan.customer.id == customer.id %}selected{% endif %}>
-                    {{ customer.reference_id }} {{ customer.site_name }}
-                  </option>
-                  {% endfor %}
-                </select>
+                <div style="position: relative;">
+                  <input 
+                    type="text" 
+                    id="customerSearch" 
+                    class="form-input" 
+                    placeholder="Search customer..."
+                    autocomplete="off"
+                    {% if is_edit and challan.customer %}value="{{ challan.customer.site_name }}"{% endif %}
+                  />
+                  <select id="customer" name="customer" class="form-select" style="display: none;" required>
+                    <option value="">Select Customer</option>
+                    {% for customer in customers %}
+                    <option value="{{ customer.id }}" {% if is_edit and challan.customer.id == customer.id %}selected{% endif %}>
+                      {{ customer.reference_id }} {{ customer.site_name }}
+                    </option>
+                    {% endfor %}
+                  </select>
+                  <div id="customerDropdown" class="customer-dropdown" style="display: none;">
+                    <div id="customerList"></div>
+                  </div>
+                </div>
               </div>
 
               <div class="form-group">
@@ -384,34 +474,6 @@ body {
                   name="date"
                   value="{% if is_edit %}{{ challan.date|date:'Y-m-d' }}{% else %}{% now 'Y-m-d' %}{% endif %}"
                   required
-                  class="form-input"
-                />
-              </div>
-
-              <div class="form-group">
-                <label class="form-label">
-                  DELIVERY CHALLAN#<span class="form-required">*</span>
-                </label>
-                <input
-                  type="text"
-                  id="reference_id"
-                  value="{% if is_edit %}{{ challan.reference_id }}{% else %}Loading...{% endif %}"
-                  class="form-input"
-                  readonly
-                  style="background-color: #F9FAFB; font-weight: 500;"
-                />
-                <p class="form-help" style="font-size: 0.75rem; color: #6B7280; margin-top: 0.25rem;">
-                  Auto-generated delivery challan number
-                </p>
-              </div>
-
-              <div class="form-group">
-                <label class="form-label">REFERENCE#</label>
-                <input
-                  type="text"
-                  id="reference_number"
-                  name="reference_number"
-                  value="{% if is_edit %}{{ challan.reference_number }}{% endif %}"
                   class="form-input"
                 />
               </div>
@@ -621,6 +683,7 @@ const items = [
 ];
 
 document.addEventListener('DOMContentLoaded', () => {
+  setupCustomerSearch();
   setupCustomerChange();
   setupItemCalculations();
   calculateTotals();
@@ -704,6 +767,82 @@ async function savePlaceOfSupply() {
     errorEl.textContent = 'Error: ' + error.message;
     errorEl.style.display = 'block';
   }
+}
+
+function setupCustomerSearch() {
+  const searchInput = document.getElementById('customerSearch');
+  const dropdown = document.getElementById('customerDropdown');
+  
+  searchInput.addEventListener('focus', () => {
+    if (customers.length > 0) {
+      filterCustomers(searchInput.value);
+      dropdown.style.display = 'block';
+    }
+  });
+  
+  searchInput.addEventListener('input', (e) => {
+    filterCustomers(e.target.value);
+  });
+  
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.form-group')) {
+      dropdown.style.display = 'none';
+    }
+  });
+}
+
+function filterCustomers(searchTerm) {
+  const dropdown = document.getElementById('customerDropdown');
+  
+  if (!searchTerm.trim()) {
+    displayCustomers(customers);
+  } else {
+    const term = searchTerm.toLowerCase();
+    const filtered = customers.filter(customer => {
+      return (
+        (customer.site_name && customer.site_name.toLowerCase().includes(term)) ||
+        (customer.reference_id && customer.reference_id.toLowerCase().includes(term)) ||
+        (customer.email && customer.email.toLowerCase().includes(term)) ||
+        (customer.phone && customer.phone.toLowerCase().includes(term))
+      );
+    });
+    displayCustomers(filtered);
+  }
+  
+  dropdown.style.display = 'block';
+}
+
+function displayCustomers(customers) {
+  const customerList = document.getElementById('customerList');
+  
+  if (customers.length === 0) {
+    customerList.innerHTML = '<div class="no-results">No customers found</div>';
+    return;
+  }
+  
+  customerList.innerHTML = customers.map(customer => `
+    <div class="customer-item" 
+         onclick="selectCustomer(${JSON.stringify(customer).replace(/"/g, '&quot;')})">
+      <div class="customer-item-name">${customer.reference_id || ''} ${customer.site_name || 'N/A'}</div>
+      <div class="customer-item-details">
+        ${customer.site_address ? customer.site_address : ''} 
+        ${customer.email ? '| ' + customer.email : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function selectCustomer(customer) {
+  const searchInput = document.getElementById('customerSearch');
+  const dropdown = document.getElementById('customerDropdown');
+  const hiddenSelect = document.getElementById('customer');
+  
+  searchInput.value = customer.site_name || '';
+  hiddenSelect.value = customer.id;
+  dropdown.style.display = 'none';
+  
+  // Update billing address
+  updateBillingAddress(customer.id);
 }
 
 function setupCustomerChange() {
@@ -860,7 +999,6 @@ async function handleFormSubmit() {
     customer: formData.get('customer') || null,
     place_of_supply: formData.get('place_of_supply') || null,
     date: formData.get('date'),
-    reference_number: formData.get('reference_number'),
     challan_type: formData.get('challan_type'),
     currency: formData.get('currency'),
     discount_amount: parseFloat(formData.get('discount_amount')) || 0,

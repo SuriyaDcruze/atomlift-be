@@ -303,7 +303,7 @@ function displayCustomers(customers) {
   customerList.innerHTML = customers.map(customer => `
     <div class="customer-item ${selectedCustomerId === customer.id ? 'selected' : ''}" 
          onclick="selectCustomer(${JSON.stringify(customer).replace(/"/g, '&quot;')})">
-      <div class="customer-item-name">${customer.site_name || 'N/A'}</div>
+      <div class="customer-item-name">${customer.reference_id || ''} ${customer.site_name || 'N/A'}</div>
       <div class="customer-item-details">
         ${customer.job_no ? 'Job No: ' + customer.job_no : ''} 
         ${customer.site_id ? '| Site ID: ' + customer.site_id : ''}
@@ -319,7 +319,7 @@ function selectCustomer(customer) {
   const dropdown = document.getElementById('customerDropdown');
   const hiddenSelect = document.getElementById('customer');
   
-  searchInput.value = `${customer.site_name}${customer.job_no ? ' (' + customer.job_no + ')' : ''}`;
+  searchInput.value = customer.site_name || '';
   hiddenSelect.value = customer.id;
   dropdown.style.display = 'none';
 }

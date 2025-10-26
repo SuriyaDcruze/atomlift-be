@@ -154,10 +154,15 @@ def get_customers(request):
     customers = Customer.objects.all().order_by('site_name')
     data = [{
         'id': c.id,
+        'reference_id': c.reference_id,
         'site_name': c.site_name,
         'site_address': c.site_address,
         'contact_person_name': c.contact_person_name,
         'phone': c.phone,
+        'mobile': c.mobile,
+        'email': c.email,
+        'job_no': c.job_no,
+        'site_id': c.site_id,
     } for c in customers]
     return JsonResponse(data, safe=False)
 
