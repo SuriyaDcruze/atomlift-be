@@ -15,6 +15,7 @@ from Quotation.models import QuotationGroup
 from PaymentReceived.models import PaymentGroup
 from invoice.models import InvoiceGroup
 from recurringInvoice.models import RecurringInvoiceGroup
+from delivery.models import DeliveryChallanGroup
 
 
 
@@ -26,7 +27,7 @@ def hide_explorer_menu_item_from_frank(request, menu_items):
         if item.name in ['help','explorer','documents','images','reports']:
             continue
         # Hide individual sales groups that are now part of Sales group
-        if item.name in ['customer', 'quotation', 'payment', 'invoicing', 'recurring_billing']:
+        if item.name in ['customer', 'quotation', 'payment', 'invoicing', 'recurring_billing', 'delivery_challan']:
             continue
         new_menu_items.append(item)
     menu_items[:] = new_menu_items
@@ -60,10 +61,12 @@ def register_main_admin_menu_item():
 class SalesGroup(SnippetViewSetGroup):
     items = (
         CustomerGroup,
+        DeliveryChallanGroup,
         QuotationGroup,
         PaymentGroup,
         InvoiceGroup,
         RecurringInvoiceGroup,
+        
     )
     menu_icon = "tag"
     menu_label = "Sales"

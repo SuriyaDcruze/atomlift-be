@@ -1,0 +1,924 @@
+{% extends "wagtailadmin/base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+/* Modern Tailwind-like styles for Wagtail admin */
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+.w-content-wrapper {
+  background: #f5f5f5;
+  min-height: calc(100vh - 4rem);
+  padding: 2rem;
+}
+
+.w-modal-overlay {
+  position: static;
+  inset: auto;
+  background-color: transparent;
+  display: block;
+  padding: 0;
+}
+
+.w-modal-content {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.15);
+  width: 100%;
+  max-width: 72rem;
+  margin: 2rem auto;
+  max-height: none;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+}
+
+.w-modal-header {
+  background: linear-gradient(to right, #2D3A6B, #243158);
+  padding: 1.5rem;
+}
+
+.w-modal-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: white;
+}
+
+.w-modal-subtitle {
+  margin: 0;
+  color: white;
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
+
+.w-modal-body {
+  padding: 1.5rem;
+  max-height: none;
+  overflow: visible;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.form-section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 2px solid #E5E7EB;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.25rem;
+}
+
+.form-required {
+  color: #EF4444;
+  margin-left: 0.25rem;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.375rem;
+  border: 1px solid #D1D5DB;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #F97316;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+  z-index: 1;
+}
+
+.form-textarea {
+  min-height: 3rem;
+  resize: vertical;
+  padding: 0.625rem 0.75rem;
+}
+
+.form-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.75rem center;
+  background-repeat: no-repeat;
+  background-size: 1rem;
+  padding-right: 2.5rem;
+  font-size: 0.875rem;
+}
+
+.w-modal-footer {
+  padding: 1rem 1.5rem;
+  background: #F9FAFB;
+  border-top: 1px solid #E5E7EB;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.btn {
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+}
+
+.btn-secondary {
+  background: #F3F4F6;
+  color: #374151;
+  border: 1px solid #D1D5DB;
+}
+
+.btn-secondary:hover {
+  background: #E5E7EB;
+}
+
+.btn-primary {
+  background: linear-gradient(to right, #2D3A6B, #243158);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(to right, #213066, #182755);
+}
+
+.items-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.items-table th,
+.items-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.items-table th {
+  background: #F3F4F6;
+  font-weight: 500;
+  color: #374151;
+}
+
+.summary-section {
+  background: #F9FAFB;
+  padding: 1rem;
+  border-radius: 0.375rem;
+  margin-top: 1rem;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.summary-row:last-child {
+  border-bottom: none;
+  font-weight: 600;
+  font-size: 1.125rem;
+}
+
+.financial-input-group {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.financial-input-group input {
+  flex: 1;
+}
+
+.toast-container {
+  position: fixed;
+  top: 1.25rem;
+  right: 1.25rem;
+  z-index: 9999;
+}
+
+.toast {
+  background: white;
+  border-radius: 0.375rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  padding: 1rem;
+  margin-bottom: 0.5rem;
+  border-left: 4px solid #10B981;
+}
+
+.toast--error {
+  border-left-color: #EF4444;
+}
+
+.option-modal {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 1rem;
+}
+
+.option-modal.active {
+  display: flex;
+}
+
+.option-modal-dialog {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  width: 100%;
+  max-width: 48rem;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.option-modal-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.option-modal-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.option-modal-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+.option-modal-footer {
+  padding: 1rem 1.5rem;
+  background: #F9FAFB;
+  border-top: 1px solid #E5E7EB;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.form-help {
+  font-size: 0.75rem;
+  color: #6B7280;
+  margin-top: 0.25rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="w-content-wrapper">
+  <div class="w-modal-overlay">
+    <div class="w-modal-content">
+      <div class="w-modal-header">
+        <h2 class="w-modal-title">
+          {% if is_edit %}Edit Delivery Challan{% else %}Create Delivery Challan{% endif %}
+        </h2>
+        <p class="w-modal-subtitle">
+          Fill in all required fields (*) to {% if is_edit %}update{% else %}create{% endif %} a delivery challan
+        </p>
+      </div>
+
+      <div class="w-modal-body">
+        <form id="deliveryChallanForm">
+          <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+          
+          <div class="form-grid">
+            <!-- Left Column -->
+            <div class="form-column">
+              <h3 class="form-section-title">Customer & Challan Details</h3>
+
+              <div class="form-group">
+                <label class="form-label">
+                  CUSTOMER<span class="form-required">*</span>
+                </label>
+                <select id="customer" name="customer" class="form-input form-select" required>
+                  <option value="">Select Customer</option>
+                  {% for customer in customers %}
+                  <option value="{{ customer.id }}" {% if is_edit and challan.customer.id == customer.id %}selected{% endif %}>
+                    {{ customer.reference_id }} {{ customer.site_name }}
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">BILLING ADDRESS</label>
+                <div id="billingAddress" style="padding: 0.75rem; background: #F9FAFB; border-radius: 0.375rem; font-size: 0.875rem; min-height: 60px; border: 1px solid #E5E7EB; color: #374151; line-height: 1.5;">
+                  {% if is_edit and challan.customer %}
+                    <strong>{{ challan.customer.site_name }}</strong><br>
+                    {{ challan.customer.site_address }}<br>
+                    {% if challan.customer.city or challan.customer.province_state or challan.customer.pin_code %}
+                      {{ challan.customer.city }}{% if challan.customer.province_state %}, {{ challan.customer.province_state.value }}{% endif %}{% if challan.customer.pin_code %} - {{ challan.customer.pin_code }}{% endif %}<br>
+                    {% endif %}
+                    {% if challan.customer.country %}{{ challan.customer.country }}<br>{% endif %}
+                    Phone: {{ challan.customer.phone }}{% if challan.customer.mobile %}, Mobile: {{ challan.customer.mobile }}{% endif %}{% if challan.customer.email %}<br>Email: {{ challan.customer.email }}{% endif %}
+                  {% else %}
+                    Select a customer to view address
+                  {% endif %}
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">
+                  PLACE OF SUPPLY<span class="form-required">*</span>
+                </label>
+                <div class="form-select-addon">
+                  <select id="place_of_supply" name="place_of_supply" class="form-input form-select" required>
+                    <option value="">Select Place of Supply</option>
+                    {% for place in places_of_supply %}
+                    <option value="{{ place.id }}" {% if is_edit and challan.place_of_supply.id == place.id %}selected{% endif %}>
+                      {{ place.value }}
+                    </option>
+                    {% endfor %}
+                  </select>
+                  <button type="button" onclick="openPlaceOfSupplyModal()" title="Add New Place of Supply">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">
+                  DATE<span class="form-required">*</span>
+                </label>
+                <input
+                  type="date"
+                  id="date"
+                  name="date"
+                  value="{% if is_edit %}{{ challan.date|date:'Y-m-d' }}{% else %}{% now 'Y-m-d' %}{% endif %}"
+                  required
+                  class="form-input"
+                />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">
+                  DELIVERY CHALLAN#<span class="form-required">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="reference_id"
+                  value="{% if is_edit %}{{ challan.reference_id }}{% else %}Loading...{% endif %}"
+                  class="form-input"
+                  readonly
+                  style="background-color: #F9FAFB; font-weight: 500;"
+                />
+                <p class="form-help" style="font-size: 0.75rem; color: #6B7280; margin-top: 0.25rem;">
+                  Auto-generated delivery challan number
+                </p>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">REFERENCE#</label>
+                <input
+                  type="text"
+                  id="reference_number"
+                  name="reference_number"
+                  value="{% if is_edit %}{{ challan.reference_number }}{% endif %}"
+                  class="form-input"
+                />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">CHALLAN TYPE</label>
+                <select id="challan_type" name="challan_type" class="form-input form-select">
+                  <option value="Supply of Liquid Gas" {% if not is_edit or challan.challan_type == 'Supply of Liquid Gas' %}selected{% endif %}>Supply of Liquid Gas</option>
+                  <option value="Goods Supply" {% if is_edit and challan.challan_type == 'Goods Supply' %}selected{% endif %}>Goods Supply</option>
+                  <option value="Service Delivery" {% if is_edit and challan.challan_type == 'Service Delivery' %}selected{% endif %}>Service Delivery</option>
+                  <option value="Other" {% if is_edit and challan.challan_type == 'Other' %}selected{% endif %}>Other</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="form-column">
+              <h3 class="form-section-title">Additional Information</h3>
+
+              <div class="form-group">
+                <label class="form-label">CUSTOMER NOTE</label>
+                <textarea
+                  id="customer_note"
+                  name="customer_note"
+                  class="form-input form-textarea"
+                  rows="4"
+                >{% if is_edit %}{{ challan.customer_note }}{% endif %}</textarea>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">TERMS & CONDITIONS</label>
+                <textarea
+                  id="terms_conditions"
+                  name="terms_conditions"
+                  class="form-input form-textarea"
+                  rows="4"
+                >{% if is_edit %}{{ challan.terms_conditions }}{% endif %}</textarea>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">UPLOAD FILES</label>
+                <input
+                  type="file"
+                  id="uploads_files"
+                  name="uploads_files"
+                  class="form-input"
+                />
+                {% if is_edit and challan.uploads_files %}
+                <p style="font-size: 0.75rem; color: #6B7280; margin-top: 0.25rem;">
+                  Current file: {{ challan.uploads_files.name }}
+                </p>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <!-- Items Section -->
+          <div style="margin-top: 2rem;">
+            <h3 class="form-section-title">Item Details</h3>
+            <table class="items-table">
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Rate</th>
+                  <th>Qty</th>
+                  <th>Tax (%)</th>
+                  <th>Total</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="itemsTableBody">
+                {% if is_edit %}
+                  {% for item in challan.items.all %}
+                  <tr>
+                    <td>
+                      <select name="items[{{ forloop.counter0 }}][item]" class="form-input form-select item-select">
+                        <option value="">Select Item</option>
+                        {% for i in items %}
+                        <option value="{{ i.id }}" {% if item.item.id == i.id %}selected{% endif %}>{{ i.name }}</option>
+                        {% endfor %}
+                      </select>
+                    </td>
+                    <td><input type="number" name="items[{{ forloop.counter0 }}][rate]" value="{{ item.rate }}" step="0.01" class="form-input item-rate" /></td>
+                    <td><input type="number" name="items[{{ forloop.counter0 }}][qty]" value="{{ item.qty }}" step="0.01" class="form-input item-qty" /></td>
+                    <td><input type="number" name="items[{{ forloop.counter0 }}][tax]" value="{{ item.tax }}" step="0.01" class="form-input item-tax" /></td>
+                    <td><span class="item-total">{{ item.total|floatformat:2 }}</span></td>
+                    <td><button type="button" class="btn btn-danger" onclick="removeItem(this)">Remove</button></td>
+                  </tr>
+                  {% endfor %}
+                {% endif %}
+              </tbody>
+            </table>
+            <button type="button" class="btn btn-primary" onclick="addItem()" style="margin-top: 1rem;">+ Add another line</button>
+          </div>
+
+          <!-- Financial Summary -->
+          <div class="form-grid" style="margin-top: 2rem;">
+            <div class="form-column">
+              <!-- Left side empty for alignment -->
+            </div>
+            <div class="form-column">
+              <div class="summary-section">
+                <div class="summary-row">
+                  <span>CURRENCY</span>
+                  <select id="currency" name="currency" class="form-input form-select" style="width: auto;">
+                    <option value="INR" {% if not is_edit or challan.currency == 'INR' %}selected{% endif %}>INR</option>
+                  </select>
+                </div>
+                <div class="summary-row">
+                  <span>SUB TOTAL</span>
+                  <span id="subtotal">0.00</span>
+                </div>
+                <div class="summary-row">
+                  <span>DISCOUNT</span>
+                  <div class="financial-input-group">
+                    <input type="number" id="discount_amount" name="discount_amount" value="{% if is_edit %}{{ challan.discount_amount }}{% else %}0{% endif %}" step="0.01" class="form-input" style="width: 100px;" />
+                    <span>₹</span>
+                    <input type="number" id="discount_percentage" name="discount_percentage" value="{% if is_edit %}{{ challan.discount_percentage }}{% else %}0{% endif %}" step="0.01" class="form-input" style="width: 100px;" />
+                  </div>
+                </div>
+                <div class="summary-row">
+                  <span>ADJUSTMENT</span>
+                  <div class="financial-input-group">
+                    <input type="number" id="adjustment" name="adjustment" value="{% if is_edit %}{{ challan.adjustment }}{% else %}0{% endif %}" step="0.01" class="form-input" style="width: 100px;" />
+                    <span>₹</span>
+                  </div>
+                </div>
+                <div class="summary-row">
+                  <span>TOTAL</span>
+                  <span id="total">0.00</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="w-modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="handleCancel()">CLOSE</button>
+        <button type="button" class="btn btn-primary" onclick="handleFormSubmit()">
+          {% if is_edit %}UPDATE{% else %}SAVE{% endif %}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Place of Supply Modal -->
+<div id="placeOfSupplyModal" class="option-modal">
+  <div class="option-modal-dialog">
+    <div class="option-modal-header">
+      <h3 class="option-modal-title">Add New Place of Supply</h3>
+    </div>
+    <div class="option-modal-body">
+      <div class="form-group">
+        <label class="form-label">Place of Supply Name</label>
+        <input
+          type="text"
+          id="placeOfSupplyInput"
+          class="form-input"
+          placeholder="Enter place of supply (e.g., Tamil Nadu, Karnataka)"
+        />
+        <p id="placeOfSupplyError" class="form-error" style="display: none;"></p>
+      </div>
+    </div>
+    <div class="option-modal-footer">
+      <button type="button" class="btn btn-secondary" onclick="closePlaceOfSupplyModal()">Cancel</button>
+      <button type="button" class="btn btn-primary" onclick="savePlaceOfSupply()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let itemCounter = {% if is_edit %}{{ challan.items.all|length }}{% else %}0{% endif %};
+const isEditMode = {% if is_edit %}true{% else %}false{% endif %};
+const submitUrl = "{% if is_edit %}{% url 'edit_delivery_challan_custom' challan.reference_id %}{% else %}{% url 'add_delivery_challan_custom' %}{% endif %}";
+const adminHomeUrl = "/admin/snippets/delivery/deliverychallan/";
+
+const customers = [
+  {% for customer in customers %}
+  {
+    id: {{ customer.id }},
+    site_name: "{{ customer.site_name|escapejs }}",
+    site_address: "{{ customer.site_address|escapejs }}",
+    phone: "{{ customer.phone }}",
+    mobile: "{{ customer.mobile|default:'' }}",
+    reference_id: "{{ customer.reference_id }}",
+    city: "{{ customer.city|default:''|escapejs }}",
+    province_state: "{% if customer.province_state %}{{ customer.province_state.value|escapejs }}{% endif %}",
+    pin_code: "{{ customer.pin_code|default:'' }}",
+    country: "{{ customer.country|default:''|escapejs }}",
+    email: "{{ customer.email|default:'' }}"
+  }{% if not forloop.last %},{% endif %}
+  {% endfor %}
+];
+
+const items = [
+  {% for item in items %}
+  {
+    id: {{ item.id }},
+    name: "{{ item.name|escapejs }}",
+    sale_price: {{ item.sale_price }}
+  }{% if not forloop.last %},{% endif %}
+  {% endfor %}
+];
+
+document.addEventListener('DOMContentLoaded', () => {
+  setupCustomerChange();
+  setupItemCalculations();
+  calculateTotals();
+  loadChallanNumber();
+  
+  if (isEditMode) {
+    // Pre-populate customer billing address
+    const customerSelect = document.getElementById('customer');
+    if (customerSelect.value) {
+      updateBillingAddress(customerSelect.value);
+    }
+  }
+});
+
+async function loadChallanNumber() {
+  if (!isEditMode) {
+    try {
+      const response = await fetch('/delivery/api/challan-number/', {
+        headers: { 'X-CSRFToken': getCsrfToken() }
+      });
+      const data = await response.json();
+      if (data.challan_number) {
+        document.getElementById('reference_id').value = data.challan_number;
+      }
+    } catch (error) {
+      console.error('Error loading challan number:', error);
+    }
+  }
+}
+
+function openPlaceOfSupplyModal() {
+  document.getElementById('placeOfSupplyModal').classList.add('active');
+  document.getElementById('placeOfSupplyInput').value = '';
+  document.getElementById('placeOfSupplyError').style.display = 'none';
+}
+
+function closePlaceOfSupplyModal() {
+  document.getElementById('placeOfSupplyModal').classList.remove('active');
+  document.getElementById('placeOfSupplyInput').value = '';
+  document.getElementById('placeOfSupplyError').style.display = 'none';
+}
+
+async function savePlaceOfSupply() {
+  const value = document.getElementById('placeOfSupplyInput').value.trim();
+  const errorEl = document.getElementById('placeOfSupplyError');
+  
+  if (!value) {
+    errorEl.textContent = 'Please enter a place of supply name';
+    errorEl.style.display = 'block';
+    return;
+  }
+  
+  try {
+    const response = await fetch('/delivery/api/place-of-supply/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: JSON.stringify({ value: value })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      // Add to dropdown
+      const select = document.getElementById('place_of_supply');
+      const option = document.createElement('option');
+      option.value = data.id;
+      option.textContent = data.value;
+      select.appendChild(option);
+      select.value = data.id;
+      
+      closePlaceOfSupplyModal();
+      showMessage('success', 'Place of supply added successfully');
+    } else {
+      errorEl.textContent = data.error || 'Failed to add place of supply';
+      errorEl.style.display = 'block';
+    }
+  } catch (error) {
+    errorEl.textContent = 'Error: ' + error.message;
+    errorEl.style.display = 'block';
+  }
+}
+
+function setupCustomerChange() {
+  document.getElementById('customer').addEventListener('change', function() {
+    updateBillingAddress(this.value);
+  });
+}
+
+function updateBillingAddress(customerId) {
+  if (!customerId) {
+    document.getElementById('billingAddress').innerHTML = 'Select a customer to view address';
+    return;
+  }
+  
+  const customer = customers.find(c => parseInt(c.id) === parseInt(customerId));
+  const billingDiv = document.getElementById('billingAddress');
+  
+  if (customer) {
+    let addressParts = [];
+    
+    // Site name
+    addressParts.push(`<strong>${customer.site_name}</strong>`);
+    
+    // Site address
+    if (customer.site_address) {
+      addressParts.push(customer.site_address);
+    }
+    
+    // City, State, Pin Code
+    let locationParts = [];
+    if (customer.city) locationParts.push(customer.city);
+    if (customer.province_state) locationParts.push(customer.province_state);
+    if (customer.pin_code) locationParts.push(customer.pin_code);
+    if (locationParts.length > 0) {
+      addressParts.push(locationParts.join(', '));
+    }
+    
+    // Country
+    if (customer.country) {
+      addressParts.push(customer.country);
+    }
+    
+    // Contact information
+    let contactInfo = [];
+    if (customer.phone) contactInfo.push(`Phone: ${customer.phone}`);
+    if (customer.mobile) contactInfo.push(`Mobile: ${customer.mobile}`);
+    if (customer.email) contactInfo.push(`Email: ${customer.email}`);
+    
+    if (contactInfo.length > 0) {
+      addressParts.push('<br>' + contactInfo.join(' | '));
+    }
+    
+    billingDiv.innerHTML = addressParts.join('<br>');
+  } else {
+    billingDiv.innerHTML = 'Select a customer to view address';
+  }
+}
+
+function addItem() {
+  const tbody = document.getElementById('itemsTableBody');
+  const row = document.createElement('tr');
+  row.innerHTML = `
+    <td>
+      <select name="items[${itemCounter}][item]" class="form-input form-select item-select">
+        <option value="">Select Item</option>
+        ${items.map(item => `<option value="${item.id}">${item.name}</option>`).join('')}
+      </select>
+    </td>
+    <td><input type="number" name="items[${itemCounter}][rate]" step="0.01" class="form-input item-rate" /></td>
+    <td><input type="number" name="items[${itemCounter}][qty]" value="1" step="0.01" class="form-input item-qty" /></td>
+    <td><input type="number" name="items[${itemCounter}][tax]" value="0" step="0.01" class="form-input item-tax" /></td>
+    <td><span class="item-total">0.00</span></td>
+    <td><button type="button" class="btn btn-danger" onclick="removeItem(this)">Remove</button></td>
+  `;
+  tbody.appendChild(row);
+  setupItemRow(row);
+  itemCounter++;
+}
+
+function removeItem(button) {
+  button.closest('tr').remove();
+  calculateTotals();
+}
+
+function setupItemRow(row) {
+  const inputs = row.querySelectorAll('.item-rate, .item-qty, .item-tax');
+  inputs.forEach(input => {
+    input.addEventListener('input', () => calculateItemTotal(row));
+  });
+}
+
+function setupItemCalculations() {
+  document.querySelectorAll('#itemsTableBody tr').forEach(row => {
+    setupItemRow(row);
+  });
+}
+
+function calculateItemTotal(row) {
+  const rate = parseFloat(row.querySelector('.item-rate').value) || 0;
+  const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+  const tax = parseFloat(row.querySelector('.item-tax').value) || 0;
+  const total = rate * qty * (1 + tax / 100);
+  row.querySelector('.item-total').textContent = total.toFixed(2);
+  calculateTotals();
+}
+
+function calculateTotals() {
+  let subtotal = 0;
+  document.querySelectorAll('.item-total').forEach(totalEl => {
+    subtotal += parseFloat(totalEl.textContent) || 0;
+  });
+  
+  const discountAmount = parseFloat(document.getElementById('discount_amount').value) || 0;
+  const discountPercentage = parseFloat(document.getElementById('discount_percentage').value) || 0;
+  const adjustment = parseFloat(document.getElementById('adjustment').value) || 0;
+  
+  let discount = discountAmount;
+  if (discountPercentage > 0) {
+    discount = subtotal * (discountPercentage / 100);
+  }
+  
+  const total = subtotal - discount + adjustment;
+  
+  document.getElementById('subtotal').textContent = subtotal.toFixed(2);
+  document.getElementById('total').textContent = Math.max(0, total).toFixed(2);
+}
+
+document.getElementById('discount_amount').addEventListener('input', calculateTotals);
+document.getElementById('discount_percentage').addEventListener('input', calculateTotals);
+document.getElementById('adjustment').addEventListener('input', calculateTotals);
+
+function getCsrfToken() {
+  return document.querySelector('[name=csrfmiddlewaretoken]').value;
+}
+
+function showMessage(type, message) {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = `toast toast--${type}`;
+  toast.textContent = message;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+
+function handleCancel() {
+  window.location.href = adminHomeUrl;
+}
+
+async function handleFormSubmit() {
+  const form = document.getElementById('deliveryChallanForm');
+  const formData = new FormData(form);
+  
+  const data = {
+    customer: formData.get('customer') || null,
+    place_of_supply: formData.get('place_of_supply') || null,
+    date: formData.get('date'),
+    reference_number: formData.get('reference_number'),
+    challan_type: formData.get('challan_type'),
+    currency: formData.get('currency'),
+    discount_amount: parseFloat(formData.get('discount_amount')) || 0,
+    discount_percentage: parseFloat(formData.get('discount_percentage')) || 0,
+    adjustment: parseFloat(formData.get('adjustment')) || 0,
+    customer_note: formData.get('customer_note'),
+    terms_conditions: formData.get('terms_conditions'),
+    items: []
+  };
+  
+  // Collect items
+  document.querySelectorAll('#itemsTableBody tr').forEach(row => {
+    const itemSelect = row.querySelector('.item-select');
+    const rate = row.querySelector('.item-rate');
+    const qty = row.querySelector('.item-qty');
+    const tax = row.querySelector('.item-tax');
+    
+    if (itemSelect && itemSelect.value) {
+      data.items.push({
+        item: parseInt(itemSelect.value),
+        rate: parseFloat(rate.value) || 0,
+        qty: parseFloat(qty.value) || 1,
+        tax: parseFloat(tax.value) || 0
+      });
+    }
+  });
+  
+  // Create FormData for file upload
+  const submitFormData = new FormData();
+  submitFormData.append('data', JSON.stringify(data));
+  const fileInput = document.getElementById('uploads_files');
+  if (fileInput.files.length > 0) {
+    submitFormData.append('uploads_files', fileInput.files[0]);
+  }
+  
+  try {
+    const response = await fetch(submitUrl, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: submitFormData
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      showMessage('success', result.message || 'Delivery challan saved successfully');
+      setTimeout(() => {
+        window.location.href = adminHomeUrl;
+      }, 1500);
+    } else {
+      showMessage('error', result.error || 'Failed to save delivery challan');
+    }
+  } catch (error) {
+    showMessage('error', 'Error: ' + error.message);
+  }
+}
+</script>
+{% endblock %}
+

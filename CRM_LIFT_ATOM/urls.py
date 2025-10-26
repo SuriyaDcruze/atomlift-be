@@ -20,6 +20,7 @@ urlpatterns = [
     path('quotation/', include('Quotation.urls')),
     path('recurringInvoice/', include('recurringInvoice.urls')),
     path('requisition/', include('Requisition.urls')),
+    path('delivery/', include('delivery.urls')),
     path('home/', include('home.urls')),
     path('material_request/', include('Material_Request.urls')),
     path('monthly_load/', include('monthly_load.urls')),
