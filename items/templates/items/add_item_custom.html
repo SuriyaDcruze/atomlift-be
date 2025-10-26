@@ -596,6 +596,18 @@ body {
               </div>
 
               <div class="form-group">
+                <label class="form-label">Purchase Price</label>
+                <input
+                  type="number"
+                  id="purchase_price"
+                  name="purchase_price"
+                  step="0.01"
+                  value="{% if is_edit %}{{ item.purchase_price }}{% else %}0{% endif %}"
+                  class="form-input"
+                />
+              </div>
+
+              <div class="form-group">
                 <label class="form-label">Service Type</label>
                 <div class="form-radio-group">
                   <label class="form-radio-option {% if not is_edit or item.service_type == 'Goods' %}selected{% endif %}">
@@ -1004,7 +1016,7 @@ function createFormData() {
   const data = {};
   new FormData(form).forEach((value, key) => {
     if (key === 'threshold_qty') value = parseInt(value) || null;
-    if (key === 'sale_price' || key === 'igst' || key === 'gst') value = parseFloat(value) || null;
+    if (key === 'sale_price' || key === 'purchase_price' || key === 'igst' || key === 'gst') value = parseFloat(value) || null;
     if (key === 'make' || key === 'type' || key === 'unit') value = value ? parseInt(value) : null;
     data[key] = value;
   });

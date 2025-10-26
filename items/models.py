@@ -45,6 +45,7 @@ class Item(models.Model):
     capacity = models.CharField(max_length=50)
     threshold_qty = models.IntegerField(default=0)
     sale_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    purchase_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     service_type = models.CharField(
         max_length=10,
         choices=[('Goods', 'Goods'), ('Services', 'Services')],
@@ -71,6 +72,7 @@ class Item(models.Model):
             FieldPanel("capacity"),
             FieldPanel("threshold_qty"),
             FieldPanel("sale_price"),
+            FieldPanel("purchase_price"),
         ], heading="Essential Information"),
 
         MultiFieldPanel([
@@ -96,6 +98,16 @@ class Item(models.Model):
 
     def __str__(self):
         return f"{self.item_number} - {self.name}"
+    
+    def get_tax_display(self):
+        """Return formatted tax information"""
+        taxes = []
+        if self.gst and self.gst > 0:
+            taxes.append(f"GST : {self.gst}%")
+        if self.igst and self.igst > 0:
+            taxes.append(f"IGST : {self.igst}%")
+        return ", ".join(taxes) if taxes else "N/A"
+    get_tax_display.short_description = "Tax"
 
 
 # ---------- SNIPPET VIEWSETS ----------
@@ -124,7 +136,7 @@ class ItemViewSet(SnippetViewSet):
     inspect_view_enabled = True
     list_export = (
         'item_number', 'name', 'make', 'model', 'type', 'capacity',
-        'threshold_qty', 'sale_price', 'service_type', 'tax_preference',
+        'threshold_qty', 'sale_price', 'purchase_price', 'service_type', 'tax_preference',
         'unit', 'sac_code', 'igst', 'gst'
     )
     list_display = (
@@ -132,10 +144,10 @@ class ItemViewSet(SnippetViewSet):
         "name",
         "type",
         "unit",
-        "type",
         "sale_price",
+        "purchase_price",
         "tax_preference",
-
+        "get_tax_display",
     )
     search_fields = (
         "item_number",

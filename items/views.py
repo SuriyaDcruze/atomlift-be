@@ -25,6 +25,7 @@ def add_item_custom(request):
                 capacity=data.get('capacity'),
                 threshold_qty=data.get('threshold_qty', 0),
                 sale_price=data.get('sale_price', 0),
+                purchase_price=data.get('purchase_price', 0),
                 service_type=data.get('service_type', 'Goods'),
                 tax_preference=data.get('tax_preference', 'Non-Taxable'),
                 unit_id=data.get('unit') if data.get('unit') else None,
@@ -67,6 +68,7 @@ def edit_item_custom(request, item_number):
             item.capacity = data.get('capacity')
             item.threshold_qty = data.get('threshold_qty', 0)
             item.sale_price = data.get('sale_price', 0)
+            item.purchase_price = data.get('purchase_price', 0)
             item.service_type = data.get('service_type', 'Goods')
             item.tax_preference = data.get('tax_preference', 'Non-Taxable')
             item.unit_id = data.get('unit') if data.get('unit') else None
