@@ -1,0 +1,391 @@
+{% extends "wagtailadmin/base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+/* Modern Tailwind-like styles for Wagtail admin */
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+.w-content-wrapper {
+  background: #f5f5f5;
+  min-height: calc(100vh - 4rem);
+  padding: 2rem;
+}
+
+.w-modal-overlay {
+  /* Convert overlay to standard container for page-like layout */
+  position: static;
+  inset: auto;
+  background-color: transparent;
+  display: block;
+  padding: 0;
+}
+
+.w-modal-content {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.15);
+  width: 100%;
+  max-width: 72rem;
+  margin: 2rem auto;
+  max-height: none;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+}
+
+.w-modal-header {
+  background: linear-gradient(to right, #2D3A6B, #243158);
+  padding: 1.5rem;
+}
+
+.w-modal-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: white;
+}
+
+.w-modal-subtitle {
+  margin: 0;
+  color: white;
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
+
+.w-modal-body {
+  padding: 1.5rem;
+  max-height: none;
+  overflow: visible;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.form-section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 2px solid #E5E7EB;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.form-required {
+  color: #EF4444;
+  margin-left: 0.25rem;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  border: 1px solid #D1D5DB;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #F97316;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+}
+
+.form-input:disabled {
+  background-color: #F9FAFB;
+  color: #6B7280;
+}
+
+.form-textarea {
+  min-height: 3rem;
+  resize: vertical;
+  padding: 0.5rem 0.75rem;
+}
+
+.form-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.75rem center;
+  background-repeat: no-repeat;
+  background-size: 1rem;
+  padding-right: 2.5rem;
+  font-size: 0.875rem;
+}
+
+.w-modal-footer {
+  padding: 1rem 1.5rem;
+  background: #F9FAFB;
+  border-top: 1px solid #E5E7EB;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+}
+
+.btn {
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.btn-secondary {
+  background: #F3F4F6;
+  color: #374151;
+  border: 1px solid #D1D5DB;
+}
+
+.btn-secondary:hover {
+  background: #E5E7EB;
+}
+
+.btn-primary {
+  background: linear-gradient(to right, #2D3A6B, #243158);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(to right, #213066, #182755);
+}
+
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 10rem;
+}
+
+.spinner {
+  border: 3px solid #F3F4F6;
+  border-top: 3px solid #2D3A6B;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="w-content-wrapper">
+  <div class="w-modal-overlay">
+    <div class="w-modal-content">
+      <div class="w-modal-header">
+        <h1 class="w-modal-title">RENEWAL REQUESTS</h1>
+        <p class="w-modal-subtitle">Renew AMC for {{ amc.customer.site_name }}</p>
+      </div>
+      
+      <div class="w-modal-body">
+        <div id="loadingIndicator" class="loading-spinner">
+          <div class="spinner"></div>
+          <p style="margin-top: 1rem; color: #6B7280;">Loading AMC data...</p>
+        </div>
+        
+        <form id="renewalForm" style="display: none;">
+          <div class="form-grid">
+            <div class="form-group" style="grid-column: 1 / -1;">
+              <label class="form-label">AMC NAME</label>
+              <input type="text" class="form-input" id="amcName" name="amcname" placeholder="Enter AMC name">
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">START DATE <span class="form-required">*</span></label>
+              <input type="date" class="form-input" id="startDate" name="start_date" required>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">END DATE <span class="form-required">*</span></label>
+              <input type="date" class="form-input" id="endDate" name="end_date" required>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">AMC TYPE <span class="form-required">*</span></label>
+              <select class="form-select form-input" id="amcType" name="amc_type" required>
+                <option value="">Select AMC Type</option>
+                {% for amc_type in amc_types %}
+                <option value="{{ amc_type.id }}">{{ amc_type.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">NO OF SERVICES (ROUTINE SERVICES)</label>
+              <input type="number" class="form-input" id="noOfServices" name="no_of_services" value="12" min="1">
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">AMOUNT</label>
+              <input type="number" class="form-input" id="amount" name="price" value="0" step="0.01" min="0">
+            </div>
+            
+            <div class="form-group" style="grid-column: 1 / -1;">
+              <label class="form-label">NOTES</label>
+              <textarea class="form-textarea form-input" id="notes" name="notes" rows="4"></textarea>
+            </div>
+            
+            <div class="form-group" style="grid-column: 1 / -1;">
+              <label class="form-label">AMC DETAILS</label>
+              <textarea class="form-textarea form-input" id="amcDetails" name="amc_details" rows="4"></textarea>
+            </div>
+          </div>
+        </form>
+      </div>
+      
+      <div class="w-modal-footer" id="formFooter" style="display: none;">
+        <button type="button" class="btn btn-secondary" onclick="window.location.href='/admin/snippets/amc/amc/'">CLOSE</button>
+        <button type="button" class="btn btn-primary" onclick="saveRenewal()">SAVE</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const amcId = {{ amc.id }};
+
+// Load AMC data when page loads
+document.addEventListener('DOMContentLoaded', function() {
+  loadAMCData();
+});
+
+function loadAMCData() {
+  fetch(`/admin/api/amc/renew-data/${amcId}/`)
+    .then(response => response.json())
+    .then(data => {
+      if (data.error) {
+        alert('Error loading AMC data: ' + data.error);
+        return;
+      }
+      
+      // Populate form fields
+      document.getElementById('amcName').value = data.amcname || '';
+      document.getElementById('startDate').value = data.start_date;
+      document.getElementById('endDate').value = data.end_date;
+      document.getElementById('amcType').value = data.amc_type_id || '';
+      document.getElementById('noOfServices').value = data.no_of_services || 12;
+      document.getElementById('amount').value = data.price || 0;
+      document.getElementById('notes').value = data.notes || '';
+      
+      // Also store AMC details separately if needed
+      if (data.equipment_no || data.latitude) {
+        const amcDetails = [];
+        if (data.equipment_no) amcDetails.push(`Equipment No: ${data.equipment_no}`);
+        if (data.latitude) amcDetails.push(`Site Address: ${data.latitude}`);
+        document.getElementById('amcDetails').value = amcDetails.join('\n');
+      }
+      
+      // Hide loading, show form
+      document.getElementById('loadingIndicator').style.display = 'none';
+      document.getElementById('renewalForm').style.display = 'block';
+      document.getElementById('formFooter').style.display = 'flex';
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('Error loading AMC data');
+    });
+}
+
+function saveRenewal() {
+  const form = document.getElementById('renewalForm');
+  const formData = new FormData(form);
+  
+  // Create data object
+  const data = {
+    customer: {{ amc.customer.id }},
+    amcname: formData.get('amcname') || '',
+    start_date: formData.get('start_date'),
+    end_date: formData.get('end_date'),
+    amc_type: formData.get('amc_type') || null,
+    no_of_services: parseInt(formData.get('no_of_services')) || 12,
+    price: parseFloat(formData.get('price')) || 0,
+    notes: formData.get('notes') || '',
+    amc_details: formData.get('amc_details') || '',
+    invoice_frequency: 'annually',
+    is_generate_contract: false,
+  };
+  
+  // Show loading
+  const saveBtn = event.target;
+  const originalText = saveBtn.textContent;
+  saveBtn.textContent = 'Saving...';
+  saveBtn.disabled = true;
+  
+  fetch('/admin/api/amc/renew/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCookie('csrftoken')
+    },
+    body: JSON.stringify(data)
+  })
+  .then(response => response.json())
+  .then(result => {
+    if (result.success) {
+      alert('AMC renewed successfully! Reference: ' + result.amc.reference_id);
+      window.location.href = '/admin/snippets/amc/amc/';
+    } else {
+      alert('Error: ' + result.error);
+      saveBtn.textContent = originalText;
+      saveBtn.disabled = false;
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Error renewing AMC');
+    saveBtn.textContent = originalText;
+    saveBtn.disabled = false;
+  });
+}
+
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+</script>
+{% endblock %}

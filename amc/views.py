@@ -6,6 +6,7 @@ from django.views.decorators.http import require_http_methods
 from .models import AMC, AMCType, PaymentTerms, Customer
 from django.utils import timezone
 from datetime import date, timedelta
+from items.models import Item
 
 # Create your views here.
 
@@ -325,3 +326,131 @@ def amc_expiring_next_month(request):
     amcs = AMC.objects.filter(end_date__gte=start, end_date__lte=end).order_by("end_date")
     context = {"title": "Next Month Expiring AMCs", "amcs": amcs}
     return render(request, "amc/amc_expiring_next_month.html", context)
+
+
+# ================================
+# AMC Renewal views
+# ================================
+
+def renew_amc_page(request, pk):
+    """Render the renewal page with modal"""
+    amc = get_object_or_404(AMC, pk=pk)
+    context = {
+        'amc': amc,
+        'amc_types': AMCType.objects.all(),
+    }
+    return render(request, 'amc/renew_amc.html', context)
+
+
+@require_http_methods(["GET"])
+def get_amc_renewal_data(request, pk):
+    """Get AMC data for renewal (pre-fill form)"""
+    try:
+        amc = get_object_or_404(AMC, pk=pk)
+        
+        # Calculate new dates (start after current end date, end date +1 year)
+        new_start_date = amc.end_date + timedelta(days=1) if amc.end_date else date.today()
+        new_end_date = new_start_date + timedelta(days=365)
+        
+        data = {
+            'customer_id': amc.customer.id,
+            'customer_name': amc.customer.site_name,
+            'amcname': amc.amcname,
+            'start_date': new_start_date.strftime('%Y-%m-%d'),
+            'end_date': new_end_date.strftime('%Y-%m-%d'),
+            'amc_type_id': amc.amc_type.id if amc.amc_type else None,
+            'amc_type_name': amc.amc_type.name if amc.amc_type else '',
+            'no_of_services': amc.no_of_services,
+            'price': float(amc.price),
+            'no_of_lifts': amc.no_of_lifts,
+            'gst_percentage': float(amc.gst_percentage),
+            'equipment_no': amc.equipment_no,
+            'latitude': amc.latitude,
+            'notes': amc.notes,
+            'invoice_frequency': amc.invoice_frequency,
+            'amc_service_item_id': amc.amc_service_item.id if amc.amc_service_item else None,
+            'is_generate_contract': amc.is_generate_contract,
+        }
+        return JsonResponse(data)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def create_renewed_amc(request):
+    """Create a new AMC based on renewal data"""
+    try:
+        data = json.loads(request.body)
+        
+        # Validate required fields
+        required_fields = ['customer', 'start_date', 'end_date']
+        for field in required_fields:
+            if not data.get(field):
+                return JsonResponse({
+                    'success': False,
+                    'error': f'{field.replace("_", " ").title()} is required'
+                }, status=400)
+        
+        # Get customer
+        customer = Customer.objects.filter(id=data['customer']).first()
+        if not customer:
+            return JsonResponse({
+                'success': False,
+                'error': 'Invalid customer selected'
+            }, status=400)
+        
+        # Get foreign key objects
+        amc_type = None
+        if data.get('amc_type'):
+            amc_type = AMCType.objects.filter(id=data['amc_type']).first()
+        
+        amc_service_item = None
+        if data.get('amc_service_item'):
+            amc_service_item = Item.objects.filter(id=data['amc_service_item']).first()
+        
+        # Validate contract generation
+        generate_contract = data.get('is_generate_contract', False)
+        if isinstance(generate_contract, str):
+            generate_contract = generate_contract.lower() in ('true', 'on', '1')
+        if generate_contract and not amc_service_item:
+            return JsonResponse({
+                'success': False,
+                'error': 'Please select an AMC Service Item when generating contract'
+            }, status=400)
+
+        # Create renewed AMC
+        amc = AMC.objects.create(
+            customer=customer,
+            amcname=data.get('amcname', ''),
+            invoice_frequency=data.get('invoice_frequency', 'annually'),
+            amc_type=amc_type,
+            start_date=data['start_date'],
+            end_date=data['end_date'],
+            equipment_no=data.get('equipment_no', ''),
+            latitude=data.get('latitude', ''),
+            notes=data.get('notes', ''),
+            is_generate_contract=generate_contract,
+            no_of_services=data.get('no_of_services', 12),
+            amc_service_item=amc_service_item,
+            price=data.get('price', 0),
+            no_of_lifts=data.get('no_of_lifts', 0),
+            gst_percentage=data.get('gst_percentage', 0),
+            total_amount_paid=data.get('total_amount_paid', 0),
+        )
+
+        return JsonResponse({
+            'success': True,
+            'message': 'AMC renewed successfully',
+            'amc': {
+                'id': amc.id,
+                'reference_id': amc.reference_id,
+                'customer': customer.site_name,
+            }
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)

@@ -6,6 +6,7 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from wagtail import hooks
 from wagtail.admin.menu import MenuItem, SubmenuMenuItem, Menu
+from wagtail.snippets.widgets import SnippetListingButton
 import json
 from .views import get_customer_json  # Add this import
 from . import views
@@ -34,7 +35,46 @@ def register_amc_form_url():
         path('amc/expiring/this-month/', views.amc_expiring_this_month, name='admin_amc_expiring_this_month'),
         path('amc/expiring/last-month/', views.amc_expiring_last_month, name='admin_amc_expiring_last_month'),
         path('amc/expiring/next-month/', views.amc_expiring_next_month, name='admin_amc_expiring_next_month'),
+        # Renewal endpoints
+        path('snippets/amc/amc/renew/<int:pk>/', views.renew_amc_page, name='renew_amc_page'),
+        path('api/amc/renew-data/<int:pk>/', views.get_amc_renewal_data, name='get_amc_renewal_data'),
+        path('api/amc/renew/', views.create_renewed_amc, name='create_renewed_amc'),
     ]
+
+
+@hooks.register('register_snippet_listing_buttons')
+def add_renew_amc_button(snippet, user, next_url=None):
+    """Add 'Renew AMC' button in AMC listing only for expired or expiring AMCs."""
+    if isinstance(snippet, AMC):
+        # Check if AMC is expired or expiring soon (within 30 days)
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        today = timezone.now().date()
+        is_expired = snippet.end_date and snippet.end_date < today
+        
+        # Check if expiring within 30 days
+        is_expiring_soon = False
+        if snippet.end_date:
+            days_until_expiry = (snippet.end_date - today).days
+            is_expiring_soon = 0 <= days_until_expiry <= 30
+        
+        # Only show button for expired or expiring AMCs
+        if is_expired or is_expiring_soon:
+            try:
+                url = reverse('renew_amc_page', kwargs={'pk': snippet.pk})
+            except Exception as e:
+                url = f"/admin/snippets/amc/amc/renew/{snippet.pk}/"
+            
+            return [
+                SnippetListingButton(
+                    label='Renew AMC',
+                    url=url,
+                    priority=90,
+                    icon_name='repeat',
+                )
+            ]
+    return []
 
 # ... (rest of the file unchanged) ...
 
