@@ -116,7 +116,27 @@ class InvoiceViewSet(SnippetViewSet):
     inspect_view_enabled = True
    
     list_display = ('reference_id', 'customer', 'start_date', 'due_date', 'status')
-    search_fields = ('reference_id', 'customer__site_name', 'status')
+    
+    # Search fields
+    search_fields = (
+        'reference_id',
+        'customer__site_name',
+        'customer__site_id',
+        'customer__job_no',
+        'customer__email',
+        'customer__phone',
+        'customer__mobile',
+        'status',
+        'note',
+    )
+    
+    # Filter fields
+    list_filter = (
+        'status',
+        'customer',
+        'start_date',
+        'due_date',
+    )
     
     # You can customize export fields here if needed
     list_export = [

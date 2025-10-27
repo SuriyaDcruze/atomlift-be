@@ -186,8 +186,27 @@ class ComplaintViewSet(SnippetViewSet):
     search_fields = (
         "reference",
         "subject",
-        "customer__site_name",
         "message",
+        "customer__site_name",
+        "customer__site_id",
+        "customer__job_no",
+        "contact_person_name",
+        "contact_person_mobile",
+        "block_wing",
+        "lift_info",
+        "assign_to__first_name",
+        "assign_to__last_name",
+        "technician_remark",
+        "solution",
+    )
+    
+    # 👇 Filter fields
+    list_filter = (
+        "status",
+        "priority",
+        "complaint_type",
+        "assign_to",
+        "date",
     )
 
     # Use custom add/edit pages

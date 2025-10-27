@@ -100,6 +100,27 @@ class PaymentReceivedViewSet(SnippetViewSet):
         "payment_number", "customer", "invoice", "amount", "date",
         "payment_type", "tax_deducted"
     ]
+    
+    # Search fields
+    search_fields = (
+        "payment_number",
+        "customer__site_name",
+        "customer__site_id",
+        "customer__job_no",
+        "customer__email",
+        "customer__phone",
+        "customer__mobile",
+        "invoice__reference_id",
+        "amount",
+    )
+    
+    # Filter fields
+    list_filter = (
+        "payment_type",
+        "tax_deducted",
+        "customer",
+        "date",
+    )
 
     def get_add_url(self):
         return reverse("add_payment_received_custom")

@@ -299,6 +299,28 @@ class CustomerViewSet(SnippetViewSet):
         "reference_id", "site_name", "job_no", "email", "phone", "number_of_lifts", "number_of_routine_services", "number_of_invoices",
     )
     list_export = ("reference_id", "site_name", "job_no", "email", "phone", "city", "branch", "routes", "sector")
+    
+    search_fields = (
+        "reference_id",
+        "site_id",
+        "site_name",
+        "job_no",
+        "email",
+        "phone",
+        "mobile",
+        "contact_person_name",
+        "city",
+        "branch__value",
+        "routes__value",
+        "province_state__value",
+    )
+    
+    list_filter = (
+        "branch",
+        "routes",
+        "province_state",
+        "sector",
+    )
 
     create_template_name = 'customer/add_customer_custom.html'
     inspect_template_name = 'customer/view_customer_custom.html'
