@@ -80,26 +80,13 @@ def add_user_custom(request):
 
 @hooks.register('construct_user_form')
 def inject_phone_into_user_create(form_class, request):
-    # Ensure our model has phone_number and the field isn't already included
-    if hasattr(CustomUser, 'phone_number') and 'phone_number' not in getattr(form_class.Meta, 'fields', []):
-        class PhoneUserCreateForm(form_class):
-            phone_number = forms.CharField(required=False, max_length=15, label='Phone number')
-
-            class Meta(form_class.Meta):
-                fields = list(getattr(form_class.Meta, 'fields', ())) + ['phone_number']
-        return PhoneUserCreateForm
+    # Removed phone number field from user create form
     return form_class
 
 
 @hooks.register('construct_user_edit_form')
 def inject_phone_into_user_edit(form_class, request):
-    if hasattr(CustomUser, 'phone_number') and 'phone_number' not in getattr(form_class.Meta, 'fields', []):
-        class PhoneUserEditForm(form_class):
-            phone_number = forms.CharField(required=False, max_length=15, label='Phone number')
-
-            class Meta(form_class.Meta):
-                fields = list(getattr(form_class.Meta, 'fields', ())) + ['phone_number']
-        return PhoneUserEditForm
+    # Removed phone number field from user edit form
     return form_class
 
 
@@ -237,100 +224,5 @@ def auto_hide_messages():
     )
 
 
-# Inject custom columns into user listing via JavaScript
-@hooks.register('insert_global_admin_js')
-def add_user_profile_column_js():
-    """Add JavaScript to inject phone number column with actual data"""
-    return format_html(
-        """
-        <script>
-        document.addEventListener('DOMContentLoaded', function() {{
-            // Check if we're on the users listing page
-            if (window.location.pathname.match(/\/admin\/users\/?(\?.*)?$/)) {{
-                var table = document.querySelector('table.listing');
-                if (table) {{
-                    // Add header
-                    var headerRow = table.querySelector('thead tr');
-                    if (headerRow && !headerRow.querySelector('th.phone-number')) {{
-                        var thPhone = document.createElement('th');
-                        thPhone.textContent = 'Phone Number';
-                        thPhone.className = 'phone-number';
-                        // Insert after name column (position 2, after checkbox and name)
-                        if (headerRow.children.length >= 3) {{
-                            headerRow.insertBefore(thPhone, headerRow.children[2]);
-                        }}
-                    }}
-                    
-                    // Fetch phone numbers from API
-                    fetch('/admin/api/user-phones/')
-                        .then(response => response.json())
-                        .then(phoneData => {{
-                            console.log('Phone data received:', phoneData);
-                            
-                            // Add data cells
-                            var dataRows = table.querySelectorAll('tbody tr');
-                            dataRows.forEach(function(row) {{
-                                if (!row.querySelector('td.phone-number')) {{
-                                    var td = document.createElement('td');
-                                    td.className = 'phone-number';
-                                    td.style.padding = '8px';
-                                    
-                                    // Try multiple ways to get user ID from the row
-                                    var userId = null;
-                                    
-                                    // Method 1: From edit link in the row
-                                    var editLink = row.querySelector('a[href*="/users/"]');
-                                    if (editLink) {{
-                                        var href = editLink.getAttribute('href');
-                                        console.log('Found href:', href);
-                                        // Try different patterns
-                                        var match = href.match(/\/users\/(\d+)/);
-                                        if (match) {{
-                                            userId = match[1];
-                                        }}
-                                    }}
-                                    
-                                    // Method 2: Try data attributes
-                                    if (!userId && row.dataset.objectId) {{
-                                        userId = row.dataset.objectId;
-                                    }}
-                                    
-                                    // Method 3: Try any link in the row
-                                    if (!userId) {{
-                                        var allLinks = row.querySelectorAll('a');
-                                        allLinks.forEach(function(link) {{
-                                            if (!userId) {{
-                                                var linkMatch = link.href.match(/\/users\/(\d+)/);
-                                                if (linkMatch) {{
-                                                    userId = linkMatch[1];
-                                                }}
-                                            }}
-                                        }});
-                                    }}
-                                    
-                                    console.log('User ID found:', userId);
-                                    
-                                    if (userId && phoneData[userId]) {{
-                                        td.textContent = phoneData[userId];
-                                    }} else {{
-                                        td.textContent = '-';
-                                    }}
-                                    
-                                    // Insert at position 2
-                                    if (row.children.length >= 3) {{
-                                        row.insertBefore(td, row.children[2]);
-                                    }} else {{
-                                        row.appendChild(td);
-                                    }}
-                                }}
-                            }});
-                        }})
-                        .catch(error => {{
-                            console.error('Error fetching phone numbers:', error);
-                        }});
-                }}
-            }}
-        }});
-        </script>
-        """
-    )
+# Removed phone number column from user listing
+# The phone number column will no longer appear in the users table
