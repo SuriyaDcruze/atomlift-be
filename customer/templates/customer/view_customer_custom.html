@@ -892,7 +892,10 @@ tr {
 
         <!-- Payments Section -->
         <div class="mt-8">
-          <h3 class="form-section-title">Payments</h3>
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="form-section-title">Payments</h3>
+            <a href="{% url 'add_payment_received_custom' %}?customerId={{ customer.id }}" class="btn btn-cyan">Add Payment</a>
+          </div>
           {% if payments %}
           <div class="table-container">
             <table>
@@ -923,7 +926,7 @@ tr {
           {% else %}
           <div class="empty-state">
             <p>No Payments</p>
-            <p class="text-sm">No payment records found for this customer</p>
+            <p class="text-sm">Click "Add Payment" to add payment records for this customer</p>
           </div>
           {% endif %}
         </div>

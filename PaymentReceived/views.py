@@ -8,7 +8,19 @@ from invoice.models import Invoice
 
 
 def add_payment_received_custom(request):
-    return render(request, 'payments/add_payment_received_custom.html', {'is_edit': False})
+    # Get customerId from URL parameter if provided
+    customer_id = request.GET.get('customerId', None)
+    preselected_customer = None
+    if customer_id:
+        try:
+            preselected_customer = Customer.objects.get(id=customer_id)
+        except (Customer.DoesNotExist, ValueError):
+            pass
+    
+    return render(request, 'payments/add_payment_received_custom.html', {
+        'is_edit': False,
+        'preselected_customer': preselected_customer
+    })
 
 
 def edit_payment_received_custom(request, payment_number):
