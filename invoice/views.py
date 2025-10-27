@@ -168,12 +168,22 @@ def add_invoice_custom(request):
     customers = Customer.objects.all()
     amc_types = AMCType.objects.all()
     items = Item.objects.all()
+    
+    # Get customerId from URL parameter if provided
+    customer_id = request.GET.get('customerId', None)
+    preselected_customer = None
+    if customer_id:
+        try:
+            preselected_customer = Customer.objects.get(id=customer_id)
+        except (Customer.DoesNotExist, ValueError):
+            pass
 
     return render(request, 'invoice/add_invoice_custom.html', {
         'customers': customers,
         'amc_types': amc_types,
         'items': items,
-        'is_edit': False
+        'is_edit': False,
+        'preselected_customer': preselected_customer
     })
 
 

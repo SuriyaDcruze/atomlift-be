@@ -787,7 +787,10 @@ tr {
 
         <!-- Invoices Section -->
         <div class="mt-8">
-          <h3 class="form-section-title">Invoices</h3>
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="form-section-title">Invoices</h3>
+            <a href="{% url 'add_invoice_custom' %}?customerId={{ customer.id }}" class="btn btn-cyan">Add Invoice</a>
+          </div>
           {% if invoices %}
           <div class="table-container">
             <table>
@@ -827,7 +830,7 @@ tr {
           {% else %}
           <div class="empty-state">
             <p>No Invoices</p>
-            <p class="text-sm">No invoices found for this customer</p>
+            <p class="text-sm">Click "Add Invoice" to add invoices for this customer</p>
           </div>
           {% endif %}
         </div>
