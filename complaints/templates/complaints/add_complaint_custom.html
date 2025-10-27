@@ -139,7 +139,7 @@
             </div>
             <div class="form-group">
               <label class="form-label">Mobile</label>
-              <input id="contact_person_mobile" class="form-input" type="text" />
+              <input id="contact_person_mobile" class="form-input" type="text" maxlength="10" oninput="this.value = this.value.replace(/\D/g, '').slice(0, 10)" />
             </div>
             <div class="form-group">
               <label class="form-label">Block/Wing</label>
@@ -325,6 +325,15 @@ function selectCustomer(customer) {
   searchInput.value = customer.site_name || '';
   hiddenSelect.value = customer.id;
   dropdown.style.display = 'none';
+  
+  // Auto-populate contact person and mobile (but not block)
+  if (customer.contact_person_name) {
+    document.getElementById('contact_person_name').value = customer.contact_person_name;
+  }
+  if (customer.phone) {
+    document.getElementById('contact_person_mobile').value = customer.phone;
+  }
+  // Block/Wing field is left empty for manual entry
 }
 </script>
 {% endblock %}

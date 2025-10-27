@@ -187,6 +187,17 @@ function selectCustomer(customer) {
   searchInput.value = customer.site_name || '';
   hiddenSelect.value = customer.id;
   dropdown.style.display = 'none';
+  
+  // Auto-populate contact person, mobile, and block
+  if (customer.contact_person_name) {
+    document.getElementById('contact_person_name').value = customer.contact_person_name;
+  }
+  if (customer.phone) {
+    document.getElementById('contact_person_mobile').value = customer.phone;
+  }
+  if (customer.site_address) {
+    document.getElementById('block_wing').value = customer.site_address;
+  }
 }
 
 document.addEventListener('DOMContentLoaded',function(){
