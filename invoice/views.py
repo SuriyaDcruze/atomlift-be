@@ -178,12 +178,24 @@ def add_invoice_custom(request):
         except (Customer.DoesNotExist, ValueError):
             pass
 
+    # Generate preview invoice number for new invoices
+    from invoice.models import Invoice
+    preview_invoice_number = None
+    if not request.GET.get('edit'):
+        last_invoice = Invoice.objects.all().order_by('id').last()
+        if last_invoice and last_invoice.reference_id.startswith(Invoice.REFERENCE_PREFIX):
+            last_id = int(last_invoice.reference_id.replace(Invoice.REFERENCE_PREFIX, ''))
+        else:
+            last_id = 0
+        preview_invoice_number = f'{Invoice.REFERENCE_PREFIX}{str(last_id + 1).zfill(3)}'
+
     return render(request, 'invoice/add_invoice_custom.html', {
         'customers': customers,
         'amc_types': amc_types,
         'items': items,
         'is_edit': False,
-        'preselected_customer': preselected_customer
+        'preselected_customer': preselected_customer,
+        'preview_invoice_number': preview_invoice_number
     })
 
 

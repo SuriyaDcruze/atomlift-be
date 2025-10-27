@@ -614,7 +614,7 @@ body {
                 <label class="form-label">Invoice Number</label>
                 <input
                   type="text"
-                  value="{% if is_edit %}{{ invoice.reference_id }}{% endif %}"
+                  value="{% if is_edit %}{{ invoice.reference_id }}{% elif preview_invoice_number %}{{ preview_invoice_number }}{% endif %}"
                   class="form-input"
                   readonly
                 />
