@@ -236,7 +236,10 @@ document.addEventListener('DOMContentLoaded',function(){
       body:JSON.stringify(payload)
     }).then(r=>r.json()).then(res=>{
       if(res.success){
-        window.location.href='{% url "wagtailadmin_home" %}'
+        alert('Complaint added successfully!');
+        setTimeout(() => {
+          window.location.href='/admin/snippets/complaints/complaint/'
+        }, 500);
       }
       else{
         alert(res.error||'Failed');

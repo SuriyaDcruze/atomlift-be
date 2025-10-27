@@ -224,6 +224,7 @@ def create_complaint(request):
             block_wing=data.get('block_wing') or (customer.site_address if customer else ''),
             assign_to=CustomUser.objects.get(id=data['assign_to']) if data.get('assign_to') else None,
             priority=ComplaintPriority.objects.get(id=data['priority']) if data.get('priority') else None,
+            status=data.get('status', 'open'),
             subject=data.get('subject', ''),
             message=data.get('message', ''),
             technician_remark=data.get('technician_remark', ''),
@@ -259,6 +260,7 @@ def update_complaint(request, reference):
             complaint.assign_to = CustomUser.objects.get(id=data['assign_to'])
         if data.get('priority'):
             complaint.priority = ComplaintPriority.objects.get(id=data['priority'])
+        complaint.status = data.get('status', complaint.status)
         complaint.subject = data.get('subject', complaint.subject)
         complaint.message = data.get('message', complaint.message)
         complaint.technician_remark = data.get('technician_remark', complaint.technician_remark)
@@ -394,6 +396,7 @@ def submit_public_complaint(request, customer_id):
             lift_info=lift_info,  # Store lift selection
             complaint_templates=templates_text,  # Store selected templates
             priority=ComplaintPriority.objects.get(id=request.POST.get('priority')) if request.POST.get('priority') else None,
+            status='open',  # Default status for public complaints
             subject=templates_text or "Lift Complaint",
             message=final_message,
         )

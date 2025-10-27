@@ -30,6 +30,12 @@ class ComplaintPriority(models.Model):
 # ---------- Main Complaint Model ----------
 
 class Complaint(models.Model):
+    STATUS_CHOICES = [
+        ('open', 'Open'),
+        ('in_progress', 'In Progress'),
+        ('closed', 'Closed'),
+    ]
+    
     reference = models.CharField(max_length=20, unique=True, editable=False)
     complaint_type = models.ForeignKey(ComplaintType, on_delete=models.SET_NULL, null=True, blank=True)
     date = models.DateField(default=timezone.now)
@@ -37,6 +43,7 @@ class Complaint(models.Model):
     contact_person_name = models.CharField(max_length=100, blank=True, null=True)
     contact_person_mobile = models.CharField(max_length=20, blank=True, null=True)
     block_wing = models.CharField(max_length=200, blank=True, null=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open')
     
     # Lift and Template fields
     lift_info = models.CharField(max_length=200, blank=True, null=True, help_text="Selected lift information")
@@ -92,6 +99,7 @@ class Complaint(models.Model):
             FieldPanel("complaint_type"),
             FieldPanel("date"),
             FieldPanel("priority"),
+            FieldPanel("status"),
         ], heading="Complaint Info"),
 
         MultiFieldPanel([
@@ -144,6 +152,7 @@ class ComplaintViewSet(SnippetViewSet):
         "reference",
         "customer",
         "subject",
+        "status",
         "priority",
         "assign_to",
         "date",
@@ -163,6 +172,7 @@ class ComplaintViewSet(SnippetViewSet):
         "complaint_templates",
         "assign_to",
         "priority",
+        "status",
         "subject",
         "message",
         "technician_remark",
