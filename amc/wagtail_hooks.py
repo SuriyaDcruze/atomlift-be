@@ -385,49 +385,47 @@ def get_amc_renewal_data(request, pk):
 @csrf_exempt
 @require_http_methods(["POST"])
 def create_renewed_amc(request):
-    """API to create a renewed AMC"""
+    """API to renew an AMC by updating existing AMC dates"""
     try:
         data = json.loads(request.body)
         
-        # Get customer
-        customer = Customer.objects.filter(id=data['customer_id']).first()
-        if not customer:
-            return JsonResponse({'success': False, 'error': 'Invalid customer'}, status=400)
+        # Get the original AMC to renew
+        amc_id = data.get('amc_id')
+        if not amc_id:
+            return JsonResponse({'success': False, 'error': 'AMC ID is required for renewal'}, status=400)
         
-        # Get AMC type
-        amc_type = None
+        # Get the existing AMC
+        try:
+            existing_amc = AMC.objects.get(pk=amc_id)
+        except AMC.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'AMC not found'}, status=404)
+        
+        # Get AMC type if provided
         if data.get('amc_type_id'):
             amc_type = AMCType.objects.filter(id=data['amc_type_id']).first()
+            existing_amc.amc_type = amc_type
         
-        # Get item
-        amc_service_item = None
-        if data.get('amc_service_item_id'):
-            amc_service_item = Item.objects.filter(id=data['amc_service_item_id']).first()
+        # Update AMC with renewal data
+        existing_amc.amcname = data.get('amcname', existing_amc.amcname)
+        existing_amc.start_date = data['start_date']
+        existing_amc.end_date = data['end_date']
+        existing_amc.no_of_services = data.get('no_of_services', existing_amc.no_of_services)
+        existing_amc.price = data.get('price', existing_amc.price)
+        existing_amc.notes = data.get('notes', existing_amc.notes)
+        existing_amc.equipment_no = data.get('equipment_no', existing_amc.equipment_no)
+        existing_amc.latitude = data.get('latitude', existing_amc.latitude)
+        existing_amc.invoice_frequency = data.get('invoice_frequency', existing_amc.invoice_frequency)
+        existing_amc.is_generate_contract = data.get('is_generate_contract', existing_amc.is_generate_contract)
         
-        # Create new AMC
-        renewed_amc = AMC.objects.create(
-            customer=customer,
-            amcname=data.get('amcname', ''),
-            amc_type=amc_type,
-            start_date=data['start_date'],
-            end_date=data['end_date'],
-            equipment_no=data.get('equipment_no', ''),
-            latitude=data.get('latitude', ''),
-            notes=data.get('notes', ''),
-            no_of_services=data.get('no_of_services', 12),
-            price=data.get('price', 0),
-            no_of_lifts=data.get('no_of_lifts', 0),
-            gst_percentage=data.get('gst_percentage', 0),
-            amc_service_item=amc_service_item,
-            total_amount_paid=0,  # Start fresh
-        )
+        # Save the updated AMC (this will recalculate totals and status)
+        existing_amc.save()
         
         return JsonResponse({
             'success': True,
             'message': 'AMC renewed successfully',
             'amc': {
-                'id': renewed_amc.id,
-                'reference_id': renewed_amc.reference_id,
+                'id': existing_amc.id,
+                'reference_id': existing_amc.reference_id,
             }
         })
         

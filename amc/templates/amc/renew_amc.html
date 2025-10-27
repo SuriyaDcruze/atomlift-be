@@ -302,6 +302,9 @@ document.addEventListener('DOMContentLoaded', function() {
   const newStartDate = addDays(amcData.start_date, 1);
   const newEndDate = addDays(newStartDate, 365);
   
+  // Store the original AMC ID for updating
+  window.currentAmcId = {{ amc.id }};
+  
   // Populate form fields
   document.getElementById('amcName').value = amcData.amcname || '';
   document.getElementById('startDate').value = newStartDate;
@@ -329,9 +332,9 @@ function saveRenewal() {
   const form = document.getElementById('renewalForm');
   const formData = new FormData(form);
   
-  // Create data object
+  // Create data object with AMC ID for updating the existing AMC
   const data = {
-    customer_id: {{ amc.customer.id }},
+    amc_id: window.currentAmcId,  // Pass the original AMC ID
     amcname: formData.get('amcname') || '',
     start_date: formData.get('start_date'),
     end_date: formData.get('end_date'),
