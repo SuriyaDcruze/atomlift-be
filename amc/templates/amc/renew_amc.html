@@ -277,49 +277,53 @@ body {
 </div>
 
 <script>
-const amcId = {{ amc.id }};
+// Pre-calculate dates in Python context
+const amcData = {
+  amcname: '{{ amc.amcname|default:"" }}',
+  start_date: '{% if amc.end_date %}{{ amc.end_date|date:"Y-m-d" }}{% else %}{{ "now"|date:"Y-m-d" }}{% endif %}',
+  end_date: '{% if amc.end_date %}{{ amc.end_date|date:"Y-m-d" }}{% else %}{{ "now"|date:"Y-m-d" }}{% endif %}',
+  amc_type_id: {{ amc.amc_type.id|default:"null" }},
+  no_of_services: {{ amc.no_of_services|default:12 }},
+  price: {{ amc.price|default:0 }},
+  notes: '{{ amc.notes|default:""|escapejs }}',
+  equipment_no: '{{ amc.equipment_no|default:"" }}',
+  latitude: '{{ amc.latitude|default:"" }}'
+};
 
-// Load AMC data when page loads
-document.addEventListener('DOMContentLoaded', function() {
-  loadAMCData();
-});
-
-function loadAMCData() {
-  fetch(`/admin/api/amc/renew-data/${amcId}/`)
-    .then(response => response.json())
-    .then(data => {
-      if (data.error) {
-        alert('Error loading AMC data: ' + data.error);
-        return;
-      }
-      
-      // Populate form fields
-      document.getElementById('amcName').value = data.amcname || '';
-      document.getElementById('startDate').value = data.start_date;
-      document.getElementById('endDate').value = data.end_date;
-      document.getElementById('amcType').value = data.amc_type_id || '';
-      document.getElementById('noOfServices').value = data.no_of_services || 12;
-      document.getElementById('amount').value = data.price || 0;
-      document.getElementById('notes').value = data.notes || '';
-      
-      // Also store AMC details separately if needed
-      if (data.equipment_no || data.latitude) {
-        const amcDetails = [];
-        if (data.equipment_no) amcDetails.push(`Equipment No: ${data.equipment_no}`);
-        if (data.latitude) amcDetails.push(`Site Address: ${data.latitude}`);
-        document.getElementById('amcDetails').value = amcDetails.join('\n');
-      }
-      
-      // Hide loading, show form
-      document.getElementById('loadingIndicator').style.display = 'none';
-      document.getElementById('renewalForm').style.display = 'block';
-      document.getElementById('formFooter').style.display = 'flex';
-    })
-    .catch(error => {
-      console.error('Error:', error);
-      alert('Error loading AMC data');
-    });
+// Calculate new dates (start = end + 1 day, end = start + 1 year)
+function addDays(dateStr, days) {
+  const date = new Date(dateStr);
+  date.setDate(date.getDate() + days);
+  return date.toISOString().split('T')[0];
 }
+
+// Load and populate form immediately on page load
+document.addEventListener('DOMContentLoaded', function() {
+  const newStartDate = addDays(amcData.start_date, 1);
+  const newEndDate = addDays(newStartDate, 365);
+  
+  // Populate form fields
+  document.getElementById('amcName').value = amcData.amcname || '';
+  document.getElementById('startDate').value = newStartDate;
+  document.getElementById('endDate').value = newEndDate;
+  document.getElementById('amcType').value = amcData.amc_type_id || '';
+  document.getElementById('noOfServices').value = amcData.no_of_services || 12;
+  document.getElementById('amount').value = amcData.price || 0;
+  document.getElementById('notes').value = amcData.notes || '';
+  
+  // Also store AMC details separately if needed
+  if (amcData.equipment_no || amcData.latitude) {
+    const amcDetails = [];
+    if (amcData.equipment_no) amcDetails.push(`Equipment No: ${amcData.equipment_no}`);
+    if (amcData.latitude) amcDetails.push(`Site Address: ${amcData.latitude}`);
+    document.getElementById('amcDetails').value = amcDetails.join('\n');
+  }
+  
+  // Hide loading, show form immediately
+  document.getElementById('loadingIndicator').style.display = 'none';
+  document.getElementById('renewalForm').style.display = 'block';
+  document.getElementById('formFooter').style.display = 'flex';
+});
 
 function saveRenewal() {
   const form = document.getElementById('renewalForm');
@@ -327,15 +331,16 @@ function saveRenewal() {
   
   // Create data object
   const data = {
-    customer: {{ amc.customer.id }},
+    customer_id: {{ amc.customer.id }},
     amcname: formData.get('amcname') || '',
     start_date: formData.get('start_date'),
     end_date: formData.get('end_date'),
-    amc_type: formData.get('amc_type') || null,
+    amc_type_id: formData.get('amc_type') || null,
     no_of_services: parseInt(formData.get('no_of_services')) || 12,
     price: parseFloat(formData.get('price')) || 0,
     notes: formData.get('notes') || '',
-    amc_details: formData.get('amc_details') || '',
+    equipment_no: amcData.equipment_no || '',
+    latitude: amcData.latitude || '',
     invoice_frequency: 'annually',
     is_generate_contract: false,
   };

@@ -6,6 +6,8 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from wagtail import hooks
 from wagtail.admin.menu import MenuItem, SubmenuMenuItem, Menu
+from wagtail.snippets.widgets import SnippetListingButton
+from datetime import date, timedelta
 import json
 from .views import get_customer_json  # Add this import
 from . import views
@@ -34,6 +36,10 @@ def register_amc_form_url():
         path('amc/expiring/this-month/', views.amc_expiring_this_month, name='admin_amc_expiring_this_month'),
         path('amc/expiring/last-month/', views.amc_expiring_last_month, name='admin_amc_expiring_last_month'),
         path('amc/expiring/next-month/', views.amc_expiring_next_month, name='admin_amc_expiring_next_month'),
+        # AMC renewal routes
+        path('api/amc/renew-data/<int:pk>/', get_amc_renewal_data, name='get_amc_renewal_data'),
+        path('api/amc/renew/', create_renewed_amc, name='create_renewed_amc'),
+        path('amc/renew/<int:pk>/', renew_amc_page, name='renew_amc'),
     ]
 
 # ... (rest of the file unchanged) ...
@@ -298,3 +304,132 @@ def get_items(request):
     """API for getting all items"""
     items = Item.objects.all().values('id', 'name', 'item_number')
     return JsonResponse(list(items), safe=False)
+
+
+# AMC Renewal Feature
+@hooks.register('register_snippet_listing_buttons')
+def add_renew_amc_button(snippet, user, next_url=None):
+    """Add 'Renew AMC' button for expired or expiring AMCs."""
+    if isinstance(snippet, AMC):
+        today = date.today()
+        
+        # Check if AMC is expired or expiring within 30 days
+        if snippet.end_date:
+            days_until_expiry = (snippet.end_date - today).days
+            is_expired = snippet.end_date < today
+            is_expiring_soon = 0 <= days_until_expiry <= 30
+            
+            # Only show button for expired or expiring AMCs
+            if is_expired or is_expiring_soon:
+                try:
+                    url = reverse('renew_amc', kwargs={'pk': snippet.pk})
+                except:
+                    url = f"/admin/amc/renew/{snippet.pk}/"
+                
+                return [
+                    SnippetListingButton(
+                        label='Renew AMC',
+                        url=url,
+                        priority=90,
+                        icon_name='repeat',
+                    )
+                ]
+    return []
+
+
+def renew_amc_page(request, pk):
+    """Render the AMC renewal page"""
+    amc = get_object_or_404(AMC.objects.select_related('customer', 'amc_type', 'payment_terms'), pk=pk)
+    amc_types = AMCType.objects.all()
+    
+    context = {
+        'amc': amc,
+        'amc_types': amc_types,
+    }
+    return render(request, 'amc/renew_amc.html', context)
+
+
+@require_http_methods(["GET"])
+def get_amc_renewal_data(request, pk):
+    """API to fetch AMC data for renewal"""
+    # Use select_related to avoid N+1 queries
+    amc = get_object_or_404(
+        AMC.objects.select_related('customer', 'amc_type', 'payment_terms'),
+        pk=pk
+    )
+    
+    # Calculate new dates
+    new_start_date = amc.end_date + timedelta(days=1) if amc.end_date else date.today()
+    new_end_date = new_start_date + timedelta(days=365)
+    
+    data = {
+        'customer_id': amc.customer.id,
+        'customer_name': amc.customer.site_name,
+        'start_date': new_start_date.strftime('%Y-%m-%d'),
+        'end_date': new_end_date.strftime('%Y-%m-%d'),
+        'amc_type_id': amc.amc_type.id if amc.amc_type else None,
+        'amc_type_name': amc.amc_type.name if amc.amc_type else '',
+        'no_of_services': amc.no_of_services,
+        'price': str(amc.price),
+        'notes': amc.notes or '',
+        'amc_details': f"{amc.equipment_no or ''} - {amc.latitude or ''}".strip(' -'),
+        'payment_terms_id': amc.payment_terms.id if amc.payment_terms else None,
+        'equipment_no': amc.equipment_no or '',
+        'latitude': amc.latitude or '',
+        'amcname': amc.amcname or '',
+    }
+    
+    return JsonResponse(data)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def create_renewed_amc(request):
+    """API to create a renewed AMC"""
+    try:
+        data = json.loads(request.body)
+        
+        # Get customer
+        customer = Customer.objects.filter(id=data['customer_id']).first()
+        if not customer:
+            return JsonResponse({'success': False, 'error': 'Invalid customer'}, status=400)
+        
+        # Get AMC type
+        amc_type = None
+        if data.get('amc_type_id'):
+            amc_type = AMCType.objects.filter(id=data['amc_type_id']).first()
+        
+        # Get item
+        amc_service_item = None
+        if data.get('amc_service_item_id'):
+            amc_service_item = Item.objects.filter(id=data['amc_service_item_id']).first()
+        
+        # Create new AMC
+        renewed_amc = AMC.objects.create(
+            customer=customer,
+            amcname=data.get('amcname', ''),
+            amc_type=amc_type,
+            start_date=data['start_date'],
+            end_date=data['end_date'],
+            equipment_no=data.get('equipment_no', ''),
+            latitude=data.get('latitude', ''),
+            notes=data.get('notes', ''),
+            no_of_services=data.get('no_of_services', 12),
+            price=data.get('price', 0),
+            no_of_lifts=data.get('no_of_lifts', 0),
+            gst_percentage=data.get('gst_percentage', 0),
+            amc_service_item=amc_service_item,
+            total_amount_paid=0,  # Start fresh
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'AMC renewed successfully',
+            'amc': {
+                'id': renewed_amc.id,
+                'reference_id': renewed_amc.reference_id,
+            }
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
