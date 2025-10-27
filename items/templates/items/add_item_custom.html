@@ -203,6 +203,12 @@ body {
   margin-top: 0.25rem;
 }
 
+.form-help {
+  font-size: 0.75rem;
+  color: #6B7280;
+  margin-top: 0.25rem;
+}
+
 .w-modal-footer {
   padding: 1rem 1.5rem;
   background: #F9FAFB;
@@ -504,7 +510,7 @@ body {
                 <label class="form-label">Item Number</label>
                 <input
                   type="text"
-                  value="{% if is_edit %}{{ item.item_number }}{% endif %}"
+                  value="{% if is_edit %}{{ item.item_number }}{% else %}{{ next_item_number }}{% endif %}"
                   class="form-input"
                   readonly
                 />

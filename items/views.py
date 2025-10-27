@@ -38,11 +38,17 @@ def add_item_custom(request):
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
 
+    # Calculate next item number to display
+    last_item = Item.objects.all().order_by('id').last()
+    next_number = 1001 if not last_item else last_item.id + 1001
+    next_item_number = f'PART{next_number}'
+
     return render(request, 'items/add_item_custom.html', {
         'types': types,
         'makes': makes,
         'units': units,
-        'is_edit': False
+        'is_edit': False,
+        'next_item_number': next_item_number
     })
 
 def edit_item_custom(request, item_number):

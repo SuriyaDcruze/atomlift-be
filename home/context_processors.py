@@ -12,7 +12,8 @@ def dashboard_metrics(request):
     """
     total_customers = Customer.objects.count()
     total_complaints = Complaint.objects.count()
-    open_complaints = Complaint.objects.filter(solution__isnull=True).count()
+    # Count complaints where status is 'open' or 'in_progress' (not 'closed')
+    open_complaints = Complaint.objects.filter(status__in=['open', 'in_progress']).count()
     total_amc_due = AMC.objects.filter(status='active').aggregate(total=Sum('amount_due'))['total'] or 0
     # Assuming Income is sum of contract_amount paid or total payments
     total_income = PaymentReceived.objects.aggregate(total=Sum('amount'))['total'] or 0

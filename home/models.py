@@ -10,5 +10,5 @@ class HomePage(Page):
         context = super().get_context(request)
         context['total_customers'] = Customer.objects.count()
         context['total_complaints'] = Complaint.objects.count()
-        context['open_complaints'] = Complaint.objects.filter(solution__isnull=True).count()
+        context['open_complaints'] = Complaint.objects.filter(status__in=['open', 'in_progress']).count()
         return context

@@ -6,7 +6,7 @@ def lionsol_homepage(request):
     """View for the Lionsol homepage"""
     total_customers = Customer.objects.count()
     total_complaints = Complaint.objects.count()
-    open_complaints = Complaint.objects.filter(solution__isnull=True).count()  # Assuming open means no solution
+    open_complaints = Complaint.objects.filter(status__in=['open', 'in_progress']).count()
 
     context = {
         'total_customers': total_customers,
