@@ -216,7 +216,66 @@ GET /complaints/api/mobile/complaints/CMP1001/
 }
 ```
 
-### 4. Get Complaint Types
+### 4. Upload Signatures Only
+
+**Endpoint**: `POST /complaints/api/mobile/complaints/{reference}/signatures/`
+
+**Description**: Upload technician and/or customer signatures for a complaint.
+
+**Request Body** (multipart/form-data):
+```
+technician_signature: [image file]
+customer_signature: [image file]
+```
+
+**Response** (Success - 200):
+```json
+{
+    "complaint": {
+        "id": 1,
+        "reference": "CMP1001",
+        "technician_signature_url": "http://your-domain.com/media/complaint_signatures/technician/signature1.jpg",
+        "customer_signature_url": "http://your-domain.com/media/complaint_signatures/customer/signature2.jpg",
+        // ... other complaint fields
+    },
+    "message": "Signatures uploaded successfully"
+}
+```
+
+### 5. Update Complaint with Signatures
+
+**Endpoint**: `POST /complaints/api/mobile/complaints/{reference}/update-with-signatures/`
+
+**Description**: Update complaint status, remarks, solution and upload signatures in one request.
+
+**Request Body** (multipart/form-data):
+```
+status: "closed"
+technician_remark: "Completed repair work"
+solution: "Lift is now working properly"
+change_reason: "Work completed successfully"
+technician_signature: [image file]
+customer_signature: [image file]
+```
+
+**Response** (Success - 200):
+```json
+{
+    "complaint": {
+        "id": 1,
+        "reference": "CMP1001",
+        "status": "closed",
+        "technician_remark": "Completed repair work",
+        "solution": "Lift is now working properly",
+        "technician_signature_url": "http://your-domain.com/media/complaint_signatures/technician/signature1.jpg",
+        "customer_signature_url": "http://your-domain.com/media/complaint_signatures/customer/signature2.jpg",
+        // ... other complaint fields
+    },
+    "message": "Complaint updated successfully with signatures"
+}
+```
+
+### 6. Get Complaint Types
 
 **Endpoint**: `GET /complaints/api/mobile/complaint-types/`
 
@@ -341,14 +400,67 @@ const updateComplaintStatus = async (token, reference, updateData) => {
     return await response.json();
 };
 
+// Upload signatures only
+const uploadSignatures = async (token, reference, technicianSignature, customerSignature) => {
+    const formData = new FormData();
+    if (technicianSignature) formData.append('technician_signature', technicianSignature);
+    if (customerSignature) formData.append('customer_signature', customerSignature);
+    
+    const response = await fetch(`http://your-domain.com/complaints/api/mobile/complaints/${reference}/signatures/`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Token ${token}`,
+        },
+        body: formData
+    });
+    return await response.json();
+};
+
+// Update complaint with signatures
+const updateComplaintWithSignatures = async (token, reference, updateData, technicianSignature, customerSignature) => {
+    const formData = new FormData();
+    
+    // Add text fields
+    if (updateData.status) formData.append('status', updateData.status);
+    if (updateData.technician_remark) formData.append('technician_remark', updateData.technician_remark);
+    if (updateData.solution) formData.append('solution', updateData.solution);
+    if (updateData.change_reason) formData.append('change_reason', updateData.change_reason);
+    
+    // Add signature files
+    if (technicianSignature) formData.append('technician_signature', technicianSignature);
+    if (customerSignature) formData.append('customer_signature', customerSignature);
+    
+    const response = await fetch(`http://your-domain.com/complaints/api/mobile/complaints/${reference}/update-with-signatures/`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Token ${token}`,
+        },
+        body: formData
+    });
+    return await response.json();
+};
+
 // Usage examples
 const complaints = await getAssignedComplaints(token, { status: 'open', page: 1 });
 const complaintDetail = await getComplaintDetail(token, 'CMP1001');
+
+// Update status only
 const updateResult = await updateComplaintStatus(token, 'CMP1001', {
     status: 'in_progress',
     technician_remark: 'Started working on the issue',
     change_reason: 'Beginning inspection and repair work'
 });
+
+// Upload signatures only
+const signatureResult = await uploadSignatures(token, 'CMP1001', technicianSignatureFile, customerSignatureFile);
+
+// Update everything together
+const completeUpdate = await updateComplaintWithSignatures(token, 'CMP1001', {
+    status: 'closed',
+    technician_remark: 'Work completed',
+    solution: 'Issue resolved',
+    change_reason: 'Repair completed successfully'
+}, technicianSignatureFile, customerSignatureFile);
 ```
 
 ### Flutter/Dart Example

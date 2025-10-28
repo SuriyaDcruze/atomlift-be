@@ -772,3 +772,358 @@ def get_complaint_priorities(request):
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def upload_complaint_signatures(request, reference):
+    """
+    Upload technician and/or customer signatures for a complaint
+    """
+    try:
+        user = request.user
+        
+        # Check if user is in any employee group
+        if not user.groups.exists():
+            return Response(
+                {'error': 'Access denied. Only employees can use mobile app'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Get the complaint
+        complaint = get_object_or_404(Complaint, reference=reference)
+        
+        # Check if the complaint is assigned to the user
+        if complaint.assign_to != user:
+            return Response(
+                {'error': 'Access denied. This complaint is not assigned to you'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Serialize and validate data
+        serializer = ComplaintSignatureSerializer(complaint, data=request.data, partial=True)
+        
+        if serializer.is_valid():
+            serializer.save()
+            
+            response_data = {
+                'complaint': ComplaintDetailSerializer(complaint, context={'request': request}).data,
+                'message': 'Signatures uploaded successfully'
+            }
+            
+            return Response(response_data, status=status.HTTP_200_OK)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+    except Exception as e:
+        logger.error(f"Error uploading signatures: {e}")
+        return Response(
+            {'error': 'Failed to upload signatures'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def update_complaint_with_signatures(request, reference):
+    """
+    Update complaint status, remarks, solution and upload signatures in one request
+    """
+    try:
+        user = request.user
+        
+        # Check if user is in any employee group
+        if not user.groups.exists():
+            return Response(
+                {'error': 'Access denied. Only employees can use mobile app'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Get the complaint
+        complaint = get_object_or_404(Complaint, reference=reference)
+        
+        # Check if the complaint is assigned to the user
+        if complaint.assign_to != user:
+            return Response(
+                {'error': 'Access denied. This complaint is not assigned to you'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Handle text fields update
+        update_data = {}
+        if 'status' in request.data:
+            update_data['status'] = request.data['status']
+        if 'technician_remark' in request.data:
+            update_data['technician_remark'] = request.data['technician_remark']
+        if 'solution' in request.data:
+            update_data['solution'] = request.data['solution']
+        if 'change_reason' in request.data:
+            update_data['change_reason'] = request.data['change_reason']
+        
+        # Update text fields if provided
+        if update_data:
+            update_serializer = ComplaintUpdateSerializer(complaint, data=update_data, partial=True)
+            if update_serializer.is_valid():
+                # Track status change
+                old_status = complaint.status
+                new_status = update_serializer.validated_data.get('status', old_status)
+                change_reason = update_serializer.validated_data.get('change_reason', '')
+                
+                # Save the complaint
+                update_serializer.save()
+                
+                # Create status history record if status changed
+                if old_status != new_status:
+                    ComplaintStatusHistory.objects.create(
+                        complaint=complaint,
+                        old_status=old_status,
+                        new_status=new_status,
+                        changed_by=user,
+                        change_reason=change_reason,
+                        technician_remark=update_serializer.validated_data.get('technician_remark', ''),
+                        solution=update_serializer.validated_data.get('solution', ''),
+                        changed_from_mobile=True
+                    )
+            else:
+                return Response(update_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Handle signature uploads
+        signature_data = {}
+        if 'technician_signature' in request.FILES:
+            signature_data['technician_signature'] = request.FILES['technician_signature']
+        if 'customer_signature' in request.FILES:
+            signature_data['customer_signature'] = request.FILES['customer_signature']
+        
+        if signature_data:
+            signature_serializer = ComplaintSignatureSerializer(complaint, data=signature_data, partial=True)
+            if signature_serializer.is_valid():
+                signature_serializer.save()
+            else:
+                return Response(signature_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        response_data = {
+            'complaint': ComplaintDetailSerializer(complaint, context={'request': request}).data,
+            'message': 'Complaint updated successfully with signatures'
+        }
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        logger.error(f"Error updating complaint with signatures: {e}")
+        return Response(
+            {'error': 'Failed to update complaint'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+# ==================== SIMPLIFIED MOBILE API VIEWS ====================
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def mobile_complaints_api(request):
+    """
+    SIMPLIFIED API: Get complaints list + complaint types + priorities
+    GET: Returns assigned complaints with pagination and reference data
+    POST: Not used (for future expansion)
+    """
+    try:
+        user = request.user
+        
+        # Check if user is in any employee group
+        if not user.groups.exists():
+            return Response(
+                {'error': 'Access denied. Only employees can use mobile app'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Get query parameters for filtering
+        status_filter = request.GET.get('status')
+        priority_filter = request.GET.get('priority')
+        page = int(request.GET.get('page', 1))
+        page_size = int(request.GET.get('page_size', 20))
+        
+        # Base queryset - complaints assigned to the user
+        queryset = Complaint.objects.filter(
+            assign_to=user
+        ).select_related(
+            'customer', 'complaint_type', 'priority', 'assign_to'
+        ).prefetch_related('assignment_history', 'status_history')
+        
+        # Apply filters
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        
+        if priority_filter:
+            queryset = queryset.filter(priority_id=priority_filter)
+        
+        # Order by date (newest first)
+        queryset = queryset.order_by('-date', '-created')
+        
+        # Pagination
+        paginator = Paginator(queryset, page_size)
+        page_obj = paginator.get_page(page)
+        
+        # Serialize data
+        serializer = ComplaintListSerializer(page_obj.object_list, many=True, context={'request': request})
+        
+        # Get reference data
+        complaint_types = ComplaintType.objects.all().order_by('name')
+        priorities = ComplaintPriority.objects.all().order_by('name')
+        
+        response_data = {
+            'complaints': serializer.data,
+            'pagination': {
+                'current_page': page_obj.number,
+                'total_pages': paginator.num_pages,
+                'total_count': paginator.count,
+                'has_next': page_obj.has_next(),
+                'has_previous': page_obj.has_previous(),
+            },
+            'reference_data': {
+                'complaint_types': ComplaintTypeSerializer(complaint_types, many=True).data,
+                'priorities': ComplaintPrioritySerializer(priorities, many=True).data,
+            },
+            'message': 'Complaints retrieved successfully'
+        }
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        logger.error(f"Error retrieving complaints: {e}")
+        return Response(
+            {'error': 'Failed to retrieve complaints'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def mobile_complaint_detail_api(request, reference):
+    """
+    SIMPLIFIED API: Get detailed complaint information
+    """
+    try:
+        user = request.user
+        
+        # Check if user is in any employee group
+        if not user.groups.exists():
+            return Response(
+                {'error': 'Access denied. Only employees can use mobile app'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Get the complaint
+        complaint = get_object_or_404(
+            Complaint.objects.select_related(
+                'customer', 'complaint_type', 'priority', 'assign_to'
+            ).prefetch_related('assignment_history', 'status_history'),
+            reference=reference
+        )
+        
+        # Check if the complaint is assigned to the user
+        if complaint.assign_to != user:
+            return Response(
+                {'error': 'Access denied. This complaint is not assigned to you'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Serialize data
+        serializer = ComplaintDetailSerializer(complaint, context={'request': request})
+        
+        response_data = {
+            'complaint': serializer.data,
+            'message': 'Complaint details retrieved successfully'
+        }
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        logger.error(f"Error retrieving complaint detail: {e}")
+        return Response(
+            {'error': 'Failed to retrieve complaint details'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def mobile_complaint_update_api(request, reference):
+    """
+    SIMPLIFIED API: Update complaint status, remarks, solution AND upload signatures
+    Handles both JSON data and multipart form data with files
+    """
+    try:
+        user = request.user
+        
+        # Check if user is in any employee group
+        if not user.groups.exists():
+            return Response(
+                {'error': 'Access denied. Only employees can use mobile app'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Get the complaint
+        complaint = get_object_or_404(Complaint, reference=reference)
+        
+        # Check if the complaint is assigned to the user
+        if complaint.assign_to != user:
+            return Response(
+                {'error': 'Access denied. This complaint is not assigned to you'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Handle text fields update
+        update_data = {}
+        if 'status' in request.data:
+            update_data['status'] = request.data['status']
+        if 'technician_remark' in request.data:
+            update_data['technician_remark'] = request.data['technician_remark']
+        if 'solution' in request.data:
+            update_data['solution'] = request.data['solution']
+        if 'technician_signature' in request.data:
+            update_data['technician_signature'] = request.data['technician_signature']
+        if 'customer_signature' in request.data:
+            update_data['customer_signature'] = request.data['customer_signature']
+        if 'change_reason' in request.data:
+            update_data['change_reason'] = request.data['change_reason']
+        
+        # Update all fields if provided
+        if update_data:
+            update_serializer = ComplaintUpdateSerializer(complaint, data=update_data, partial=True)
+            if update_serializer.is_valid():
+                # Track status change
+                old_status = complaint.status
+                new_status = update_serializer.validated_data.get('status', old_status)
+                change_reason = update_serializer.validated_data.get('change_reason', '')
+                
+                # Save the complaint
+                update_serializer.save()
+                
+                # Create status history record if status changed
+                if old_status != new_status:
+                    ComplaintStatusHistory.objects.create(
+                        complaint=complaint,
+                        old_status=old_status,
+                        new_status=new_status,
+                        changed_by=user,
+                        change_reason=change_reason,
+                        technician_remark=update_serializer.validated_data.get('technician_remark', ''),
+                        solution=update_serializer.validated_data.get('solution', ''),
+                        changed_from_mobile=True
+                    )
+            else:
+                return Response(update_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        response_data = {
+            'complaint': ComplaintDetailSerializer(complaint, context={'request': request}).data,
+            'message': 'Complaint updated successfully'
+        }
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        logger.error(f"Error updating complaint: {e}")
+        return Response(
+            {'error': 'Failed to update complaint'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+

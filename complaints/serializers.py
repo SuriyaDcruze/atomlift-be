@@ -79,6 +79,8 @@ class ComplaintListSerializer(serializers.ModelSerializer):
     priority = ComplaintPrioritySerializer(read_only=True)
     assign_to_name = serializers.SerializerMethodField()
     days_since_created = serializers.SerializerMethodField()
+    technician_signature = serializers.CharField(read_only=True)
+    customer_signature = serializers.CharField(read_only=True)
     
     class Meta:
         model = Complaint
@@ -87,6 +89,7 @@ class ComplaintListSerializer(serializers.ModelSerializer):
             'contact_person_name', 'contact_person_mobile', 'block_wing',
             'status', 'lift_info', 'complaint_templates', 'assign_to_name',
             'priority', 'subject', 'message', 'technician_remark', 'solution',
+            'technician_signature', 'customer_signature',
             'created', 'updated', 'days_since_created'
         ]
     
@@ -110,6 +113,8 @@ class ComplaintDetailSerializer(serializers.ModelSerializer):
     assignment_history = ComplaintAssignmentHistorySerializer(many=True, read_only=True)
     status_history = ComplaintStatusHistorySerializer(many=True, read_only=True)
     days_since_created = serializers.SerializerMethodField()
+    technician_signature = serializers.CharField(read_only=True)
+    customer_signature = serializers.CharField(read_only=True)
     
     class Meta:
         model = Complaint
@@ -118,6 +123,7 @@ class ComplaintDetailSerializer(serializers.ModelSerializer):
             'contact_person_name', 'contact_person_mobile', 'block_wing',
             'status', 'lift_info', 'complaint_templates', 'assign_to_name',
             'priority', 'subject', 'message', 'technician_remark', 'solution',
+            'technician_signature', 'customer_signature',
             'created', 'updated', 'days_since_created', 'assignment_history', 'status_history'
         ]
     
@@ -138,7 +144,7 @@ class ComplaintUpdateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Complaint
-        fields = ['status', 'technician_remark', 'solution', 'change_reason']
+        fields = ['status', 'technician_remark', 'solution', 'technician_signature', 'customer_signature', 'change_reason']
     
     def validate_status(self, value):
         """Validate status transition"""

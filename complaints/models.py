@@ -63,6 +63,8 @@ class Complaint(models.Model):
     message = models.TextField()
     technician_remark = models.TextField(blank=True, null=True)
     solution = models.TextField(blank=True, null=True)
+    technician_signature = models.TextField(blank=True, null=True, help_text="Technician signature text")
+    customer_signature = models.TextField(blank=True, null=True, help_text="Customer signature text")
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
 
@@ -117,6 +119,8 @@ class Complaint(models.Model):
             FieldPanel("message"),
             FieldPanel("technician_remark"),
             FieldPanel("solution"),
+            FieldPanel("technician_signature"),
+            FieldPanel("customer_signature"),
         ], heading="Work & Solution Details"),
     ]
 
@@ -232,6 +236,8 @@ class ComplaintViewSet(SnippetViewSet):
         "message",
         "technician_remark",
         "solution",
+        "technician_signature",
+        "customer_signature",
         "created",
         "updated",
     ]
