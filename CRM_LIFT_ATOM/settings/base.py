@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "rest_framework.authtoken",
     "corsheaders",
 ]
 
@@ -244,12 +245,3 @@ CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOW_ALL_ORIGINS = True  # Only for development, remove in production
 
-# Email settings for OTP
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # For development
-# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'  # For production
-DEFAULT_FROM_EMAIL = 'noreply@your-domain.com'
-EMAIL_HOST = 'smtp.gmail.com'  # Configure for your email provider
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'your-email@gmail.com'  # Configure for your email
-EMAIL_HOST_PASSWORD = 'your-app-password'  # Configure for your email

@@ -16,7 +16,7 @@ class UserSerializer(serializers.ModelSerializer):
     groups = serializers.StringRelatedField(many=True, read_only=True)
     
     class Meta:
-        model = User
+        model = CustomUser
         fields = ['id', 'email', 'first_name', 'last_name', 'phone_number', 
                  'is_active', 'date_joined', 'profile', 'groups']
         read_only_fields = ['id', 'date_joined']

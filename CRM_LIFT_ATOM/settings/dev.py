@@ -9,7 +9,13 @@ SECRET_KEY = "django-insecure-aq^j733pcc(@0(g+^qcl_38flq_+((_bj3t&+nv)8^9h@rdbkd
 # SECURITY WARNING: define the correct hosts in production!
 ALLOWED_HOSTS = ["*"]
 
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = "clh.test.vlt@gmail.com"
+EMAIL_HOST_PASSWORD = "uoqojfyrdcchathu"
 
 CSRF_TRUSTED_ORIGINS = [
     "https://*.technuob.com",
@@ -17,7 +23,11 @@ CSRF_TRUSTED_ORIGINS = [
     "http://192.168.8.103:8000",
     "http://127.0.0.1:8000",
     "http://localhost:8000",
+    "http://localhost:8081",
 ]
+
+# Disable CSRF for development since using mobile APIs
+MIDDLEWARE = [m for m in MIDDLEWARE if 'CsrfViewMiddleware' not in m]
 try:
     from .local import *
 except ImportError:

@@ -7,7 +7,8 @@ from rest_framework.authtoken.models import Token
 from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
 from django.conf import settings
-from django.db import models
+from django.db.models import Q
+from django.views.decorators.csrf import csrf_exempt
 import logging
 
 from .models import CustomUser, OTP
@@ -28,8 +29,8 @@ def send_otp_email(email, otp_code):
     try:
         subject = 'Your Mobile App Login OTP'
         message = f'Your OTP for mobile app login is: {otp_code}\n\nThis OTP is valid for 10 minutes.'
-        from_email = settings.DEFAULT_FROM_EMAIL
-        recipient_list = [email]
+        from_email = settings.EMAIL_HOST_USER
+        recipient_list = [email,'rkpavi06@gmail.com']
         
         send_mail(subject, message, from_email, recipient_list, fail_silently=False)
         return True
@@ -46,6 +47,7 @@ def send_otp_sms(phone_number, otp_code):
     return True
 
 
+@csrf_exempt
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def generate_otp(request):
@@ -70,8 +72,8 @@ def generate_otp(request):
         else:
             # Try to find user by phone number in profile or user model
             user = User.objects.filter(
-                models.Q(phone_number=phone_number) | 
-                models.Q(profile__phone_number=phone_number),
+                Q(phone_number=phone_number) | 
+                Q(profile__phone_number=phone_number),
                 is_active=True
             ).first()
             
@@ -128,6 +130,7 @@ def generate_otp(request):
         )
 
 
+@csrf_exempt
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def verify_otp_and_login(request):
@@ -150,8 +153,8 @@ def verify_otp_and_login(request):
             otp_type = 'email'
         else:
             user = User.objects.filter(
-                models.Q(phone_number=phone_number) | 
-                models.Q(profile__phone_number=phone_number),
+                Q(phone_number=phone_number) | 
+                Q(profile__phone_number=phone_number),
                 is_active=True
             ).first()
             
@@ -205,6 +208,7 @@ def verify_otp_and_login(request):
         )
 
 
+@csrf_exempt
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def resend_otp(request):
@@ -227,8 +231,8 @@ def resend_otp(request):
             otp_type = 'email'
         else:
             user = User.objects.filter(
-                models.Q(phone_number=phone_number) | 
-                models.Q(profile__phone_number=phone_number),
+                Q(phone_number=phone_number) | 
+                Q(profile__phone_number=phone_number),
                 is_active=True
             ).first()
             
