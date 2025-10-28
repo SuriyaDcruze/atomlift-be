@@ -3,7 +3,10 @@ from complaints.models import Complaint
 from amc.models import AMC
 from invoice.models import Invoice
 from PaymentReceived.models import PaymentReceived
-from django.db.models import Sum
+from Routine_services.models import RoutineService
+from django.db.models import Sum, Count
+from datetime import datetime, timedelta
+from django.utils import timezone
 
 
 def dashboard_metrics(request):
@@ -24,6 +27,29 @@ def dashboard_metrics(request):
     # Recent complaints for dashboard table
     recent_complaints = Complaint.objects.select_related('assign_to').order_by('-created')[:5]
 
+    # Weekly payment received data for the graph
+    today = timezone.now().date()
+    week_start = today - timedelta(days=today.weekday())  # Start of current week (Monday)
+    
+    weekly_payments = []
+    weekly_services = []  # We'll keep services data for now, but you can modify this
+    
+    # Get payment data for each day of the week
+    for i in range(7):
+        day = week_start + timedelta(days=i)
+        day_payments = PaymentReceived.objects.filter(date=day).aggregate(total=Sum('amount'))['total'] or 0
+        
+        # Convert to float for chart display
+        payment_amount = float(day_payments)
+        weekly_payments.append(payment_amount)
+        
+        # Count completed services for each day
+        day_services = RoutineService.objects.filter(
+            service_date=day,
+            status='completed'
+        ).count()
+        weekly_services.append(day_services)
+
     return {
         'total_customers': total_customers,
         'total_complaints': total_complaints,
@@ -34,4 +60,6 @@ def dashboard_metrics(request):
         'open_invoices': open_invoices,
         'total_invoices': total_invoices,
         'recent_complaints': recent_complaints,
+        'weekly_payments': weekly_payments,
+        'weekly_services': weekly_services,
     }
