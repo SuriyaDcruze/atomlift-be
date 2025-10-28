@@ -125,6 +125,35 @@ class Complaint(models.Model):
     ])
 
 
+# ---------- Assignment History Model ----------
+
+class ComplaintAssignmentHistory(models.Model):
+    complaint = models.ForeignKey(Complaint, on_delete=models.CASCADE, related_name="assignment_history")
+    assigned_to = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True)
+    assigned_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name="assignments_made")
+    assignment_date = models.DateTimeField(default=timezone.now)
+    subject = models.CharField(max_length=200)
+    message = models.TextField()
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-assignment_date", "-id"]
+
+class ComplaintCallUpdateHistory(models.Model):
+    complaint = models.ForeignKey(Complaint, on_delete=models.CASCADE, related_name="call_update_history")
+    call_update_date = models.DateTimeField(default=timezone.now)
+    attend_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name="call_updates_made")
+    solution_templates = models.TextField(blank=True, null=True, help_text="Selected solution templates (comma-separated)")
+    additional_notes = models.TextField(blank=True, null=True)
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-call_update_date", "-id"]
+
+    def __str__(self):
+        return f"{self.complaint.reference} - Call Update on {self.call_update_date}"
+
+
 # ---------- Wagtail Admin ViewSets ----------
 
 class ComplaintTypeViewSet(SnippetViewSet):
@@ -157,6 +186,9 @@ class ComplaintViewSet(SnippetViewSet):
         "assign_to",
         "date",
     )
+    
+    # 👇 Add custom buttons
+    list_display_add_buttons = True
 
     # 👇 Export ALL model fields (CSV + XLSX)
     list_export = [
@@ -215,6 +247,9 @@ class ComplaintViewSet(SnippetViewSet):
 
     def get_edit_url(self, instance):
         return reverse("edit_complaint_custom", args=(instance.reference,))
+    
+    def get_view_url(self, instance):
+        return reverse("view_complaint_custom", args=(instance.reference,))
 
     def add_view(self, request):
         return redirect(self.get_add_url())
@@ -222,6 +257,10 @@ class ComplaintViewSet(SnippetViewSet):
     def edit_view(self, request, pk):
         instance = self.model.objects.get(pk=pk)
         return redirect(self.get_edit_url(instance))
+    
+    def view_view(self, request, pk):
+        instance = self.model.objects.get(pk=pk)
+        return redirect(self.get_view_url(instance))
 
 
 

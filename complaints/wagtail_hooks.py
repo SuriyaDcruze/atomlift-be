@@ -9,23 +9,42 @@ logger = logging.getLogger(__name__)
 
 
 @hooks.register('register_snippet_listing_buttons')
-def add_download_complaint_button(snippet, user, next_url=None):
-    """Add 'Download PDF' button in Complaint listing."""
+def add_complaint_buttons(snippet, user, next_url=None):
+    """Add custom buttons in Complaint listing."""
     if isinstance(snippet, Complaint):
+        buttons = []
+        
+        # Add View Eye Button
         try:
-            url = reverse('complaints_complaint:download_complaint_pdf', kwargs={'pk': snippet.pk})
+            view_url = reverse('view_complaint_custom', kwargs={'reference': snippet.reference})
+            buttons.append(
+                SnippetListingButton(
+                    label='👁️ View',
+                    url=view_url,
+                    priority=100,
+                    icon_name='view',
+                )
+            )
         except Exception as e:
-            logger.warning(f"Reverse error: {str(e)}")
-            url = f"/admin/snippets/complaints/complaint/download-pdf/{snippet.pk}/"
+            logger.warning(f"View button reverse error: {str(e)}")
+        
+        # Add Download PDF Button
+        try:
+            pdf_url = reverse('complaints_complaint:download_complaint_pdf', kwargs={'pk': snippet.pk})
+        except Exception as e:
+            logger.warning(f"PDF button reverse error: {str(e)}")
+            pdf_url = f"/admin/snippets/complaints/complaint/download-pdf/{snippet.pk}/"
 
-        return [
+        buttons.append(
             SnippetListingButton(
                 label='Download PDF',
-                url=url,
+                url=pdf_url,
                 priority=90,
                 icon_name='download',
             )
-        ]
+        )
+        
+        return buttons
     return []
 
 

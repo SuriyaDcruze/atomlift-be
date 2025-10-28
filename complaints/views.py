@@ -13,7 +13,7 @@ import qrcode
 import base64
 import logging
 
-from .models import Complaint, ComplaintType, ComplaintPriority
+from .models import Complaint, ComplaintType, ComplaintPriority, ComplaintAssignmentHistory, ComplaintCallUpdateHistory
 from customer.models import Customer
 from authentication.models import CustomUser
 
@@ -149,6 +149,55 @@ def edit_complaint_custom(request, reference):
     return render(request, 'complaints/edit_complaint_custom.html', context)
 
 
+def view_complaint_custom(request, reference):
+    """View complaint details page similar to customer view page"""
+    complaint = get_object_or_404(
+        Complaint.objects.select_related(
+            'customer', 'assign_to', 'complaint_type', 'priority'
+        ),
+        reference=reference
+    )
+    
+    # Get assignment history
+    assignment_history = ComplaintAssignmentHistory.objects.filter(
+        complaint=complaint
+    ).select_related(
+        'assigned_to', 'assigned_by'
+    ).order_by('-assignment_date')
+    
+    # Get call update history
+    call_update_history = ComplaintCallUpdateHistory.objects.filter(
+        complaint=complaint
+    ).select_related(
+        'attend_by'
+    ).order_by('-call_update_date')
+    
+    # Get related complaints from the same customer (excluding current complaint)
+    related_complaints = []
+    if complaint.customer:
+        related_complaints = Complaint.objects.filter(
+            customer=complaint.customer
+        ).exclude(
+            id=complaint.id
+        ).select_related(
+            'assign_to', 'priority'
+        ).order_by('-date', '-id')[:10]  # Limit to 10 most recent
+    
+    # Get related data for the complaint
+    context = {
+        'complaint': complaint,
+        'customer': complaint.customer,
+        'assign_to': complaint.assign_to,
+        'complaint_type': complaint.complaint_type,
+        'priority': complaint.priority,
+        'related_complaints': related_complaints,
+        'assignment_history': assignment_history,
+        'call_update_history': call_update_history,
+    }
+    
+    return render(request, 'complaints/view_complaint_custom.html', context)
+
+
 @require_http_methods(["GET"])
 def get_customers(request):
     customers = Customer.objects.all().order_by('site_name')
@@ -247,6 +296,10 @@ def update_complaint(request, reference):
         except Exception:
             data = {}
     try:
+        # Track assignment changes
+        old_assign_to = complaint.assign_to
+        assignment_changed = False
+        
         if data.get('complaint_type'):
             complaint.complaint_type = ComplaintType.objects.get(id=data['complaint_type'])
         if data.get('date'):
@@ -256,8 +309,38 @@ def update_complaint(request, reference):
         complaint.contact_person_name = data.get('contact_person_name', complaint.contact_person_name)
         complaint.contact_person_mobile = data.get('contact_person_mobile', complaint.contact_person_mobile)
         complaint.block_wing = data.get('block_wing', complaint.block_wing)
+        
+        # Handle assignment changes
         if data.get('assign_to'):
-            complaint.assign_to = CustomUser.objects.get(id=data['assign_to'])
+            new_assign_to = CustomUser.objects.get(id=data['assign_to'])
+            if old_assign_to != new_assign_to:
+                assignment_changed = True
+                complaint.assign_to = new_assign_to
+                
+                # Create assignment history record
+                ComplaintAssignmentHistory.objects.create(
+                    complaint=complaint,
+                    assigned_to=new_assign_to,
+                    assigned_by=request.user if request.user.is_authenticated else None,
+                    assignment_date=data.get('assign_date') or timezone.now(),
+                    subject=data.get('assign_subject', 'Complaint assigned'),
+                    message=data.get('assign_message', '')
+                )
+        
+        # Handle call update
+        call_update_created = False
+        if data.get('call_update_date') or data.get('attend_by') or data.get('solution_templates'):
+            call_update_created = True
+            
+            # Create call update history record
+            ComplaintCallUpdateHistory.objects.create(
+                complaint=complaint,
+                call_update_date=data.get('call_update_date') or timezone.now(),
+                attend_by=CustomUser.objects.get(id=data['attend_by']) if data.get('attend_by') else None,
+                solution_templates=data.get('solution_templates', ''),
+                additional_notes=data.get('call_update_notes', '')
+            )
+        
         if data.get('priority'):
             complaint.priority = ComplaintPriority.objects.get(id=data['priority'])
         complaint.status = data.get('status', complaint.status)
@@ -266,7 +349,14 @@ def update_complaint(request, reference):
         complaint.technician_remark = data.get('technician_remark', complaint.technician_remark)
         complaint.solution = data.get('solution', complaint.solution)
         complaint.save()
-        return JsonResponse({'success': True, 'message': f'Complaint {complaint.reference} updated successfully'})
+        
+        message = f'Complaint {complaint.reference} updated successfully'
+        if assignment_changed:
+            message += ' and assignment recorded'
+        if call_update_created:
+            message += ' and call update recorded'
+            
+        return JsonResponse({'success': True, 'message': message})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
