@@ -13,9 +13,26 @@ import qrcode
 import base64
 import logging
 
-from .models import Complaint, ComplaintType, ComplaintPriority, ComplaintAssignmentHistory, ComplaintCallUpdateHistory
+from .models import Complaint, ComplaintType, ComplaintPriority, ComplaintAssignmentHistory, ComplaintCallUpdateHistory, ComplaintStatusHistory
 from customer.models import Customer
 from authentication.models import CustomUser
+
+# REST Framework imports
+from rest_framework import status
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from django.utils import timezone
+from django.db.models import Q
+from django.core.paginator import Paginator
+
+from .serializers import (
+    ComplaintListSerializer, 
+    ComplaintDetailSerializer, 
+    ComplaintUpdateSerializer,
+    ComplaintTypeSerializer,
+    ComplaintPrioritySerializer
+)
 
 logger = logging.getLogger(__name__)
 
@@ -499,4 +516,259 @@ def submit_public_complaint(request, customer_id):
     except Exception as e:
         logger.error(f"Error submitting public complaint: {str(e)}")
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+# ==================== MOBILE API VIEWS ====================
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_assigned_complaints(request):
+    """
+    Get all complaints assigned to the authenticated user for mobile app
+    """
+    try:
+        user = request.user
+        
+        # Check if user is in any employee group
+        if not user.groups.exists():
+            return Response(
+                {'error': 'Access denied. Only employees can use mobile app'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Get query parameters for filtering
+        status_filter = request.GET.get('status')
+        priority_filter = request.GET.get('priority')
+        page = int(request.GET.get('page', 1))
+        page_size = int(request.GET.get('page_size', 20))
+        
+        # Base queryset - complaints assigned to the user
+        queryset = Complaint.objects.filter(
+            assign_to=user
+        ).select_related(
+            'customer', 'complaint_type', 'priority', 'assign_to'
+        ).prefetch_related('assignment_history')
+        
+        # Apply filters
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        
+        if priority_filter:
+            queryset = queryset.filter(priority_id=priority_filter)
+        
+        # Order by date (newest first)
+        queryset = queryset.order_by('-date', '-created')
+        
+        # Pagination
+        paginator = Paginator(queryset, page_size)
+        page_obj = paginator.get_page(page)
+        
+        # Serialize data
+        serializer = ComplaintListSerializer(page_obj.object_list, many=True)
+        
+        response_data = {
+            'complaints': serializer.data,
+            'pagination': {
+                'current_page': page_obj.number,
+                'total_pages': paginator.num_pages,
+                'total_count': paginator.count,
+                'has_next': page_obj.has_next(),
+                'has_previous': page_obj.has_previous(),
+            },
+            'message': 'Assigned complaints retrieved successfully'
+        }
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        logger.error(f"Error retrieving assigned complaints: {e}")
+        return Response(
+            {'error': 'Failed to retrieve assigned complaints'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_complaint_detail(request, reference):
+    """
+    Get detailed information about a specific complaint for mobile app
+    """
+    try:
+        user = request.user
+        
+        # Check if user is in any employee group
+        if not user.groups.exists():
+            return Response(
+                {'error': 'Access denied. Only employees can use mobile app'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Get the complaint
+        complaint = get_object_or_404(
+            Complaint.objects.select_related(
+                'customer', 'complaint_type', 'priority', 'assign_to'
+            ).prefetch_related('assignment_history', 'status_history'),
+            reference=reference
+        )
+        
+        # Check if the complaint is assigned to the user
+        if complaint.assign_to != user:
+            return Response(
+                {'error': 'Access denied. This complaint is not assigned to you'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Serialize data
+        serializer = ComplaintDetailSerializer(complaint)
+        
+        response_data = {
+            'complaint': serializer.data,
+            'message': 'Complaint details retrieved successfully'
+        }
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        logger.error(f"Error retrieving complaint detail: {e}")
+        return Response(
+            {'error': 'Failed to retrieve complaint details'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def update_complaint_status(request, reference):
+    """
+    Update complaint status and technician remarks for mobile app
+    """
+    try:
+        user = request.user
+        
+        # Check if user is in any employee group
+        if not user.groups.exists():
+            return Response(
+                {'error': 'Access denied. Only employees can use mobile app'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Get the complaint
+        complaint = get_object_or_404(Complaint, reference=reference)
+        
+        # Check if the complaint is assigned to the user
+        if complaint.assign_to != user:
+            return Response(
+                {'error': 'Access denied. This complaint is not assigned to you'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Serialize and validate data
+        serializer = ComplaintUpdateSerializer(complaint, data=request.data, partial=True)
+        
+        if serializer.is_valid():
+            # Track status change
+            old_status = complaint.status
+            new_status = serializer.validated_data.get('status', old_status)
+            change_reason = serializer.validated_data.get('change_reason', '')
+            
+            # Save the complaint
+            serializer.save()
+            
+            # Create status history record if status changed
+            if old_status != new_status:
+                ComplaintStatusHistory.objects.create(
+                    complaint=complaint,
+                    old_status=old_status,
+                    new_status=new_status,
+                    changed_by=user,
+                    change_reason=change_reason,
+                    technician_remark=serializer.validated_data.get('technician_remark', ''),
+                    solution=serializer.validated_data.get('solution', ''),
+                    changed_from_mobile=True
+                )
+            
+            response_data = {
+                'complaint': ComplaintDetailSerializer(complaint).data,
+                'message': 'Complaint updated successfully'
+            }
+            
+            return Response(response_data, status=status.HTTP_200_OK)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+    except Exception as e:
+        logger.error(f"Error updating complaint: {e}")
+        return Response(
+            {'error': 'Failed to update complaint'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_complaint_types(request):
+    """
+    Get all complaint types for mobile app
+    """
+    try:
+        user = request.user
+        
+        # Check if user is in any employee group
+        if not user.groups.exists():
+            return Response(
+                {'error': 'Access denied. Only employees can use mobile app'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        complaint_types = ComplaintType.objects.all().order_by('name')
+        serializer = ComplaintTypeSerializer(complaint_types, many=True)
+        
+        response_data = {
+            'complaint_types': serializer.data,
+            'message': 'Complaint types retrieved successfully'
+        }
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        logger.error(f"Error retrieving complaint types: {e}")
+        return Response(
+            {'error': 'Failed to retrieve complaint types'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_complaint_priorities(request):
+    """
+    Get all complaint priorities for mobile app
+    """
+    try:
+        user = request.user
+        
+        # Check if user is in any employee group
+        if not user.groups.exists():
+            return Response(
+                {'error': 'Access denied. Only employees can use mobile app'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        priorities = ComplaintPriority.objects.all().order_by('name')
+        serializer = ComplaintPrioritySerializer(priorities, many=True)
+        
+        response_data = {
+            'priorities': serializer.data,
+            'message': 'Complaint priorities retrieved successfully'
+        }
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        logger.error(f"Error retrieving complaint priorities: {e}")
+        return Response(
+            {'error': 'Failed to retrieve complaint priorities'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 

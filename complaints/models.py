@@ -154,6 +154,29 @@ class ComplaintCallUpdateHistory(models.Model):
         return f"{self.complaint.reference} - Call Update on {self.call_update_date}"
 
 
+class ComplaintStatusHistory(models.Model):
+    """
+    Model to track status changes made through mobile app
+    """
+    complaint = models.ForeignKey(Complaint, on_delete=models.CASCADE, related_name="status_history")
+    old_status = models.CharField(max_length=20, choices=Complaint.STATUS_CHOICES, blank=True, null=True)
+    new_status = models.CharField(max_length=20, choices=Complaint.STATUS_CHOICES)
+    changed_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True)
+    change_reason = models.TextField(blank=True, null=True, help_text="Reason for status change")
+    technician_remark = models.TextField(blank=True, null=True)
+    solution = models.TextField(blank=True, null=True)
+    changed_at = models.DateTimeField(auto_now_add=True)
+    changed_from_mobile = models.BooleanField(default=True, help_text="True if changed from mobile app")
+    
+    class Meta:
+        ordering = ["-changed_at"]
+        verbose_name = "Status Change History"
+        verbose_name_plural = "Status Change Histories"
+    
+    def __str__(self):
+        return f"{self.complaint.reference}: {self.old_status} → {self.new_status}"
+
+
 # ---------- Wagtail Admin ViewSets ----------
 
 class ComplaintTypeViewSet(SnippetViewSet):
@@ -264,8 +287,18 @@ class ComplaintViewSet(SnippetViewSet):
 
 
 
+class ComplaintStatusHistoryViewSet(SnippetViewSet):
+    model = ComplaintStatusHistory
+    icon = "history"
+    menu_label = "Status History"
+    list_display = ("complaint", "old_status", "new_status", "changed_by", "changed_at", "changed_from_mobile")
+    list_filter = ("changed_from_mobile", "new_status", "changed_at")
+    search_fields = ("complaint__reference", "complaint__subject", "changed_by__first_name", "changed_by__last_name")
+    inspect_view_enabled = True
+
+
 class ComplaintManagementGroup(SnippetViewSetGroup):
-    items = (ComplaintViewSet, ComplaintTypeViewSet, ComplaintPriorityViewSet)
+    items = (ComplaintViewSet, ComplaintTypeViewSet, ComplaintPriorityViewSet, ComplaintStatusHistoryViewSet)
     menu_icon = "info-circle"
     menu_label = "Complaints"
     menu_name = "complaints"
