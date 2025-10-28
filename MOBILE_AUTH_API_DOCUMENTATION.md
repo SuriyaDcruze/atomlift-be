@@ -126,7 +126,58 @@ OR
 
 **Response**: Same as Generate OTP
 
-### 4. Logout
+### 4. Get User Details
+
+**Endpoint**: `GET /auth/api/mobile/user-details/`
+
+**Description**: Retrieves the authenticated user's details for mobile app display.
+
+**Headers**:
+```
+Authorization: Token 9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b
+```
+
+**Response** (Success - 200):
+```json
+{
+    "user": {
+        "id": 1,
+        "email": "user@example.com",
+        "first_name": "John",
+        "last_name": "Doe",
+        "full_name": "John Doe",
+        "phone_number": "+1234567890",
+        "is_active": true,
+        "date_joined": "2024-01-01T00:00:00Z",
+        "last_login": "2024-01-15T10:30:00Z",
+        "profile": {
+            "phone_number": "+1234567890",
+            "branch": "Main Branch",
+            "route": "Route A",
+            "code": "EMP001",
+            "designation": "Manager"
+        },
+        "groups": ["Employees", "Managers"]
+    },
+    "message": "User details retrieved successfully"
+}
+```
+
+**Response** (Error - 401):
+```json
+{
+    "detail": "Authentication credentials were not provided."
+}
+```
+
+**Response** (Error - 403):
+```json
+{
+    "error": "Access denied. Only employees can use mobile app"
+}
+```
+
+### 5. Logout
 
 **Endpoint**: `POST /auth/api/mobile/logout/`
 
@@ -191,9 +242,21 @@ const verifyOTP = async (email, otpCode) => {
     return await response.json();
 };
 
-// Make authenticated API calls
-const makeAuthenticatedRequest = async (token) => {
-    const response = await fetch('http://your-domain.com/api/some-endpoint/', {
+// Get user details
+const getUserDetails = async (token) => {
+    const response = await fetch('http://your-domain.com/auth/api/mobile/user-details/', {
+        headers: {
+            'Authorization': `Token ${token}`,
+            'Content-Type': 'application/json',
+        }
+    });
+    return await response.json();
+};
+
+// Logout
+const logout = async (token) => {
+    const response = await fetch('http://your-domain.com/auth/api/mobile/logout/', {
+        method: 'POST',
         headers: {
             'Authorization': `Token ${token}`,
             'Content-Type': 'application/json',
@@ -229,6 +292,17 @@ class AuthService {
         'email': email,
         'otp_code': otpCode,
       }),
+    );
+    return json.decode(response.body);
+  }
+  
+  static Future<Map<String, dynamic>> getUserDetails(String token) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/user-details/'),
+      headers: {
+        'Authorization': 'Token $token',
+        'Content-Type': 'application/json',
+      },
     );
     return json.decode(response.body);
   }

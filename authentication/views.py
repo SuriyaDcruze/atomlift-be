@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import get_user_model
@@ -305,5 +305,39 @@ def logout(request):
         logger.error(f"Error during logout: {e}")
         return Response(
             {'error': 'Logout failed'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user_details(request):
+    """
+    Get authenticated user details for mobile app
+    """
+    try:
+        user = request.user
+        
+        # Check if user is in any employee group
+        if not user.groups.exists():
+            return Response(
+                {'error': 'Access denied. Only employees can use mobile app'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Serialize user data
+        user_serializer = UserSerializer(user)
+        
+        response_data = {
+            'user': user_serializer.data,
+            'message': 'User details retrieved successfully'
+        }
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        logger.error(f"Error retrieving user details: {e}")
+        return Response(
+            {'error': 'Failed to retrieve user details'}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )

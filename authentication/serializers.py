@@ -14,12 +14,17 @@ class UserProfileSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     profile = UserProfileSerializer(read_only=True)
     groups = serializers.StringRelatedField(many=True, read_only=True)
+    full_name = serializers.SerializerMethodField()
     
     class Meta:
         model = CustomUser
-        fields = ['id', 'email', 'first_name', 'last_name', 'phone_number', 
-                 'is_active', 'date_joined', 'profile', 'groups']
-        read_only_fields = ['id', 'date_joined']
+        fields = ['id', 'email', 'first_name', 'last_name', 'full_name', 'phone_number', 
+                 'is_active', 'date_joined', 'last_login', 'profile', 'groups']
+        read_only_fields = ['id', 'date_joined', 'last_login']
+    
+    def get_full_name(self, obj):
+        """Return the user's full name"""
+        return f"{obj.first_name} {obj.last_name}".strip() or obj.email
 
 
 class OTPSerializer(serializers.ModelSerializer):
