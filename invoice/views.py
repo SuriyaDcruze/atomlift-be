@@ -125,8 +125,6 @@ def download_invoice_pdf(request, pk):
         return HttpResponse(f"Error generating PDF: {str(e)}", status=500)
 
 
-from .models import Invoice, InvoiceItem
-
 @csrf_exempt
 def add_invoice_custom(request):
     from customer.models import Customer
@@ -179,7 +177,6 @@ def add_invoice_custom(request):
             pass
 
     # Generate preview invoice number for new invoices
-    from invoice.models import Invoice
     preview_invoice_number = None
     if not request.GET.get('edit'):
         last_invoice = Invoice.objects.all().order_by('id').last()
