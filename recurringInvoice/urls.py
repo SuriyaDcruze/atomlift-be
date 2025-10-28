@@ -18,6 +18,16 @@ urlpatterns = [
     path('api/recurring-invoices/', views.get_recurring_invoices, name='recurring_invoice_api_recurring_invoices'),
     path('api/items/', views.get_items, name='recurring_invoice_api_items'),
     path('api/recurring-invoice-items/<str:reference_id>/', views.get_recurring_invoice_items, name='recurring_invoice_api_items_by_ref'),
+    
+    # Renewal API endpoints
+    path('api/renewal-status/<str:reference_id>/', views.get_renewal_status, name='recurring_invoice_api_renewal_status'),
+    path('api/renew/<str:reference_id>/', views.renew_recurring_invoice, name='recurring_invoice_api_renew'),
+    
+    # Test endpoint
+    path('test-renewal/', views.test_renewal, name='test_renewal'),
+    
+    # Direct renewal endpoint
+    path('renewal/<str:reference_id>/', views.renew_recurring_invoice_direct, name='renew_recurring_invoice_direct'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 

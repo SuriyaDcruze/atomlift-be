@@ -523,14 +523,20 @@ body {
 
             <div class="form-group">
               <label class="form-label">End Date</label>
-              <input
-                type="date"
-                id="end_date"
-                name="end_date"
-                class="form-input"
-                value="{% if recurring_invoice.end_date %}{{ recurring_invoice.end_date|date:'Y-m-d' }}{% endif %}"
-              />
+              <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <input
+                  type="date"
+                  id="end_date"
+                  name="end_date"
+                  class="form-input"
+                  value="{% if recurring_invoice.end_date %}{{ recurring_invoice.end_date|date:'Y-m-d' }}{% endif %}"
+                />
+                <button type="button" id="renewalBtn" class="btn btn-success" style="padding: 0.5rem 1rem; font-size: 0.75rem; display: inline-flex;" onclick="showRenewalModal()">
+                  🔄 Renew
+                </button>
+              </div>
               <p class="form-help">Leave empty for indefinite recurring</p>
+              <div id="renewalStatus" style="margin-top: 0.5rem; padding: 0.5rem; border-radius: 0.375rem; display: none;"></div>
             </div>
 
             <div class="form-group">
@@ -631,6 +637,48 @@ body {
   <form id="recurringInvoiceForm" style="display:none;" enctype="multipart/form-data">
     <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
   </form>
+
+  <!-- Renewal Modal -->
+  <div id="renewalModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 0.75rem; padding: 2rem; max-width: 500px; width: 90%; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
+      <h3 style="margin: 0 0 1rem 0; font-size: 1.25rem; font-weight: 600; color: #374151;">Renew Recurring Invoice</h3>
+      
+      <div id="renewalInfo" style="margin-bottom: 1.5rem; padding: 1rem; background: #F3F4F6; border-radius: 0.5rem;">
+        <!-- Renewal info will be loaded here -->
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Renewal Options</label>
+        <div style="margin-bottom: 1rem;">
+          <label style="display: flex; align-items: center; margin-bottom: 0.5rem;">
+            <input type="radio" name="renewalOption" value="default" checked style="margin-right: 0.5rem;">
+            <span>Extend by same period ({{ recurring_invoice.repeat_every }})</span>
+          </label>
+          <label style="display: flex; align-items: center; margin-bottom: 0.5rem;">
+            <input type="radio" name="renewalOption" value="custom" style="margin-right: 0.5rem;">
+            <span>Custom extension (days)</span>
+          </label>
+          <label style="display: flex; align-items: center;">
+            <input type="radio" name="renewalOption" value="date" style="margin-right: 0.5rem;">
+            <span>Set specific end date</span>
+          </label>
+        </div>
+        
+        <div id="customDaysInput" style="display: none; margin-bottom: 1rem;">
+          <input type="number" id="extendDays" placeholder="Enter number of days" min="1" class="form-input" style="width: 100%;">
+        </div>
+        
+        <div id="customDateInput" style="display: none; margin-bottom: 1rem;">
+          <input type="date" id="newEndDate" class="form-input" style="width: 100%;">
+        </div>
+      </div>
+      
+      <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+        <button type="button" class="btn btn-secondary" onclick="hideRenewalModal()">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="processRenewal()">Renew Invoice</button>
+      </div>
+    </div>
+  </div>
 
   {% if messages %}
   <div class="toast-container">
@@ -963,6 +1011,202 @@ function handleFormSubmit(event) {
   });
 }
 
+// Renewal functionality
+function checkRenewalStatus() {
+  if (!isEditMode) return;
+  
+  console.log('Checking renewal status for invoice: {{ recurring_invoice.reference_id }}');
+  
+  fetch('/recurringInvoice/api/renewal-status/{{ recurring_invoice.reference_id }}/')
+    .then(function(response) { 
+      console.log('Renewal status response:', response.status);
+      return response.json(); 
+    })
+    .then(function(data) {
+      console.log('Renewal status data:', data);
+      console.log('Days until expiry:', data.renewal_info ? data.renewal_info.days_until_expiry : 'N/A');
+      console.log('Needs renewal:', data.renewal_info ? data.renewal_info.needs_renewal : 'N/A');
+      if (data.success) {
+        var renewalInfo = data.renewal_info;
+        var renewalBtn = document.getElementById('renewalBtn');
+        var renewalStatus = document.getElementById('renewalStatus');
+        
+        // Show renewal button if renewal is needed OR if end date has passed
+        var shouldShowRenewal = renewalInfo.needs_renewal || 
+                               (renewalInfo.can_renew && renewalInfo.days_until_expiry <= 0);
+        
+        if (shouldShowRenewal) {
+          renewalBtn.style.display = 'inline-flex';
+        } else {
+          renewalBtn.style.display = 'none';
+        }
+        
+        if (renewalInfo.needs_renewal) {
+          renewalStatus.style.display = 'block';
+          if (renewalInfo.days_until_expiry < 0) {
+            // End date has passed
+            renewalStatus.style.backgroundColor = '#FEE2E2';
+            renewalStatus.style.border = '1px solid #EF4444';
+            renewalStatus.style.color = '#991B1B';
+            renewalStatus.innerHTML = 
+              '<strong>🚨 EXPIRED:</strong> End date passed ' + 
+              Math.abs(renewalInfo.days_until_expiry) + ' days ago (' + 
+              renewalInfo.end_date + ') - Renewal needed!';
+          } else {
+            // End date is approaching
+            renewalStatus.style.backgroundColor = '#FEF3C7';
+            renewalStatus.style.border = '1px solid #F59E0B';
+            renewalStatus.style.color = '#92400E';
+            renewalStatus.innerHTML = 
+              '<strong>⚠️ Renewal Needed:</strong> ' + 
+              renewalInfo.days_until_expiry + ' days until expiry (' + 
+              renewalInfo.end_date + ')';
+          }
+        } else if (renewalInfo.can_renew && renewalInfo.days_until_expiry > 0) {
+          renewalStatus.style.display = 'block';
+          renewalStatus.style.backgroundColor = '#ECFDF5';
+          renewalStatus.style.border = '1px solid #10B981';
+          renewalStatus.style.color = '#065F46';
+          renewalStatus.innerHTML = 
+            '<strong>✅ Active:</strong> ' + 
+            renewalInfo.days_until_expiry + ' days until expiry (' + 
+            renewalInfo.end_date + ')';
+        } else if (renewalInfo.message) {
+          renewalStatus.style.display = 'block';
+          renewalStatus.style.backgroundColor = '#F3F4F6';
+          renewalStatus.style.border = '1px solid #6B7280';
+          renewalStatus.style.color = '#374151';
+          renewalStatus.innerHTML = '<strong>ℹ️ Info:</strong> ' + renewalInfo.message;
+        } else {
+          renewalStatus.style.display = 'block';
+          renewalStatus.style.backgroundColor = '#F3F4F6';
+          renewalStatus.style.border = '1px solid #6B7280';
+          renewalStatus.style.color = '#374151';
+          renewalStatus.innerHTML = '<strong>ℹ️ Info:</strong> Renewal available for this invoice';
+        }
+      }
+    })
+    .catch(function(error) {
+      console.error('Error checking renewal status:', error);
+      // Show renewal button even if API fails - user can still try to renew
+      var renewalBtn = document.getElementById('renewalBtn');
+      var renewalStatus = document.getElementById('renewalStatus');
+      
+      // Check if invoice has end date - if yes, show renewal button
+      var endDateInput = document.getElementById('end_date');
+      if (endDateInput && endDateInput.value) {
+        renewalBtn.style.display = 'inline-flex';
+        renewalStatus.style.display = 'block';
+        renewalStatus.style.backgroundColor = '#FEF2F2';
+        renewalStatus.style.border = '1px solid #EF4444';
+        renewalStatus.style.color = '#991B1B';
+        renewalStatus.innerHTML = '<strong>⚠️ Error:</strong> Could not check renewal status, but renewal is still available';
+      }
+    });
+}
+
+function showRenewalModal() {
+  var modal = document.getElementById('renewalModal');
+  var renewalInfo = document.getElementById('renewalInfo');
+  
+  // Load current renewal info
+  fetch('/recurringInvoice/api/renewal-status/{{ recurring_invoice.reference_id }}/')
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+      if (data.success) {
+        var info = data.renewal_info;
+        renewalInfo.innerHTML = 
+          '<div style="margin-bottom: 0.5rem;"><strong>Current End Date:</strong> ' + info.end_date + '</div>' +
+          '<div style="margin-bottom: 0.5rem;"><strong>Days Until Expiry:</strong> ' + info.days_until_expiry + '</div>' +
+          '<div><strong>Default Extension:</strong> ' + info.default_extension_days + ' days</div>';
+        
+        // Set minimum date for custom date input
+        var today = new Date();
+        today.setDate(today.getDate() + 1);
+        document.getElementById('newEndDate').min = today.toISOString().split('T')[0];
+      }
+    })
+    .catch(function(error) {
+      console.error('Error loading renewal info:', error);
+    });
+  
+  modal.style.display = 'flex';
+}
+
+function hideRenewalModal() {
+  document.getElementById('renewalModal').style.display = 'none';
+}
+
+function processRenewal() {
+  var renewalOption = document.querySelector('input[name="renewalOption"]:checked').value;
+  var formData = new FormData();
+  formData.append('csrfmiddlewaretoken', getCsrfToken());
+  
+  if (renewalOption === 'custom') {
+    var extendDays = document.getElementById('extendDays').value;
+    if (!extendDays || extendDays <= 0) {
+      showMessage('error', 'Please enter a valid number of days');
+      return;
+    }
+    formData.append('extend_days', extendDays);
+  } else if (renewalOption === 'date') {
+    var newEndDate = document.getElementById('newEndDate').value;
+    if (!newEndDate) {
+      showMessage('error', 'Please select a new end date');
+      return;
+    }
+    formData.append('new_end_date', newEndDate);
+  }
+  
+  // Show loading state
+  var renewBtn = document.querySelector('#renewalModal .btn-primary');
+  var originalText = renewBtn.textContent;
+  renewBtn.textContent = 'Renewing...';
+  renewBtn.disabled = true;
+  
+  fetch('/recurringInvoice/api/renew/{{ recurring_invoice.reference_id }}/', {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': getCsrfToken()
+    },
+    body: formData
+  })
+  .then(function(response) { return response.json(); })
+  .then(function(result) {
+    renewBtn.textContent = originalText;
+    renewBtn.disabled = false;
+    
+    if (result.success) {
+      showMessage('success', result.message);
+      hideRenewalModal();
+      
+      // Update the end date field
+      document.getElementById('end_date').value = result.new_end_date;
+      
+      // Refresh renewal status
+      setTimeout(checkRenewalStatus, 1000);
+    } else {
+      showMessage('error', result.error || 'Failed to renew invoice');
+    }
+  })
+  .catch(function(error) {
+    renewBtn.textContent = originalText;
+    renewBtn.disabled = false;
+    console.error('Error:', error);
+    showMessage('error', 'An error occurred while renewing the invoice');
+  });
+}
+
+// Handle renewal option changes
+function handleRenewalOptionChange() {
+  var customDaysInput = document.getElementById('customDaysInput');
+  var customDateInput = document.getElementById('customDateInput');
+  var selectedOption = document.querySelector('input[name="renewalOption"]:checked').value;
+  
+  customDaysInput.style.display = selectedOption === 'custom' ? 'block' : 'none';
+  customDateInput.style.display = selectedOption === 'date' ? 'block' : 'none';
+}
+
 // Add click event listener to submit button when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
   // Load various dropdowns dynamically on page load
@@ -970,6 +1214,25 @@ document.addEventListener('DOMContentLoaded', function() {
   loadSalesPersons();
   loadItems();
   setupItemCalculations();
+  
+  // Check renewal status for edit mode
+  if (isEditMode) {
+    console.log('Edit mode detected, checking renewal status...');
+    checkRenewalStatus();
+    
+    // Also show a simple debug message
+    var renewalStatus = document.getElementById('renewalStatus');
+    renewalStatus.style.display = 'block';
+    renewalStatus.style.backgroundColor = '#E0F2FE';
+    renewalStatus.style.border = '1px solid #0EA5E9';
+    renewalStatus.style.color = '#0C4A6E';
+    renewalStatus.innerHTML = '<strong>🔍 Debug:</strong> Renewal button should be visible. Check console for details.';
+  }
+  
+  // Add renewal option change listeners
+  document.querySelectorAll('input[name="renewalOption"]').forEach(function(radio) {
+    radio.addEventListener('change', handleRenewalOptionChange);
+  });
   
   // Add submit button event listener
   var submitBtn = document.getElementById('submitBtn');

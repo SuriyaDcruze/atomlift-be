@@ -307,3 +307,169 @@ def get_recurring_invoice_items(request, reference_id):
         import traceback
         print(f"Error getting recurring invoice items: {traceback.format_exc()}")
         return JsonResponse({"error": str(e)}, status=500)
+
+
+@require_http_methods(["GET"])
+def get_renewal_status(request, reference_id):
+    """Get renewal status for a specific recurring invoice"""
+    try:
+        recurring_invoice = get_object_or_404(RecurringInvoice, reference_id=reference_id)
+        renewal_info = recurring_invoice.get_renewal_info()
+        
+        return JsonResponse({
+            "success": True,
+            "renewal_info": renewal_info
+        })
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def renew_recurring_invoice(request, reference_id):
+    """Renew a recurring invoice by extending its end date"""
+    try:
+        recurring_invoice = get_object_or_404(RecurringInvoice, reference_id=reference_id)
+        
+        # Check if renewal is possible
+        if not recurring_invoice.can_renew():
+            return JsonResponse({
+                "success": False, 
+                "error": "This recurring invoice cannot be renewed. Check if it's active and has an end date."
+            }, status=400)
+        
+        # Get renewal parameters from request
+        data = request.POST if request.POST else {}
+        extend_days = data.get('extend_days')
+        new_end_date = data.get('new_end_date')
+        
+        # Validate parameters
+        if extend_days:
+            try:
+                extend_days = int(extend_days)
+                if extend_days <= 0:
+                    raise ValueError("Extension days must be positive")
+            except ValueError as e:
+                return JsonResponse({
+                    "success": False, 
+                    "error": f"Invalid extension days: {str(e)}"
+                }, status=400)
+        
+        if new_end_date:
+            try:
+                from datetime import datetime
+                new_end_date = datetime.strptime(new_end_date, '%Y-%m-%d').date()
+                if new_end_date <= recurring_invoice.end_date:
+                    return JsonResponse({
+                        "success": False, 
+                        "error": "New end date must be after current end date"
+                    }, status=400)
+            except ValueError as e:
+                return JsonResponse({
+                    "success": False, 
+                    "error": f"Invalid date format: {str(e)}"
+                }, status=400)
+        
+        # Perform renewal
+        old_end_date = recurring_invoice.end_date
+        success = recurring_invoice.renew_recurring_invoice(
+            new_end_date=new_end_date,
+            extend_days=extend_days
+        )
+        
+        if success:
+            return JsonResponse({
+                "success": True,
+                "message": f"Recurring invoice {reference_id} renewed successfully",
+                "old_end_date": old_end_date.strftime('%Y-%m-%d'),
+                "new_end_date": recurring_invoice.end_date.strftime('%Y-%m-%d'),
+                "renewal_info": recurring_invoice.get_renewal_info()
+            })
+        else:
+            return JsonResponse({
+                "success": False, 
+                "error": "Failed to renew recurring invoice"
+            }, status=500)
+            
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Error renewing recurring invoice: {error_details}")
+        return JsonResponse({"success": False, "error": f"Error: {str(e)}"}, status=500)
+
+
+@require_http_methods(["GET"])
+def test_renewal(request):
+    """Test page to verify renewal functionality"""
+    try:
+        from django.utils import timezone
+        recurring_invoices = RecurringInvoice.objects.all()[:5]
+        test_data = []
+        
+        for invoice in recurring_invoices:
+            renewal_info = invoice.get_renewal_info()
+            test_data.append({
+                'reference_id': invoice.reference_id,
+                'end_date': invoice.end_date,
+                'status': invoice.status,
+                'renewal_info': renewal_info
+            })
+        
+        return JsonResponse({
+            "success": True,
+            "test_data": test_data,
+            "current_date": timezone.now().date().strftime('%Y-%m-%d')
+        })
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+
+def renew_recurring_invoice_direct(request, reference_id):
+    """Direct renewal page for recurring invoice"""
+    try:
+        recurring_invoice = get_object_or_404(RecurringInvoice, reference_id=reference_id)
+        
+        if request.method == 'POST':
+            # Get renewal parameters
+            renewal_option = request.POST.get('renewal_option', 'default')
+            extend_days = request.POST.get('extend_days')
+            new_end_date = request.POST.get('new_end_date')
+            
+            # Process renewal based on option
+            if renewal_option == 'custom' and extend_days:
+                extend_days = int(extend_days)
+                new_end_date = None
+            elif renewal_option == 'date' and new_end_date:
+                extend_days = None
+            else:
+                # Default option - extend by same period
+                extend_days = None
+                new_end_date = None
+            
+            # Perform renewal
+            old_end_date = recurring_invoice.end_date
+            success = recurring_invoice.renew_recurring_invoice(
+                new_end_date=new_end_date,
+                extend_days=extend_days
+            )
+            
+            if success:
+                messages.success(request, f'Recurring invoice {reference_id} renewed successfully! New end date: {recurring_invoice.end_date}')
+                return redirect('/admin/snippets/recurringInvoice/recurringinvoice/')
+            else:
+                messages.error(request, 'Failed to renew recurring invoice.')
+        
+        # GET request - show renewal form
+        renewal_info = recurring_invoice.get_renewal_info()
+        
+        context = {
+            'instance': recurring_invoice,
+            'renewal_info': renewal_info,
+            'title': f'Renew {recurring_invoice.reference_id}',
+        }
+        
+        return render(request, 'recurringInvoice/renew_modal.html', context)
+        
+    except Exception as e:
+        messages.error(request, f'Error: {str(e)}')
+        return redirect('/admin/snippets/recurringInvoice/recurringinvoice/')

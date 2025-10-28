@@ -1,0 +1,185 @@
+{% extends "wagtailadmin/base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+.w-content-wrapper {
+  background: #f5f5f5;
+  min-height: calc(100vh - 4rem);
+  padding: 2rem;
+}
+
+.w-modal-content {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.15);
+  width: 100%;
+  max-width: 600px;
+  margin: 2rem auto;
+  padding: 2rem;
+}
+
+.w-modal-title {
+  margin: 0 0 1rem 0;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #374151;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  border: 1px solid #D1D5DB;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  font-size: 0.875rem;
+}
+
+.btn {
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.btn-secondary {
+  background: #F3F4F6;
+  color: #374151;
+  border: 1px solid #D1D5DB;
+}
+
+.btn-primary {
+  background: linear-gradient(to right, #2D3A6B, #243158);
+  color: white;
+}
+
+.status-info {
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.status-expired {
+  background: #FEE2E2;
+  border: 1px solid #EF4444;
+  color: #991B1B;
+}
+
+.status-warning {
+  background: #FEF3C7;
+  border: 1px solid #F59E0B;
+  color: #92400E;
+}
+
+.status-active {
+  background: #ECFDF5;
+  border: 1px solid #10B981;
+  color: #065F46;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="w-content-wrapper">
+  <div class="w-modal-content">
+    <h2 class="w-modal-title">Renew Recurring Invoice: {{ instance.reference_id }}</h2>
+    
+    <!-- Status Information -->
+    <div class="status-info {% if renewal_info.days_until_expiry < 0 %}status-expired{% elif renewal_info.days_until_expiry <= 7 %}status-warning{% else %}status-active{% endif %}">
+      <strong>
+        {% if renewal_info.days_until_expiry < 0 %}
+          🚨 EXPIRED: End date passed {{ renewal_info.days_until_expiry|abs }} days ago
+        {% elif renewal_info.days_until_expiry <= 7 %}
+          ⚠️ WARNING: Expires in {{ renewal_info.days_until_expiry }} days
+        {% else %}
+          ✅ Active: {{ renewal_info.days_until_expiry }} days until expiry
+        {% endif %}
+      </strong>
+      <br>
+      <small>Current End Date: {{ renewal_info.end_date }}</small>
+    </div>
+    
+    <form method="post">
+      {% csrf_token %}
+      
+      <div class="form-group">
+        <label class="form-label">Renewal Options</label>
+        <div style="margin-bottom: 1rem;">
+          <label style="display: flex; align-items: center; margin-bottom: 0.5rem;">
+            <input type="radio" name="renewal_option" value="default" checked style="margin-right: 0.5rem;">
+            <span>Extend by same period ({{ instance.repeat_every }}) - {{ renewal_info.default_extension_days }} days</span>
+          </label>
+          <label style="display: flex; align-items: center; margin-bottom: 0.5rem;">
+            <input type="radio" name="renewal_option" value="custom" style="margin-right: 0.5rem;">
+            <span>Custom extension (days)</span>
+          </label>
+          <label style="display: flex; align-items: center;">
+            <input type="radio" name="renewal_option" value="date" style="margin-right: 0.5rem;">
+            <span>Set specific end date</span>
+          </label>
+        </div>
+        
+        <div id="customDaysInput" style="display: none; margin-bottom: 1rem;">
+          <input type="number" name="extend_days" placeholder="Enter number of days" min="1" class="form-input">
+        </div>
+        
+        <div id="customDateInput" style="display: none; margin-bottom: 1rem;">
+          <input type="date" name="new_end_date" class="form-input">
+        </div>
+      </div>
+      
+      <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+        <a href="/admin/snippets/recurringInvoice/recurringinvoice/" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">Renew Invoice</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const renewalOptions = document.querySelectorAll('input[name="renewal_option"]');
+  const customDaysInput = document.getElementById('customDaysInput');
+  const customDateInput = document.getElementById('customDateInput');
+  
+  renewalOptions.forEach(radio => {
+    radio.addEventListener('change', function() {
+      customDaysInput.style.display = this.value === 'custom' ? 'block' : 'none';
+      customDateInput.style.display = this.value === 'date' ? 'block' : 'none';
+    });
+  });
+  
+  // Set minimum date for custom date input
+  const today = new Date();
+  today.setDate(today.getDate() + 1);
+  document.querySelector('input[name="new_end_date"]').min = today.toISOString().split('T')[0];
+});
+</script>
+{% endblock %}
+

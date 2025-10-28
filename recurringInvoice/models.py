@@ -1,7 +1,7 @@
 # recurring_invoice/models.py (Wagtail Integration)
 
 from django.db import models
-from django.urls import reverse
+from django.urls import reverse, path
 from django.shortcuts import redirect
 from wagtail.admin.panels import FieldPanel, MultiFieldPanel, InlinePanel
 from wagtail.snippets.models import register_snippet
@@ -80,6 +80,94 @@ class RecurringInvoice(ClusterableModel):
         if not self.last_generated_date: return self.start_date
         mapping = {'week': 7, '2week': 14, 'month': 30, '2month': 60, '3month': 90, '6month': 180, 'year': 365, '2year': 730}
         return self.last_generated_date + timedelta(days=mapping.get(self.repeat_every, 30))
+    
+    def is_renewal_needed(self, days_before_expiry=30):
+        """
+        Check if recurring invoice needs renewal based on end date proximity
+        Args:
+            days_before_expiry: Number of days before end date to show renewal option
+        Returns:
+            bool: True if renewal is needed, False otherwise
+        """
+        if not self.end_date or self.status != 'active':
+            return False
+        
+        from django.utils import timezone
+        today = timezone.now().date()
+        days_until_expiry = (self.end_date - today).days
+        
+        # Show renewal button if:
+        # 1. End date has passed (days_until_expiry < 0)
+        # 2. End date is within the specified days (days_until_expiry <= days_before_expiry)
+        return days_until_expiry <= days_before_expiry
+    
+    def can_renew(self):
+        """
+        Check if recurring invoice can be renewed
+        Returns:
+            bool: True if can be renewed, False otherwise
+        """
+        # Allow renewal if:
+        # 1. Status is active
+        # 2. Has an end date (not indefinite)
+        # 3. End date has passed or is close to passing
+        return self.status == 'active' and self.end_date is not None
+    
+    def renew_recurring_invoice(self, new_end_date=None, extend_days=None):
+        """
+        Renew the recurring invoice by extending the end date
+        Args:
+            new_end_date: Specific new end date (optional)
+            extend_days: Number of days to extend from current end date (optional)
+        Returns:
+            bool: True if renewal successful, False otherwise
+        """
+        if not self.can_renew():
+            return False
+        
+        try:
+            if new_end_date:
+                self.end_date = new_end_date
+            elif extend_days:
+                self.end_date = self.end_date + timedelta(days=extend_days)
+            else:
+                # Default: extend by the same period as repeat_every
+                mapping = {'week': 7, '2week': 14, 'month': 30, '2month': 60, 
+                          '3month': 90, '6month': 180, 'year': 365, '2year': 730}
+                extend_days = mapping.get(self.repeat_every, 30)
+                self.end_date = self.end_date + timedelta(days=extend_days)
+            
+            self.save()
+            return True
+        except Exception as e:
+            print(f"Error renewing recurring invoice {self.reference_id}: {e}")
+            return False
+    
+    def get_renewal_info(self):
+        """
+        Get renewal information for display
+        Returns:
+            dict: Renewal information including days until expiry, renewal options, etc.
+        """
+        if not self.end_date:
+            return {'needs_renewal': False, 'message': 'No end date set - indefinite recurring'}
+        
+        from django.utils import timezone
+        today = timezone.now().date()
+        days_until_expiry = (self.end_date - today).days
+        
+        mapping = {'week': 7, '2week': 14, 'month': 30, '2month': 60, 
+                  '3month': 90, '6month': 180, 'year': 365, '2year': 730}
+        default_extension = mapping.get(self.repeat_every, 30)
+        
+        return {
+            'needs_renewal': self.is_renewal_needed(),
+            'days_until_expiry': days_until_expiry,
+            'end_date': self.end_date,
+            'can_renew': self.can_renew(),
+            'default_extension_days': default_extension,
+            'status': self.status
+        }
 
 
 class RecurringInvoiceItem(models.Model):
@@ -156,6 +244,7 @@ class RecurringInvoiceViewSet(SnippetViewSet):
         "profile_name",
         "repeat_every",
         "start_date",
+        "end_date",
         "status",
     )
 
@@ -202,6 +291,93 @@ class RecurringInvoiceViewSet(SnippetViewSet):
         print(f"DEBUG: RecurringInvoiceViewSet.edit_view called with pk={pk}")
         instance = self.model.objects.get(pk=pk)
         return redirect(self.get_edit_url(instance))
+    
+    def get_list_display(self, request):
+        """Add renewal status to list display"""
+        display = list(super().get_list_display(request))
+        display.append('renewal_status')
+        return display
+    
+    def renewal_status(self, obj):
+        """Show renewal status in list view"""
+        if not obj.end_date:
+            return "No end date"
+        
+        renewal_info = obj.get_renewal_info()
+        days = renewal_info['days_until_expiry']
+        
+        if days < 0:
+            return f"🚨 EXPIRED ({abs(days)} days ago)"
+        elif days <= 7:
+            return f"⚠️ Expires in {days} days"
+        elif days <= 30:
+            return f"🟡 Expires in {days} days"
+        else:
+            return f"✅ Active ({days} days)"
+    
+    renewal_status.short_description = "Renewal Status"
+    
+    def get_urlpatterns(self):
+        """Add renewal URL pattern"""
+        patterns = super().get_urlpatterns()
+        patterns.append(
+            path('renew/<int:pk>/', self.renew_view, name='renew')
+        )
+        return patterns
+    
+    def renew_view(self, request, pk):
+        """Handle renewal of recurring invoice"""
+        from django.shortcuts import render, get_object_or_404, redirect
+        from django.contrib import messages
+        from django.http import JsonResponse
+        
+        if request.method == 'POST':
+            try:
+                instance = get_object_or_404(self.model, pk=pk)
+                
+                # Get renewal parameters
+                renewal_option = request.POST.get('renewal_option', 'default')
+                extend_days = request.POST.get('extend_days')
+                new_end_date = request.POST.get('new_end_date')
+                
+                # Process renewal based on option
+                if renewal_option == 'custom' and extend_days:
+                    extend_days = int(extend_days)
+                    new_end_date = None
+                elif renewal_option == 'date' and new_end_date:
+                    extend_days = None
+                else:
+                    # Default option - extend by same period
+                    extend_days = None
+                    new_end_date = None
+                
+                # Perform renewal
+                old_end_date = instance.end_date
+                success = instance.renew_recurring_invoice(
+                    new_end_date=new_end_date,
+                    extend_days=extend_days
+                )
+                
+                if success:
+                    messages.success(request, f'Recurring invoice {instance.reference_id} renewed successfully! New end date: {instance.end_date}')
+                    return redirect('/admin/snippets/recurringInvoice/recurringinvoice/')
+                else:
+                    messages.error(request, 'Failed to renew recurring invoice.')
+                    
+            except Exception as e:
+                messages.error(request, f'Error: {str(e)}')
+        
+        # GET request - show renewal form
+        instance = get_object_or_404(self.model, pk=pk)
+        renewal_info = instance.get_renewal_info()
+        
+        context = {
+            'instance': instance,
+            'renewal_info': renewal_info,
+            'title': f'Renew {instance.reference_id}',
+        }
+        
+        return render(request, 'recurringInvoice/renew_modal.html', context)
 
 
 
