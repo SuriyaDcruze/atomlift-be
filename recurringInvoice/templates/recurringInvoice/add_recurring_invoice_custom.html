@@ -1099,12 +1099,22 @@ function selectCustomer(customer) {
   const searchInput = document.getElementById('customerSearch');
   const dropdown = document.getElementById('customerDropdown');
   const hiddenSelect = document.getElementById('customer');
+  const billingAddressField = document.getElementById('billing_address');
   
   // Update search input display
   searchInput.value = `${customer.site_name}${customer.job_no ? ' (' + customer.job_no + ')' : ''}`;
   
   // Update hidden select
   hiddenSelect.value = customer.id;
+  
+  // Auto-fetch billing address
+  if (customer.site_address) {
+    billingAddressField.value = customer.site_address;
+  } else if (customer.office_address) {
+    billingAddressField.value = customer.office_address;
+  } else {
+    billingAddressField.value = '';
+  }
   
   // Hide dropdown
   dropdown.style.display = 'none';

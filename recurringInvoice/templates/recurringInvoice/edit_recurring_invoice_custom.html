@@ -1234,6 +1234,41 @@ document.addEventListener('DOMContentLoaded', function() {
     radio.addEventListener('change', handleRenewalOptionChange);
   });
   
+  // Add customer change event listener for auto-fetching billing address
+  var customerSelect = document.getElementById('customer');
+  if (customerSelect) {
+    customerSelect.addEventListener('change', function() {
+      var customerId = this.value;
+      if (customerId) {
+        // Find the selected customer data
+        fetch('/recurringInvoice/api/customers/')
+          .then(function(response) { return response.json(); })
+          .then(function(customers) {
+            var selectedCustomer = customers.find(function(customer) {
+              return customer.id == customerId;
+            });
+            
+            if (selectedCustomer) {
+              var billingAddressField = document.getElementById('billing_address');
+              if (billingAddressField) {
+                // Auto-fetch billing address
+                if (selectedCustomer.site_address) {
+                  billingAddressField.value = selectedCustomer.site_address;
+                } else if (selectedCustomer.office_address) {
+                  billingAddressField.value = selectedCustomer.office_address;
+                } else {
+                  billingAddressField.value = '';
+                }
+              }
+            }
+          })
+          .catch(function(error) {
+            console.error('Error fetching customer data:', error);
+          });
+      }
+    });
+  }
+  
   // Add submit button event listener
   var submitBtn = document.getElementById('submitBtn');
   if (submitBtn) {
