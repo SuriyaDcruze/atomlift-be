@@ -1,0 +1,77 @@
+from rest_framework import serializers
+from django.contrib.auth import get_user_model
+from .models import CustomUser, UserProfile, OTP
+
+User = get_user_model()
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserProfile
+        fields = ['phone_number', 'branch', 'route', 'code', 'designation']
+
+
+class UserSerializer(serializers.ModelSerializer):
+    profile = UserProfileSerializer(read_only=True)
+    groups = serializers.StringRelatedField(many=True, read_only=True)
+    
+    class Meta:
+        model = User
+        fields = ['id', 'email', 'first_name', 'last_name', 'phone_number', 
+                 'is_active', 'date_joined', 'profile', 'groups']
+        read_only_fields = ['id', 'date_joined']
+
+
+class OTPSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OTP
+        fields = ['otp_code', 'otp_type', 'contact_info', 'created_at', 'expires_at']
+        read_only_fields = ['otp_code', 'created_at', 'expires_at']
+
+
+class GenerateOTPRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=False)
+    phone_number = serializers.CharField(max_length=15, required=False)
+    
+    def validate(self, data):
+        email = data.get('email')
+        phone_number = data.get('phone_number')
+        
+        if not email and not phone_number:
+            raise serializers.ValidationError("Either email or phone number is required")
+        
+        if email and phone_number:
+            raise serializers.ValidationError("Provide either email or phone number, not both")
+        
+        return data
+
+
+class VerifyOTPRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=False)
+    phone_number = serializers.CharField(max_length=15, required=False)
+    otp_code = serializers.CharField(max_length=6, min_length=6)
+    
+    def validate(self, data):
+        email = data.get('email')
+        phone_number = data.get('phone_number')
+        
+        if not email and not phone_number:
+            raise serializers.ValidationError("Either email or phone number is required")
+        
+        if email and phone_number:
+            raise serializers.ValidationError("Provide either email or phone number, not both")
+        
+        return data
+
+
+class MobileLoginResponseSerializer(serializers.Serializer):
+    user = UserSerializer()
+    token = serializers.CharField()
+    message = serializers.CharField()
+
+
+class OTPSendResponseSerializer(serializers.Serializer):
+    message = serializers.CharField()
+    otp_type = serializers.CharField()
+    contact_info = serializers.CharField()
+    expires_in_minutes = serializers.IntegerField()

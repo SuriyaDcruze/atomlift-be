@@ -64,10 +64,12 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    #"rest_framework",
+    "rest_framework",
+    "corsheaders",
 ]
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -214,3 +216,40 @@ WAGTAIL_USER_EDIT_FORM = "authentication.forms.CustomUserEditForm"
 WAGTAIL_USER_CUSTOM_FIELDS = ["phone_number", "branch", "route", "code", "designation"]
 # Custom user listing columns
 WAGTAIL_USER_LISTING_COLUMNS = ['name', 'get_profile_phone', 'username', 'is_active']
+
+# Django REST Framework settings
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20
+}
+
+# CORS settings for mobile app
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    # Add your mobile app domains here
+]
+
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOW_ALL_ORIGINS = True  # Only for development, remove in production
+
+# Email settings for OTP
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # For development
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'  # For production
+DEFAULT_FROM_EMAIL = 'noreply@your-domain.com'
+EMAIL_HOST = 'smtp.gmail.com'  # Configure for your email provider
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'your-email@gmail.com'  # Configure for your email
+EMAIL_HOST_PASSWORD = 'your-app-password'  # Configure for your email

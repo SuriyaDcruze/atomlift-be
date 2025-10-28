@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django import forms
 
-from .models import CustomUser
+from .models import CustomUser, UserProfile, OTP
 
 
 class CustomUserCreationForm(forms.ModelForm):
@@ -61,3 +61,23 @@ class CustomUserAdmin(UserAdmin):
             "fields": ("email", "first_name", "last_name", "phone_number", "password1", "password2", "is_active", "is_staff", "is_superuser", "groups")
         }),
     )
+
+
+@admin.register(UserProfile)
+class UserProfileAdmin(admin.ModelAdmin):
+    list_display = ('user', 'phone_number', 'branch', 'route', 'code', 'designation')
+    list_filter = ('branch', 'designation')
+    search_fields = ('user__email', 'user__first_name', 'user__last_name', 'phone_number', 'branch', 'route', 'code')
+    raw_id_fields = ('user',)
+
+
+@admin.register(OTP)
+class OTPAdmin(admin.ModelAdmin):
+    list_display = ('user', 'otp_code', 'otp_type', 'contact_info', 'created_at', 'expires_at', 'is_used', 'attempts')
+    list_filter = ('otp_type', 'is_used', 'created_at')
+    search_fields = ('user__email', 'contact_info', 'otp_code')
+    readonly_fields = ('otp_code', 'created_at', 'expires_at')
+    raw_id_fields = ('user',)
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('user')

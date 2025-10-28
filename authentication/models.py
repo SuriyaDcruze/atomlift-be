@@ -3,6 +3,9 @@ from django.db import models
 from django.utils import timezone
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+import random
+import string
+from datetime import timedelta
 
 
 class CustomUserManager(BaseUserManager):
@@ -129,3 +132,93 @@ def save_user_profile(sender, instance, **kwargs):
     """Save the UserProfile when the user is saved"""
     if hasattr(instance, 'profile'):
         instance.profile.save()
+
+
+class OTP(models.Model):
+    """
+    Model to store OTP codes for mobile app authentication
+    """
+    OTP_TYPE_CHOICES = [
+        ('email', 'Email'),
+        ('phone', 'Phone'),
+    ]
+    
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='otps')
+    otp_code = models.CharField(max_length=6)
+    otp_type = models.CharField(max_length=10, choices=OTP_TYPE_CHOICES)
+    contact_info = models.CharField(max_length=255)  # email or phone number
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+    attempts = models.IntegerField(default=0)
+    
+    class Meta:
+        verbose_name = "OTP"
+        verbose_name_plural = "OTPs"
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"OTP for {self.user.email} - {self.otp_type}"
+    
+    def save(self, *args, **kwargs):
+        if not self.pk:  # Only set expiry time for new OTPs
+            self.expires_at = timezone.now() + timedelta(minutes=10)  # OTP expires in 10 minutes
+        super().save(*args, **kwargs)
+    
+    def is_expired(self):
+        """Check if OTP has expired"""
+        return timezone.now() > self.expires_at
+    
+    def is_valid(self):
+        """Check if OTP is valid (not used, not expired, and attempts < 3)"""
+        return not self.is_used and not self.is_expired() and self.attempts < 3
+    
+    def mark_as_used(self):
+        """Mark OTP as used"""
+        self.is_used = True
+        self.save()
+    
+    def increment_attempts(self):
+        """Increment failed attempts"""
+        self.attempts += 1
+        self.save()
+    
+    @classmethod
+    def generate_otp(cls, user, otp_type, contact_info):
+        """Generate a new OTP for user"""
+        # Deactivate any existing OTPs for this user
+        cls.objects.filter(user=user, otp_type=otp_type, is_used=False).update(is_used=True)
+        
+        # Generate 6-digit OTP
+        otp_code = ''.join(random.choices(string.digits, k=6))
+        
+        # Create new OTP
+        otp = cls.objects.create(
+            user=user,
+            otp_code=otp_code,
+            otp_type=otp_type,
+            contact_info=contact_info
+        )
+        
+        return otp
+    
+    @classmethod
+    def verify_otp(cls, user, otp_code, otp_type):
+        """Verify OTP for user"""
+        try:
+            otp = cls.objects.get(
+                user=user,
+                otp_code=otp_code,
+                otp_type=otp_type,
+                is_used=False
+            )
+            
+            if not otp.is_valid():
+                otp.increment_attempts()
+                return False, "OTP expired or maximum attempts exceeded"
+            
+            otp.mark_as_used()
+            return True, "OTP verified successfully"
+            
+        except cls.DoesNotExist:
+            return False, "Invalid OTP"
