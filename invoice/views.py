@@ -216,7 +216,7 @@ def edit_invoice_custom(request, reference_id):
     from items.models import Item
     
     try:
-        invoice = Invoice.objects.get(reference_id=reference_id)
+        invoice = Invoice.objects.select_related('customer', 'amc_type').prefetch_related('items__item').get(reference_id=reference_id)
     except Invoice.DoesNotExist:
         messages.error(request, 'Invoice not found')
         return render(request, '404.html')
@@ -241,7 +241,21 @@ def edit_invoice_custom(request, reference_id):
                 invoice.uploads_files = data.get('uploads_files')
             invoice.save()
 
-
+            # Handle invoice items
+            # First, delete existing items
+            invoice.items.all().delete()
+            
+            # Then create new items
+            for item_data in data.get('items', []):
+                if not item_data.get('item'):
+                    continue
+                InvoiceItem.objects.create(
+                    invoice=invoice,
+                    item_id=item_data.get('item'),
+                    rate=item_data.get('rate', 0),
+                    qty=item_data.get('qty', 1),
+                    tax=item_data.get('tax', 0),
+                )
 
             return JsonResponse({'success': True, 'message': 'Invoice updated successfully'})
 

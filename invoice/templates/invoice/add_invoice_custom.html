@@ -984,6 +984,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Add initial item row if not in edit mode
   if (!isEditMode) {
     addInvoiceItem();
+  } else {
+    // Populate existing items in edit mode
+    populateExistingItems();
   }
 });
 
@@ -1164,6 +1167,34 @@ function updateItemRate(selectElement) {
     calculateItemTotal(row);
     updateTotals();
   }
+}
+
+function populateExistingItems() {
+  // Populate existing items in edit mode
+  {% if is_edit and invoice.items.all %}
+    {% for item in invoice.items.all %}
+      addInvoiceItem();
+      const lastRow = document.querySelector('#itemsTableBody tr:last-child');
+      if (lastRow) {
+        const select = lastRow.querySelector('select[name*="[item]"]');
+        const rateInput = lastRow.querySelector('input[name*="[rate]"]');
+        const qtyInput = lastRow.querySelector('input[name*="[qty]"]');
+        const taxInput = lastRow.querySelector('input[name*="[tax]"]');
+        
+        // Set values after dropdown is populated
+        setTimeout(() => {
+          if (select) select.value = '{{ item.item.id }}';
+          if (rateInput) rateInput.value = '{{ item.rate }}';
+          if (qtyInput) qtyInput.value = '{{ item.qty }}';
+          if (taxInput) taxInput.value = '{{ item.tax }}';
+          
+          // Calculate total for this row
+          calculateItemTotal(lastRow);
+        }, 100);
+      }
+    {% endfor %}
+    updateTotals();
+  {% endif %}
 }
 
 
