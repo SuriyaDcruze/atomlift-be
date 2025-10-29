@@ -14,8 +14,8 @@ EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = "clh.test.vlt@gmail.com"
-EMAIL_HOST_PASSWORD = "uoqojfyrdcchathu"
+EMAIL_HOST_USER = "atom.lift.1@gmail.com"
+EMAIL_HOST_PASSWORD = "rldeunwqzvkmltnv"
 
 CSRF_TRUSTED_ORIGINS = [
     "https://*.technuob.com",
