@@ -52,13 +52,20 @@ class Invoice(ClusterableModel):
             self.reference_id = f'{self.REFERENCE_PREFIX}{str(last_id + 1).zfill(3)}'
         super().save(*args, **kwargs)
     
+    def get_subtotal(self):
+        """Calculate subtotal amount from all invoice items (before discount)"""
+        return round(sum(item.total for item in self.items.all()), 2)
+    
+    def get_discount_amount(self):
+        """Calculate discount amount"""
+        subtotal = self.get_subtotal()
+        return round(subtotal * (self.discount / 100), 2)
+    
     def get_total(self):
         """Calculate total amount from all invoice items"""
-        total = sum(item.total for item in self.items.all())
-        # Apply discount if any
-        if self.discount:
-            total = total * (1 - (self.discount / 100))
-        return round(total, 2)
+        subtotal = self.get_subtotal()
+        discount_amount = self.get_discount_amount()
+        return round(subtotal - discount_amount, 2)
     
     @property
     def invoice_no(self):
@@ -115,7 +122,7 @@ class InvoiceViewSet(SnippetViewSet):
     menu_label = "Invoices"
     inspect_view_enabled = True
    
-    list_display = ('reference_id', 'customer', 'start_date', 'due_date', 'status')
+    list_display = ('reference_id', 'customer', 'start_date', 'due_date', 'total', 'status')
     
     # Search fields
     search_fields = (
@@ -141,12 +148,16 @@ class InvoiceViewSet(SnippetViewSet):
     # You can customize export fields here if needed
     list_export = [
         "reference_id", "customer", "start_date", "due_date",
-        "discount", "payment_term", "status",
+        "discount", "payment_term", "total", "status",
     ]
 
     def get_add_url(self):
         from django.urls import reverse
         return reverse("add_invoice_custom")
+
+    def get_view_url(self, instance):
+        from django.urls import reverse
+        return reverse("view_invoice_custom", args=(instance.reference_id,))
 
     def get_edit_url(self, instance):
         from django.urls import reverse

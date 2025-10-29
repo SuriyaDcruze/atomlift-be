@@ -196,6 +196,19 @@ def add_invoice_custom(request):
     })
 
 
+def view_invoice_custom(request, reference_id):
+    """Custom invoice detail view"""
+    try:
+        invoice = Invoice.objects.select_related('customer', 'amc_type').prefetch_related('items__item').get(reference_id=reference_id)
+    except Invoice.DoesNotExist:
+        messages.error(request, 'Invoice not found')
+        return render(request, '404.html')
+    
+    return render(request, 'invoice/view_invoice_custom.html', {
+        'invoice': invoice,
+    })
+
+
 def edit_invoice_custom(request, reference_id):
     """Custom edit invoice page"""
     from customer.models import Customer

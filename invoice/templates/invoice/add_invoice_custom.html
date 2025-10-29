@@ -272,10 +272,30 @@ body {
   background: linear-gradient(to right, #DC2626, #B91C1C);
 }
 
+.form-section {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #E5E7EB;
+}
+
+.form-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.items-container {
+  background: white;
+  border: 1px solid #E5E7EB;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
 .items-table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 1rem;
+  margin: 0;
 }
 
 .items-table th,
@@ -289,6 +309,11 @@ body {
   background: #F3F4F6;
   font-weight: 500;
   color: #374151;
+  font-size: 0.875rem;
+}
+
+.items-table tbody tr:hover {
+  background: #F9FAFB;
 }
 
 .items-table input[type="number"] {
@@ -299,9 +324,47 @@ body {
   font-size: 0.875rem;
 }
 
+.items-table select {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #D1D5DB;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+}
+
 .items-table .btn {
   padding: 0.25rem 0.5rem;
   font-size: 0.75rem;
+}
+
+.items-table tfoot {
+  background: #F9FAFB;
+}
+
+.items-table .total-row td {
+  padding: 0.75rem;
+  border-top: 2px solid #E5E7EB;
+}
+
+.items-table .grand-total {
+  background: #EBF4FF;
+  border-top: 3px solid #3B82F6;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.font-semibold {
+  font-weight: 600;
+}
+
+.font-bold {
+  font-weight: 700;
+}
+
+.text-lg {
+  font-size: 1.125rem;
 }
 
 .option-modal {
@@ -773,7 +836,54 @@ body {
                 />
               </div>
 
+            </div>
+          </div>
 
+          <!-- Items Section -->
+          <div class="form-section">
+            <div class="form-section-header">
+              <h3 class="form-section-title">Invoice Items</h3>
+              <button type="button" class="btn btn-primary" onclick="addInvoiceItem()" id="addItemBtn">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Add Item
+              </button>
+            </div>
+
+            <div class="items-container">
+              <table class="items-table">
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th>Rate (₹)</th>
+                    <th>Qty</th>
+                    <th>Tax (%)</th>
+                    <th>Total (₹)</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="itemsTableBody">
+                  <!-- Items will be added dynamically here -->
+                </tbody>
+                <tfoot>
+                  <tr class="total-row">
+                    <td colspan="4" class="text-right font-semibold">Subtotal:</td>
+                    <td id="subtotal">₹0.00</td>
+                    <td></td>
+                  </tr>
+                  <tr class="total-row">
+                    <td colspan="4" class="text-right font-semibold">Discount ({{ invoice.discount|default:0 }}%):</td>
+                    <td id="discountAmount">₹0.00</td>
+                    <td></td>
+                  </tr>
+                  <tr class="total-row grand-total">
+                    <td colspan="4" class="text-right font-bold text-lg">Grand Total:</td>
+                    <td id="grandTotal" class="font-bold text-lg">₹0.00</td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </table>
             </div>
           </div>
         </form>
@@ -866,8 +976,15 @@ let selectedCustomerId = null;
 document.addEventListener('DOMContentLoaded', () => {
   loadCustomers();
   loadAmcTypes();
+  loadItems();
   setupRadioButtonInteractions();
   setupCustomerSearch();
+  setupItemCalculations();
+  
+  // Add initial item row if not in edit mode
+  if (!isEditMode) {
+    addInvoiceItem();
+  }
 });
 
 function setupRadioButtonInteractions() {
@@ -942,6 +1059,112 @@ async function loadCustomers() {
 }
 
 function loadAmcTypes() { fetchOptions('amc-types', 'amc_type', currentAmcTypeId); }
+
+function loadItems() { 
+  fetchOptions('items', 'item', null); 
+}
+
+function setupItemCalculations() {
+  document.addEventListener('input', function(e) {
+    if (e.target.matches('input[name*="[rate]"], input[name*="[qty]"], input[name*="[tax]"]')) {
+      calculateItemTotal(e.target.closest('tr'));
+      updateTotals();
+    }
+  });
+  
+  // Also listen for discount changes
+  const discountInput = document.getElementById('discount');
+  if (discountInput) {
+    discountInput.addEventListener('input', updateTotals);
+  }
+}
+
+function calculateItemTotal(row) {
+  const rate = parseFloat(row.querySelector('input[name*="[rate]"]').value) || 0;
+  const qty = parseFloat(row.querySelector('input[name*="[qty]"]').value) || 0;
+  const tax = parseFloat(row.querySelector('input[name*="[tax]"]').value) || 0;
+  
+  const total = rate * qty * (1 + (tax / 100));
+  row.querySelector('.item-total').textContent = '₹' + total.toFixed(2);
+}
+
+function updateTotals() {
+  const itemRows = document.querySelectorAll('#itemsTableBody tr');
+  let subtotal = 0;
+  
+  itemRows.forEach(row => {
+    const totalText = row.querySelector('.item-total').textContent;
+    const total = parseFloat(totalText.replace('₹', '')) || 0;
+    subtotal += total;
+  });
+  
+  const discount = parseFloat(document.getElementById('discount').value) || 0;
+  const discountAmount = subtotal * (discount / 100);
+  const grandTotal = subtotal - discountAmount;
+  
+  document.getElementById('subtotal').textContent = '₹' + subtotal.toFixed(2);
+  document.getElementById('discountAmount').textContent = '₹' + discountAmount.toFixed(2);
+  document.getElementById('grandTotal').textContent = '₹' + grandTotal.toFixed(2);
+}
+
+function addInvoiceItem() {
+  const tbody = document.getElementById('itemsTableBody');
+  
+  if (!tbody) {
+    console.error('itemsTableBody not found!');
+    return;
+  }
+  
+  const row = document.createElement('tr');
+  row.innerHTML = `
+    <td>
+      <select name="items[${itemCounter}][item]" class="form-input form-select" onchange="updateItemRate(this)">
+        <option value="">Select Item</option>
+      </select>
+    </td>
+    <td><input type="number" name="items[${itemCounter}][rate]" step="0.01" class="form-input" value="0" /></td>
+    <td><input type="number" name="items[${itemCounter}][qty]" value="1" class="form-input" /></td>
+    <td><input type="number" name="items[${itemCounter}][tax]" step="0.01" class="form-input" value="0" /></td>
+    <td><span class="item-total">₹0.00</span></td>
+    <td><button type="button" class="btn btn-danger" onclick="removeInvoiceItem(this)">Remove</button></td>
+  `;
+  
+  // Populate item dropdown
+  populateItemDropdown(row.querySelector('select[name*="[item]"]'));
+  tbody.appendChild(row);
+  itemCounter++;
+}
+
+function removeInvoiceItem(button) {
+  button.closest('tr').remove();
+  updateTotals();
+}
+
+function populateItemDropdown(select) {
+  fetch('/invoice/api/items/')
+    .then(response => response.json())
+    .then(data => {
+      data.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.id;
+        option.textContent = `${item.name} - ₹${item.sale_price}`;
+        option.dataset.price = item.sale_price;
+        select.appendChild(option);
+      });
+    })
+    .catch(error => console.error('Error loading items:', error));
+}
+
+function updateItemRate(selectElement) {
+  const selectedOption = selectElement.options[selectElement.selectedIndex];
+  if (selectedOption && selectedOption.dataset.price) {
+    const row = selectElement.closest('tr');
+    const rateInput = row.querySelector('input[name*="[rate]"]');
+    rateInput.value = selectedOption.dataset.price;
+    calculateItemTotal(row);
+    updateTotals();
+  }
+}
 
 
 
@@ -1123,6 +1346,10 @@ function createFormData() {
 
   // Process regular fields
   for (const [key, value] of formData.entries()) {
+    if (key.startsWith('items[')) {
+      // Handle items separately
+      continue;
+    }
     if (key === 'discount') {
       data[key] = parseFloat(value) || 0;
     } else if (key === 'customer' || key === 'amc_type') {
@@ -1131,6 +1358,30 @@ function createFormData() {
       data[key] = value;
     }
   }
+
+  // Process items
+  const items = [];
+  const itemRows = document.querySelectorAll('#itemsTableBody tr');
+  itemRows.forEach((row, index) => {
+    const item = {};
+    const inputs = row.querySelectorAll('input, select');
+    inputs.forEach(input => {
+      const name = input.name;
+      if (name.includes('[item]')) {
+        item.item = input.value ? parseInt(input.value) : null;
+      } else if (name.includes('[rate]')) {
+        item.rate = parseFloat(input.value) || 0;
+      } else if (name.includes('[qty]')) {
+        item.qty = parseInt(input.value) || 1;
+      } else if (name.includes('[tax]')) {
+        item.tax = parseFloat(input.value) || 0;
+      }
+    });
+    if (item.item) { // Only add items that have an item selected
+      items.push(item);
+    }
+  });
+  data.items = items;
 
   return data;
 }

@@ -5,6 +5,7 @@ urlpatterns = [
     # Custom invoice pages
     path('add/', views.add_invoice_custom, name='add_invoice_custom'),
     path('edit/<str:reference_id>/', views.edit_invoice_custom, name='edit_invoice_custom'),
+    path('view/<str:reference_id>/', views.view_invoice_custom, name='view_invoice_custom'),
     
     # API endpoints for dropdown management
     path('api/customers/', views.manage_customers, name='api_manage_customers'),
