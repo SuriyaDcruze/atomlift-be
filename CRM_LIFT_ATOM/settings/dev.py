@@ -26,8 +26,8 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8081",
 ]
 
-# Disable CSRF for development since using mobile APIs
-MIDDLEWARE = [m for m in MIDDLEWARE if 'CsrfViewMiddleware' not in m]
+# Note: CSRF middleware is enabled for Wagtail admin security
+# Mobile API endpoints are exempted using @csrf_exempt decorator
 try:
     from .local import *
 except ImportError:
