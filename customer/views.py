@@ -4,6 +4,14 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from .models import Customer, Route, Branch, ProvinceState
+from rest_framework.decorators import api_view, permission_classes, parser_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.pagination import PageNumberPagination
+from django.db.models import Q
+from .serializers import CustomerCreateSerializer, CustomerListSerializer
 
 def customer_details(request, pk):
     try:
@@ -71,6 +79,83 @@ def get_next_customer_reference(request):
         return JsonResponse({"reference_id": next_ref})
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+
+# Mobile app API: Create Customer
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+@parser_classes([MultiPartParser, FormParser, JSONParser])
+def create_customer_mobile(request):
+    """Create a new customer from the mobile app (token auth required)."""
+    try:
+        # Only allow employees (users in at least one group)
+        if not request.user.groups.exists():
+            return Response({"error": "Access denied. Only employees can add customers."}, status=status.HTTP_403_FORBIDDEN)
+
+        serializer = CustomerCreateSerializer(data=request.data)
+        if serializer.is_valid():
+            customer = serializer.save()
+            data = {
+                "id": customer.id,
+                "reference_id": customer.reference_id,
+                "site_name": customer.site_name,
+                "job_no": customer.job_no,
+                "email": customer.email,
+                "phone": customer.phone,
+            }
+            return Response({"message": "Customer created successfully", "customer": data}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def list_customers_mobile(request):
+    """List customers for mobile app with pagination and filters."""
+    try:
+        if not request.user.groups.exists():
+            return Response({"error": "Access denied. Only employees can view customers."}, status=status.HTTP_403_FORBIDDEN)
+
+        queryset = Customer.objects.all().order_by('-id')
+
+        # Filters
+        search = request.query_params.get('q')
+        branch_id = request.query_params.get('branch')
+        route_id = request.query_params.get('route')
+        sector = request.query_params.get('sector')
+
+        if search:
+            queryset = queryset.filter(
+                Q(site_name__icontains=search) |
+                Q(job_no__icontains=search) |
+                Q(email__icontains=search) |
+                Q(phone__icontains=search) |
+                Q(mobile__icontains=search) |
+                Q(contact_person_name__icontains=search) |
+                Q(city__icontains=search)
+            )
+
+        if branch_id:
+            queryset = queryset.filter(branch_id=branch_id)
+        if route_id:
+            queryset = queryset.filter(routes_id=route_id)
+        if sector:
+            queryset = queryset.filter(sector=sector)
+
+        paginator = PageNumberPagination()
+        page_size = request.query_params.get('page_size')
+        if page_size:
+            try:
+                paginator.page_size = max(1, min(int(page_size), 100))
+            except ValueError:
+                paginator.page_size = None
+
+        page = paginator.paginate_queryset(queryset, request)
+        serializer = CustomerListSerializer(page, many=True)
+        return paginator.get_paginated_response(serializer.data)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # CRUD operations for dropdown options
 @csrf_exempt

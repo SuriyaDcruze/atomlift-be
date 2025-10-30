@@ -63,8 +63,6 @@ class Complaint(models.Model):
     message = models.TextField()
     technician_remark = models.TextField(blank=True, null=True)
     solution = models.TextField(blank=True, null=True)
-    technician_signature = models.TextField(blank=True, null=True, help_text="Technician signature text")
-    customer_signature = models.TextField(blank=True, null=True, help_text="Customer signature text")
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
 
@@ -119,66 +117,12 @@ class Complaint(models.Model):
             FieldPanel("message"),
             FieldPanel("technician_remark"),
             FieldPanel("solution"),
-            FieldPanel("technician_signature"),
-            FieldPanel("customer_signature"),
         ], heading="Work & Solution Details"),
     ]
 
     edit_handler = TabbedInterface([
         ObjectList(complaint_panels, heading="Complaint Details"),
     ])
-
-
-# ---------- Assignment History Model ----------
-
-class ComplaintAssignmentHistory(models.Model):
-    complaint = models.ForeignKey(Complaint, on_delete=models.CASCADE, related_name="assignment_history")
-    assigned_to = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True)
-    assigned_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name="assignments_made")
-    assignment_date = models.DateTimeField(default=timezone.now)
-    subject = models.CharField(max_length=200)
-    message = models.TextField()
-    created = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ["-assignment_date", "-id"]
-
-class ComplaintCallUpdateHistory(models.Model):
-    complaint = models.ForeignKey(Complaint, on_delete=models.CASCADE, related_name="call_update_history")
-    call_update_date = models.DateTimeField(default=timezone.now)
-    attend_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name="call_updates_made")
-    solution_templates = models.TextField(blank=True, null=True, help_text="Selected solution templates (comma-separated)")
-    additional_notes = models.TextField(blank=True, null=True)
-    created = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ["-call_update_date", "-id"]
-
-    def __str__(self):
-        return f"{self.complaint.reference} - Call Update on {self.call_update_date}"
-
-
-class ComplaintStatusHistory(models.Model):
-    """
-    Model to track status changes made through mobile app
-    """
-    complaint = models.ForeignKey(Complaint, on_delete=models.CASCADE, related_name="status_history")
-    old_status = models.CharField(max_length=20, choices=Complaint.STATUS_CHOICES, blank=True, null=True)
-    new_status = models.CharField(max_length=20, choices=Complaint.STATUS_CHOICES)
-    changed_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True)
-    change_reason = models.TextField(blank=True, null=True, help_text="Reason for status change")
-    technician_remark = models.TextField(blank=True, null=True)
-    solution = models.TextField(blank=True, null=True)
-    changed_at = models.DateTimeField(auto_now_add=True)
-    changed_from_mobile = models.BooleanField(default=True, help_text="True if changed from mobile app")
-    
-    class Meta:
-        ordering = ["-changed_at"]
-        verbose_name = "Status Change History"
-        verbose_name_plural = "Status Change Histories"
-    
-    def __str__(self):
-        return f"{self.complaint.reference}: {self.old_status} → {self.new_status}"
 
 
 # ---------- Wagtail Admin ViewSets ----------
@@ -213,9 +157,6 @@ class ComplaintViewSet(SnippetViewSet):
         "assign_to",
         "date",
     )
-    
-    # 👇 Add custom buttons
-    list_display_add_buttons = True
 
     # 👇 Export ALL model fields (CSV + XLSX)
     list_export = [
@@ -236,8 +177,6 @@ class ComplaintViewSet(SnippetViewSet):
         "message",
         "technician_remark",
         "solution",
-        "technician_signature",
-        "customer_signature",
         "created",
         "updated",
     ]
@@ -276,9 +215,6 @@ class ComplaintViewSet(SnippetViewSet):
 
     def get_edit_url(self, instance):
         return reverse("edit_complaint_custom", args=(instance.reference,))
-    
-    def get_view_url(self, instance):
-        return reverse("view_complaint_custom", args=(instance.reference,))
 
     def add_view(self, request):
         return redirect(self.get_add_url())
@@ -286,25 +222,11 @@ class ComplaintViewSet(SnippetViewSet):
     def edit_view(self, request, pk):
         instance = self.model.objects.get(pk=pk)
         return redirect(self.get_edit_url(instance))
-    
-    def view_view(self, request, pk):
-        instance = self.model.objects.get(pk=pk)
-        return redirect(self.get_view_url(instance))
 
-
-
-class ComplaintStatusHistoryViewSet(SnippetViewSet):
-    model = ComplaintStatusHistory
-    icon = "history"
-    menu_label = "Status History"
-    list_display = ("complaint", "old_status", "new_status", "changed_by", "changed_at", "changed_from_mobile")
-    list_filter = ("changed_from_mobile", "new_status", "changed_at")
-    search_fields = ("complaint__reference", "complaint__subject", "changed_by__first_name", "changed_by__last_name")
-    inspect_view_enabled = True
 
 
 class ComplaintManagementGroup(SnippetViewSetGroup):
-    items = (ComplaintViewSet, ComplaintTypeViewSet, ComplaintPriorityViewSet, ComplaintStatusHistoryViewSet)
+    items = (ComplaintViewSet, ComplaintTypeViewSet, ComplaintPriorityViewSet)
     menu_icon = "info-circle"
     menu_label = "Complaints"
     menu_name = "complaints"

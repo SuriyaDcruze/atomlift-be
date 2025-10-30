@@ -12,6 +12,8 @@ urlpatterns = [
     path("api/customer/routes/", views.get_routes, name="get_routes"),
     path("api/customer/branches/", views.get_branches, name="get_branches"),
     path("api/customer/next-reference/", views.get_next_customer_reference, name="get_next_customer_reference"),
+    path("api/customer/list/", views.list_customers_mobile, name="list_customers_mobile"),
+
 
     # CRUD operations for states
     path("api/customer/states/create/", views.create_state, name="create_state"),
@@ -27,6 +29,8 @@ urlpatterns = [
     path("api/customer/branches/create/", views.create_branch, name="create_branch"),
     path("api/customer/branches/<int:branch_id>/", views.update_branch, name="update_branch"),
     path("api/customer/branches/<int:branch_id>/delete/", views.delete_branch, name="delete_branch"),
+    # Mobile create customer
+    path("api/customer/create/", views.create_customer_mobile, name="create_customer_mobile"),
 ]
 
 # Serve media files in development

@@ -7,7 +7,6 @@ urlpatterns = [
     # Custom pages
     path('add/', views.add_complaint_custom, name='add_complaint_custom'),
     path('edit/<str:reference>/', views.edit_complaint_custom, name='edit_complaint_custom'),
-    path('view/<str:reference>/', views.view_complaint_custom, name='view_complaint_custom'),
 
     # Create/Update endpoints
     path('create/', views.create_complaint, name='create_complaint'),
@@ -24,11 +23,15 @@ urlpatterns = [
     path('api/complaints/priorities/', views.get_priorities, name='complaints_api_priorities'),
     path('api/complaints/executives/', views.get_executives, name='complaints_api_executives'),
     path('api/complaints/next-reference/', views.get_next_complaint_reference, name='complaints_api_next_reference'),
-    
-    # Mobile App APIs (Simplified - Only 3 endpoints needed)
-    path('api/mobile/complaints/', views.mobile_complaints_api, name='mobile_complaints_api'),
-    path('api/mobile/complaints/<str:reference>/', views.mobile_complaint_detail_api, name='mobile_complaint_detail_api'),
-    path('api/mobile/complaints/<str:reference>/update/', views.mobile_complaint_update_api, name='mobile_complaint_update_api'),
+
+    # Quick create/update/delete endpoints for Type and Priority (for + icon)
+    path('api/complaints/types/create/', views.create_complaint_type, name='complaints_api_types_create'),
+    path('api/complaints/types/<int:pk>/update/', views.update_complaint_type, name='complaints_api_types_update'),
+    path('api/complaints/types/<int:pk>/delete/', views.delete_complaint_type, name='complaints_api_types_delete'),
+
+    path('api/complaints/priorities/create/', views.create_complaint_priority, name='complaints_api_priorities_create'),
+    path('api/complaints/priorities/<int:pk>/update/', views.update_complaint_priority, name='complaints_api_priorities_update'),
+    path('api/complaints/priorities/<int:pk>/delete/', views.delete_complaint_priority, name='complaints_api_priorities_delete'),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 

@@ -289,14 +289,23 @@ def resend_otp(request):
         )
 
 
+@csrf_exempt
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def logout(request):
     """
     Logout user and delete token
     """
     try:
-        # Delete the token
-        request.user.auth_token.delete()
+        # Delete the token if it exists
+        if hasattr(request.user, 'auth_token'):
+            request.user.auth_token.delete()
+        return Response(
+            {'message': 'Logout successful'}, 
+            status=status.HTTP_200_OK
+        )
+    except AttributeError:
+        # Token doesn't exist, but user is logged out
         return Response(
             {'message': 'Logout successful'}, 
             status=status.HTTP_200_OK
