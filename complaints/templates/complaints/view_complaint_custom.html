@@ -1,0 +1,1086 @@
+{% extends "wagtailadmin/base.html" %}
+{% load static wagtailcore_tags %}
+
+{% block extra_css %}
+<style>
+/* Base styles matching add complaint custom page */
+.w-content-wrapper{background:#f5f5f5;min-height:calc(100vh - 4rem);padding:2rem}
+.w-modal-overlay{position:static;inset:auto;background-color:transparent;display:block;padding:0}
+  .w-modal-content{background:#fff;border-radius:.75rem;box-shadow:0 10px 20px -10px rgba(0,0,0,.15);width:100%;max-width:72rem;margin:2rem auto;max-height:none;overflow:visible;display:flex;flex-direction:column}
+.w-modal-header{background:linear-gradient(to right,#2D3A6B,#243158);padding:1.5rem;color:#fff;display:flex;justify-content:space-between;align-items:center}
+.w-modal-title{margin:0;font-size:1.25rem;font-weight:600;color:#fff}
+.w-modal-subtitle{margin:0;font-size:.875rem;opacity:.9}
+.w-modal-body{padding:1.5rem}
+.form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1.5rem}
+.form-section-title{font-weight:600;color:#374151;border-bottom:2px solid #E5E7EB;padding-bottom:.5rem;margin:.5rem 0 1rem}
+.form-group{margin-bottom:1rem}
+.form-label{display:block;font-size:.875rem;font-weight:500;color:#374151;margin-bottom:.25rem}
+.form-value{display:block;font-size:.875rem;color:#6B7280;background:#F9FAFB;padding:.625rem 1rem;border-radius:.5rem;border:1px solid #D1D5DB;min-height:2.5rem;word-wrap:break-word}
+.form-value.empty{color:#9CA3AF;font-style:italic}
+.w-modal-footer{padding:1rem 1.5rem;background:#F9FAFB;border-top:1px solid #E5E7EB;display:flex;justify-content:flex-end;gap:.75rem;position:sticky;bottom:0;z-index:1}
+
+/* Button styles matching add complaint page */
+.btn{padding:.625rem 1.25rem;border-radius:.5rem;font-size:.875rem;font-weight:500;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:.5rem;transition:all 0.2s;text-decoration:none}
+.btn-primary{background:linear-gradient(to right,#2D3A6B,#243158);color:#fff}
+.btn-secondary{background:#F3F4F6;border:1px solid #D1D5DB;color:#374151}
+.btn-info{background:linear-gradient(to right,#3B82F6,#1D4ED8);color:#fff}
+.btn-green{background:#10B981;color:#fff}
+.btn-cyan{background:#06B6D4;color:#fff}
+.btn-orange{background:#F97316;color:#fff}
+.btn-purple{background:#8B5CF6;color:#fff}
+.btn-indigo{background:#4F46E5;color:#fff}
+.btn-red{background:#EF4444;color:#fff}
+.btn-yellow{background:#F59E0B;color:#fff}
+
+/* Table styles */
+.table-container{overflow-x:auto;margin:0 -.5rem;padding:0 .5rem}
+table{width:100%;border-collapse:collapse;font-size:.875rem;min-width:600px}
+th,td{padding:.75rem;text-align:left;white-space:nowrap}
+th{background:#F9FAFB;color:#374151;font-weight:600;position:sticky;top:0;z-index:10}
+tr{border-bottom:1px solid #E5E7EB}
+tr:hover{background:#F9FAFB}
+
+/* Mobile table improvements */
+@media (max-width: 768px) {
+  .table-container{margin:0 -.25rem;padding:0 .25rem}
+  table{min-width:500px;font-size:.7rem}
+  th,td{padding:.4rem;font-size:.7rem}
+  th{font-size:.7rem}
+  /* Make action buttons stack vertically on very small screens */
+  td div{flex-direction:column;gap:.2rem}
+  td .btn{width:100%;justify-content:center;font-size:.65rem;padding:.2rem .4rem}
+}
+
+/* Status badges */
+.status-badge{padding:.25rem .5rem;border-radius:.25rem;font-size:.75rem;font-weight:600;text-transform:uppercase}
+.status-open{background:#FEF3C7;color:#92400E}
+.status-in_progress{background:#DBEAFE;color:#1E40AF}
+.status-closed{background:#D1FAE5;color:#065F46}
+.priority-high{background:#FEE2E2;color:#991B1B}
+.priority-medium{background:#FEF3C7;color:#92400E}
+.priority-low{background:#D1FAE5;color:#065F46}
+
+/* Utility classes */
+.flex{display:flex}
+.justify-between{justify-content:space-between}
+.items-center{align-items:center}
+.gap-2{gap:.5rem}
+.mb-4{margin-bottom:1rem}
+.mt-8{margin-top:2rem}
+.text-sm{font-size:.875rem}
+.empty-state{text-align:center;padding:2rem;color:#6B7280}
+.empty-state p{margin:.5rem 0}
+
+/* Modal styles */
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;overflow-y:auto}
+.modal-content{background:white;margin:5% auto;padding:0;border-radius:.75rem;max-width:600px;width:90%;left:50%;transform:translateX(-50%)}
+.modal-header{background:linear-gradient(to right,#3B82F6,#1D4ED8);padding:1rem 1.5rem;border-radius:.75rem .75rem 0 0;display:flex;justify-content:space-between;align-items:center}
+.modal-title{margin:0;color:white;font-size:1.125rem;font-weight:600}
+.modal-body{padding:1.5rem}
+.modal-footer{padding:1rem 1.5rem;background:#F9FAFB;border-top:1px solid #E5E7EB;border-radius:0 0 .75rem;display:flex;justify-content:flex-end;gap:.75rem}
+
+/* Form inputs in modal */
+.form-input,.form-select,.form-textarea{width:100%;padding:.75rem;border-radius:.375rem;border:1px solid #E5E7EB;background:#fff;font-size:.875rem}
+.form-textarea{min-height:200px;resize:vertical}
+
+/* Rich text editor toolbar */
+.rich-text-toolbar{border-bottom:1px solid #E5E7EB;padding:.5rem;display:flex;gap:.25rem;flex-wrap:wrap}
+.toolbar-btn{padding:.5rem;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:.25rem;cursor:pointer;font-size:.75rem}
+
+/* Enhanced Responsive Design */
+@media (max-width: 1200px) {
+  .w-modal-content{max-width:90%;margin:1.5rem auto}
+  .form-grid{gap:1.25rem}
+}
+
+@media (max-width: 1024px) {
+  .w-modal-content{margin:1rem auto;max-width:95%}
+  .form-grid{grid-template-columns:1fr;gap:1rem}
+  .w-modal-header{flex-direction:column;gap:1rem;text-align:center;padding:1.25rem}
+  .w-modal-header .flex{gap:.5rem;flex-wrap:wrap;justify-content:center}
+  .form-section-title{font-size:1.1rem;margin:.75rem 0 1.25rem}
+  .btn{padding:.5rem 1rem;font-size:.8rem;min-height:44px}
+  .table-container{font-size:.8rem}
+  th,td{padding:.6rem}
+}
+
+@media (max-width: 768px) {
+  .w-content-wrapper{padding:.75rem}
+  .w-modal-content{margin:.5rem auto;border-radius:.5rem}
+  .w-modal-body{padding:1rem}
+  .w-modal-header{padding:1rem;border-radius:.5rem .5rem 0 0}
+  .form-section-title{font-size:1rem;margin:.5rem 0 1rem}
+  .form-group{margin-bottom:.75rem}
+  .form-value{padding:.5rem .75rem;font-size:.8rem;min-height:2.25rem}
+  .btn{padding:.5rem .875rem;font-size:.8rem;min-height:44px;border-radius:.375rem}
+  .table-container{font-size:.75rem;margin:0 -.5rem}
+  th,td{padding:.5rem;font-size:.75rem}
+  .status-badge{font-size:.7rem;padding:.2rem .4rem}
+  .empty-state{padding:1.5rem}
+  .empty-state p{font-size:.8rem}
+  
+  /* Modal improvements */
+  .modal-content{margin:1rem auto;width:95%;border-radius:.5rem}
+  .modal-body{padding:1rem}
+  .modal-header{padding:.875rem 1rem;border-radius:.5rem .5rem 0 0}
+  .modal-footer{padding:.75rem 1rem;flex-direction:column;gap:.5rem}
+  .modal-footer .btn{width:100%;margin-bottom:0;min-height:44px}
+  .rich-text-toolbar{flex-wrap:wrap;gap:.2rem;padding:.4rem}
+  .toolbar-btn{padding:.375rem;font-size:.7rem;min-height:32px}
+  .form-input,.form-select,.form-textarea{padding:.6rem;font-size:.8rem;min-height:44px}
+  .form-textarea{min-height:150px}
+}
+
+@media (max-width: 640px) {
+  .w-content-wrapper{padding:.5rem}
+  .w-modal-content{margin:.25rem auto;border-radius:.375rem}
+  .w-modal-body{padding:.875rem}
+  .w-modal-header{padding:.875rem;border-radius:.375rem .375rem 0 0}
+  .w-modal-title{font-size:1.1rem}
+  .w-modal-subtitle{font-size:.8rem}
+  .form-section-title{font-size:.95rem;margin:.4rem 0 .875rem}
+  .form-group{margin-bottom:.6rem}
+  .form-label{font-size:.8rem;margin-bottom:.2rem}
+  .form-value{padding:.45rem .65rem;font-size:.75rem;min-height:2rem}
+  .btn{padding:.45rem .75rem;font-size:.75rem;min-height:40px;border-radius:.3rem}
+  .table-container{font-size:.7rem}
+  th,td{padding:.4rem;font-size:.7rem}
+  .status-badge{font-size:.65rem;padding:.15rem .3rem}
+  
+  /* Better mobile modal */
+  .modal-content{margin:.5rem auto;width:98%;border-radius:.375rem}
+  .modal-body{padding:.875rem}
+  .modal-header{padding:.75rem .875rem;border-radius:.375rem .375rem 0 0}
+  .modal-title{font-size:1rem}
+  .modal-footer{padding:.6rem .875rem;gap:.4rem}
+  .modal-footer .btn{min-height:40px;font-size:.75rem}
+  .rich-text-toolbar{padding:.3rem;gap:.15rem}
+  .toolbar-btn{padding:.3rem;font-size:.65rem;min-height:28px}
+  .form-input,.form-select,.form-textarea{padding:.5rem;font-size:.75rem;min-height:40px}
+  .form-textarea{min-height:120px}
+  
+  /* Call update modal responsive */
+  .modal-body div[style*="grid-template-columns: 1fr 1fr"]{grid-template-columns:1fr;gap:.75rem}
+  .modal-body label[style*="cursor: pointer"]{padding:.4rem;font-size:.8rem}
+  .modal-body input[type="checkbox"]{transform:scale(1.2)}
+}
+
+@media (max-width: 480px) {
+  .w-content-wrapper{padding:.25rem}
+  .w-modal-content{margin:.125rem auto;border-radius:.25rem}
+  .w-modal-body{padding:.75rem}
+  .w-modal-header{padding:.75rem;border-radius:.25rem .25rem 0 0}
+  .w-modal-title{font-size:1rem}
+  .w-modal-subtitle{font-size:.75rem}
+  .form-section-title{font-size:.9rem;margin:.3rem 0 .75rem}
+  .form-group{margin-bottom:.5rem}
+  .form-label{font-size:.75rem;margin-bottom:.15rem}
+  .form-value{padding:.4rem .6rem;font-size:.7rem;min-height:1.875rem}
+  .btn{padding:.4rem .65rem;font-size:.7rem;min-height:36px;border-radius:.25rem}
+  .table-container{font-size:.65rem;margin:0 -.25rem}
+  th,td{padding:.3rem;font-size:.65rem}
+  .status-badge{font-size:.6rem;padding:.1rem .25rem}
+  .empty-state{padding:1rem}
+  .empty-state p{font-size:.7rem}
+  
+  /* Ultra-compact modal */
+  .modal-content{margin:.25rem auto;width:99%;border-radius:.25rem}
+  .modal-body{padding:.75rem}
+  .modal-header{padding:.6rem .75rem;border-radius:.25rem .25rem 0 0}
+  .modal-title{font-size:.9rem}
+  .modal-footer{padding:.5rem .75rem;gap:.3rem}
+  .modal-footer .btn{min-height:36px;font-size:.7rem}
+  .rich-text-toolbar{padding:.25rem;gap:.1rem}
+  .toolbar-btn{padding:.25rem;font-size:.6rem;min-height:24px}
+  .form-input,.form-select,.form-textarea{padding:.4rem;font-size:.7rem;min-height:36px}
+  .form-textarea{min-height:100px}
+}
+
+@media (max-width: 360px) {
+  .w-content-wrapper{padding:.125rem}
+  .w-modal-content{margin:.0625rem auto}
+  .w-modal-body{padding:.5rem}
+  .w-modal-header{padding:.5rem}
+  .w-modal-title{font-size:.9rem}
+  .w-modal-subtitle{font-size:.7rem}
+  .form-section-title{font-size:.85rem;margin:.25rem 0 .6rem}
+  .form-group{margin-bottom:.4rem}
+  .form-label{font-size:.7rem}
+  .form-value{padding:.35rem .5rem;font-size:.65rem;min-height:1.75rem}
+  .btn{padding:.35rem .55rem;font-size:.65rem;min-height:32px}
+  th,td{padding:.25rem;font-size:.6rem}
+  .status-badge{font-size:.55rem;padding:.08rem .2rem}
+  
+  .modal-content{margin:.125rem auto;width:99.5%}
+  .modal-body{padding:.5rem}
+  .modal-header{padding:.5rem .6rem}
+  .modal-title{font-size:.8rem}
+  .modal-footer{padding:.4rem .6rem}
+  .modal-footer .btn{min-height:32px;font-size:.65rem}
+  .rich-text-toolbar{padding:.2rem}
+  .toolbar-btn{padding:.2rem;font-size:.55rem;min-height:20px}
+  .form-input,.form-select,.form-textarea{padding:.3rem;font-size:.65rem;min-height:32px}
+  .form-textarea{min-height:80px}
+}
+
+/* Landscape orientation optimizations */
+@media (max-height: 500px) and (orientation: landscape) {
+  .w-content-wrapper{padding:.5rem}
+  .w-modal-content{margin:.5rem auto;max-height:90vh;overflow-y:auto}
+  .w-modal-body{padding:.75rem}
+  .w-modal-header{padding:.75rem}
+  .form-section-title{margin:.25rem 0 .5rem}
+  .form-group{margin-bottom:.5rem}
+  .btn{padding:.4rem .75rem;font-size:.75rem}
+  .modal-content{margin:.5rem auto;max-height:90vh;overflow-y:auto}
+  .modal-body{padding:.75rem}
+  .modal-header{padding:.6rem .75rem}
+  .modal-footer{padding:.5rem .75rem}
+  .form-textarea{min-height:80px}
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .btn{min-height:44px;padding:.6rem 1rem;touch-action:manipulation}
+  .form-input,.form-select,.form-textarea{min-height:44px;padding:.6rem;touch-action:manipulation}
+  .toolbar-btn{min-height:36px;padding:.4rem;touch-action:manipulation}
+  .modal-footer .btn{min-height:44px}
+  .table-container{-webkit-overflow-scrolling:touch}
+  .modal{-webkit-overflow-scrolling:touch}
+}
+
+/* Touch device specific styles */
+.touch-device .btn{min-height:44px}
+.touch-device .form-input,.touch-device .form-select,.touch-device .form-textarea{min-height:44px}
+.touch-device .toolbar-btn{min-height:36px}
+.touch-device .modal-footer .btn{min-height:44px}
+
+/* High DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .btn{font-weight:500}
+  .form-label{font-weight:500}
+  .status-badge{font-weight:600}
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // Add any JavaScript functionality here if needed
+  });
+
+  // Function to find nearest technician by geo location
+  function findNearestTechnician() {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        function(position) {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          
+          // Show loading message
+          alert('Finding nearest technician based on your location...');
+          
+          // Here you would typically make an API call to find technicians
+          // For now, we'll show a placeholder message
+          console.log('Location:', lat, lng);
+          alert('Nearest technician found! This feature will be implemented with actual technician location data.');
+        },
+        function(error) {
+          alert('Unable to get your location. Please enable location services.');
+        }
+      );
+    } else {
+      alert('Geolocation is not supported by this browser.');
+    }
+  }
+
+  // Function to assign technician
+  function assignTechnician() {
+    // Show assignment modal
+    document.getElementById('assign-modal').classList.add('modal');
+    document.getElementById('assign-modal').style.display = 'block';
+    // Load employees and set default date
+    loadEmployees();
+    setDefaultDate();
+  }
+
+  // Function to add call update
+  function addCallUpdate() {
+    // Show call update modal
+    document.getElementById('call-update-modal').classList.add('modal');
+    document.getElementById('call-update-modal').style.display = 'block';
+    // Set default date and load employees
+    setCallUpdateDefaultDate();
+    loadCallUpdateEmployees();
+  }
+
+  // Assignment Modal Functions
+  function closeAssignModal() {
+    document.getElementById('assign-modal').style.display = 'none';
+  }
+
+  // Close modal when clicking outside
+  document.addEventListener('click', function(event) {
+    const assignModal = document.getElementById('assign-modal');
+    const callUpdateModal = document.getElementById('call-update-modal');
+    if (event.target === assignModal) {
+      closeAssignModal();
+    }
+    if (event.target === callUpdateModal) {
+      closeCallUpdateModal();
+    }
+  });
+
+  // Call Update Modal Functions
+  function closeCallUpdateModal() {
+    document.getElementById('call-update-modal').style.display = 'none';
+  }
+
+  function setCallUpdateDefaultDate() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    
+    const dateTimeString = `${year}-${month}-${day}T${hours}:${minutes}`;
+    document.getElementById('call-update-date').value = dateTimeString;
+  }
+
+  async function loadCallUpdateEmployees() {
+    try {
+      const response = await fetch('/complaints/api/complaints/executives/');
+      const employees = await response.json();
+      
+      const select = document.getElementById('attend-by-select');
+      select.innerHTML = '<option value="">Select Employee</option>';
+      
+      employees.forEach(employee => {
+        const option = document.createElement('option');
+        option.value = employee.id;
+        option.textContent = employee.full_name;
+        select.appendChild(option);
+      });
+      
+      // Auto-select the assigned person if available
+      {% if complaint.assign_to %}
+        select.value = '{{ complaint.assign_to.id }}';
+      {% endif %}
+    } catch (error) {
+      console.error('Error loading employees:', error);
+    }
+  }
+
+  async function saveCallUpdate() {
+    const form = document.getElementById('call-update-form');
+    const formData = new FormData(form);
+    
+    // Add complaint reference
+    formData.append('complaint_reference', '{{ complaint.reference }}');
+    
+    // Get selected solution templates
+    const selectedTemplates = [];
+    const checkboxes = document.querySelectorAll('#call-update-form input[name="solution_templates[]"]:checked');
+    checkboxes.forEach(checkbox => {
+      selectedTemplates.push(checkbox.value);
+    });
+    formData.append('solution_templates', selectedTemplates.join(','));
+    
+    try {
+      const response = await fetch('{% url "update_complaint" complaint.reference %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        alert('Call update saved successfully!');
+        closeCallUpdateModal();
+        // Reload the page to show updated information
+        window.location.reload();
+      } else {
+        alert('Error: ' + (result.error || 'Failed to save call update'));
+      }
+    } catch (error) {
+      alert('Network error. Please try again.');
+      console.error('Error:', error);
+    }
+  }
+
+  function formatText(command) {
+    const textarea = document.getElementById('assign-message');
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = textarea.value.substring(start, end);
+    
+    let formattedText = selectedText;
+    switch(command) {
+      case 'bold':
+        formattedText = `<b>${selectedText}</b>`;
+        break;
+      case 'italic':
+        formattedText = `<i>${selectedText}</i>`;
+        break;
+      case 'underline':
+        formattedText = `<u>${selectedText}</u>`;
+        break;
+    }
+    
+    textarea.value = textarea.value.substring(0, start) + formattedText + textarea.value.substring(end);
+    textarea.focus();
+  }
+
+  async function saveAssignment() {
+    const form = document.getElementById('assign-form');
+    const formData = new FormData(form);
+    
+    // Add complaint reference
+    formData.append('complaint_reference', '{{ complaint.reference }}');
+    
+    try {
+      const response = await fetch('{% url "update_complaint" complaint.reference %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        alert('Assignment saved successfully!');
+        closeAssignModal();
+        // Reload the page to show updated assignment
+        window.location.reload();
+      } else {
+        alert('Error: ' + (result.error || 'Failed to save assignment'));
+      }
+    } catch (error) {
+      alert('Network error. Please try again.');
+      console.error('Error:', error);
+    }
+  }
+
+  // Load employees when modal opens
+  async function loadEmployees() {
+    try {
+      const response = await fetch('/complaints/api/complaints/executives/');
+      const employees = await response.json();
+      
+      const select = document.getElementById('employee-select');
+      // Clear existing options except the first one
+      select.innerHTML = '<option value="">Select Employee</option>';
+      
+      employees.forEach(employee => {
+        const option = document.createElement('option');
+        option.value = employee.id;
+        option.textContent = employee.full_name;
+        select.appendChild(option);
+      });
+      
+      // Set current assignment if exists
+      {% if complaint.assign_to %}
+        select.value = '{{ complaint.assign_to.id }}';
+      {% endif %}
+    } catch (error) {
+      console.error('Error loading employees:', error);
+    }
+  }
+
+  // Set default date to current date/time
+  function setDefaultDate() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    
+    const dateTimeString = `${year}-${month}-${day}T${hours}:${minutes}`;
+    document.getElementById('assign-date').value = dateTimeString;
+  }
+
+  // Mobile-specific improvements
+  function initMobileOptimizations() {
+    // Prevent zoom on input focus for iOS
+    if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+      const inputs = document.querySelectorAll('input, select, textarea');
+      inputs.forEach(input => {
+        input.addEventListener('focus', function() {
+          const viewport = document.querySelector('meta[name=viewport]');
+          if (viewport) {
+            viewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+          }
+        });
+        input.addEventListener('blur', function() {
+          const viewport = document.querySelector('meta[name=viewport]');
+          if (viewport) {
+            viewport.content = 'width=device-width, initial-scale=1.0';
+          }
+        });
+      });
+    }
+
+    // Improve touch scrolling
+    document.body.style.webkitOverflowScrolling = 'touch';
+    
+    // Add touch-friendly class for better mobile experience
+    if ('ontouchstart' in window) {
+      document.body.classList.add('touch-device');
+    }
+  }
+
+  // Initialize mobile optimizations when DOM is loaded
+  document.addEventListener('DOMContentLoaded', initMobileOptimizations);
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="w-content-wrapper">
+  <div class="w-modal-overlay">
+    <div class="w-modal-content">
+      <!-- Modal Header -->
+      <div class="w-modal-header">
+        <div>
+          <h2 class="w-modal-title">Complaint Details</h2>
+          <p class="w-modal-subtitle">{{ complaint.reference }} - {{ complaint.subject }}</p>
+        </div>
+        <div class="flex gap-2" style="flex-wrap: wrap; justify-content: center;">
+          <a href="{% url 'edit_complaint_custom' complaint.reference %}" class="btn btn-primary">Edit Complaint</a>
+          <a href="{% url 'view_customer_custom' complaint.customer.id %}" class="btn btn-green">View Customer</a>
+          <a href="{% url 'download_complaint_pdf' complaint.id %}" class="btn btn-orange">Download PDF</a>
+        </div>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="w-modal-body">
+        <!-- Complaint Details -->
+        <div class="form-grid">
+          <!-- Left Column -->
+          <div class="form-column">
+            <h3 class="form-section-title">Complaint Information</h3>
+            <div class="form-group">
+              <label class="form-label">Reference</label>
+              <div class="form-value">{{ complaint.reference|default:"Not provided" }}</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Complaint Type</label>
+              <div class="form-value">{{ complaint.complaint_type.name|default:"Not provided" }}</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Date</label>
+              <div class="form-value">{{ complaint.date|date:"M d, Y"|default:"Not provided" }}</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Status</label>
+              <div class="form-value">
+                <span class="status-badge status-{{ complaint.status }}">
+                  {{ complaint.get_status_display|default:"Not provided" }}
+                </span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Priority</label>
+              <div class="form-value">
+                {% if complaint.priority %}
+                  <span class="status-badge priority-{{ complaint.priority.name|lower }}">
+                    {{ complaint.priority.name|default:"Not provided" }}
+                  </span>
+                {% else %}
+                  Not provided
+                {% endif %}
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Subject</label>
+              <div class="form-value">{{ complaint.subject|default:"Not provided" }}</div>
+            </div>
+
+            <h3 class="form-section-title">Customer Details</h3>
+            <div class="form-group">
+              <label class="form-label">Customer</label>
+              <div class="form-value">
+                {% if complaint.customer %}
+                  <a href="{% url 'view_customer_custom' complaint.customer.id %}" class="btn btn-info" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">
+                    {{ complaint.customer.site_name|default:"View Customer" }}
+                  </a>
+                {% else %}
+                  Not provided
+                {% endif %}
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Contact Person</label>
+              <div class="form-value">{{ complaint.contact_person_name|default:"Not provided" }}</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Contact Mobile</label>
+              <div class="form-value">{{ complaint.contact_person_mobile|default:"Not provided" }}</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Block/Wing</label>
+              <div class="form-value">{{ complaint.block_wing|default:"Not provided" }}</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Lift Information</label>
+              <div class="form-value">{{ complaint.lift_info|default:"Not provided" }}</div>
+            </div>
+          </div>
+
+          <!-- Right Column -->
+          <div class="form-column">
+            <h3 class="form-section-title">Assignment & Resolution</h3>
+            <div class="form-group">
+              <label class="form-label">Assigned To</label>
+              <div class="form-value">
+                {% if complaint.assign_to %}
+                  {{ complaint.assign_to.first_name }} {{ complaint.assign_to.last_name }}
+                  {% if complaint.assign_to.username %}
+                    ({{ complaint.assign_to.username }})
+                  {% endif %}
+                {% else %}
+                  Not assigned
+                {% endif %}
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Created</label>
+              <div class="form-value">{{ complaint.created|date:"M d, Y H:i"|default:"Not provided" }}</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Last Updated</label>
+              <div class="form-value">{{ complaint.updated|date:"M d, Y H:i"|default:"Not provided" }}</div>
+            </div>
+
+            <h3 class="form-section-title">Complaint Templates</h3>
+            <div class="form-group">
+              <label class="form-label">Selected Templates</label>
+              <div class="form-value">
+                {% if complaint.complaint_templates %}
+                  {{ complaint.complaint_templates }}
+                {% else %}
+                  No templates selected
+                {% endif %}
+              </div>
+            </div>
+
+            <h3 class="form-section-title">Resolution Details</h3>
+            <div class="form-group">
+              <label class="form-label">Technician Remark</label>
+              <div class="form-value" style="min-height: 100px; white-space: pre-wrap;">{{ complaint.technician_remark|default:"No remarks provided" }}</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Solution</label>
+              <div class="form-value" style="min-height: 100px; white-space: pre-wrap;">{{ complaint.solution|default:"No solution provided" }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Message Section -->
+        <div class="mt-8">
+          <h3 class="form-section-title">Complaint Message</h3>
+          <div class="form-group">
+            <label class="form-label">Full Message</label>
+            <div class="form-value" style="min-height: 150px; white-space: pre-wrap;">{{ complaint.message|default:"No message provided" }}</div>
+          </div>
+        </div>
+
+        <!-- Related Complaints Section -->
+        {% if complaint.customer %}
+        <div class="mt-8">
+          <div class="flex justify-between items-center mb-4" style="flex-wrap: wrap; gap: 1rem;">
+            <h3 class="form-section-title">Other Complaints from {{ complaint.customer.site_name }}</h3>
+            <a href="{% url 'add_complaint_custom' %}?customerId={{ complaint.customer.id }}" class="btn btn-cyan">Add New Complaint</a>
+          </div>
+          {% if related_complaints %}
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Reference</th>
+                  <th>Date</th>
+                  <th>Subject</th>
+                  <th>Status</th>
+                  <th>Priority</th>
+                  <th>Assigned To</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for related_complaint in related_complaints %}
+                <tr>
+                  <td><strong>{{ related_complaint.reference|default:"N/A" }}</strong></td>
+                  <td>{{ related_complaint.date|date:"M d, Y"|default:"N/A" }}</td>
+                  <td>{{ related_complaint.subject|default:"N/A" }}</td>
+                  <td>
+                    <span class="status-badge status-{{ related_complaint.status }}">
+                      {{ related_complaint.get_status_display|default:"N/A" }}
+                    </span>
+                  </td>
+                  <td>
+                    {% if related_complaint.priority %}
+                      <span class="status-badge priority-{{ related_complaint.priority.name|lower }}">
+                        {{ related_complaint.priority.name|default:"N/A" }}
+                      </span>
+                    {% else %}
+                      N/A
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if related_complaint.assign_to %}
+                      {{ related_complaint.assign_to.first_name }} {{ related_complaint.assign_to.last_name }}
+                    {% else %}
+                      Not assigned
+                    {% endif %}
+                  </td>
+                  <td>
+                    <div style="display: flex; gap: 0.25rem; flex-wrap: wrap;">
+                      <a href="{% url 'view_complaint_custom' related_complaint.reference %}" class="btn btn-yellow" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; min-width: auto;">
+                        👁️ View
+                      </a>
+                      <a href="{% url 'edit_complaint_custom' related_complaint.reference %}" class="btn btn-primary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; min-width: auto;">
+                        Edit
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="empty-state">
+            <p>No Other Complaints</p>
+            <p class="text-sm">This is the only complaint for this customer</p>
+          </div>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Assign History Section -->
+        <div class="mt-8">
+          <div class="flex justify-between items-center mb-4" style="flex-wrap: wrap; gap: 1rem;">
+            <h3 class="form-section-title">Assign History</h3>
+            <div class="flex gap-2" style="flex-wrap: wrap; justify-content: flex-end; width: 100%;">
+              <button class="btn btn-red" onclick="findNearestTechnician()" style="white-space: nowrap;">
+                📍 Find Nearest Technician By Geo
+              </button>
+              <button class="btn btn-info" onclick="assignTechnician()" style="white-space: nowrap; min-width: auto;">
+                ASSIGN
+              </button>
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="form-value" style="min-height: 80px; background: white; border: 1px solid #E5E7EB;">
+              <div style="padding: 1rem;">
+                {% if assignment_history %}
+                  {% for assignment in assignment_history %}
+                    <div style="margin-bottom: 1rem; padding-bottom: 0.5rem; {% if not forloop.last %}border-bottom: 1px solid #E5E7EB;{% endif %}">
+                      <div style="margin-bottom: 0.5rem;">
+                        <strong>{{ assignment.subject|default:"Assignment" }}</strong>
+                      </div>
+                      <div style="margin-bottom: 0.5rem;">
+                        Assigned to {{ assignment.assigned_to.first_name }} {{ assignment.assigned_to.last_name }} at {{ assignment.assignment_date|date:"d/m/Y g:i A" }}
+                      </div>
+                      {% if assignment.assigned_by %}
+                      <div style="margin-bottom: 0.5rem;">
+                        with call booked by {{ assignment.assigned_by.first_name }} {{ assignment.assigned_by.last_name }}
+                      </div>
+                      {% endif %}
+                      {% if assignment.message %}
+                      <div style="margin-bottom: 0.5rem; font-size: 0.875rem; color: #6B7280;">
+                        <strong>Message:</strong> {{ assignment.message|truncatewords:20 }}
+                      </div>
+                      {% endif %}
+                    </div>
+                  {% endfor %}
+                {% else %}
+                  <div style="margin-bottom: 0.5rem;">
+                    <strong>{{ complaint.subject|default:"Complaint Issue" }}</strong>
+                  </div>
+                  {% if complaint.assign_to %}
+                  <div style="margin-bottom: 0.5rem;">
+                    Assigned to {{ complaint.assign_to.first_name }} {{ complaint.assign_to.last_name }} at {{ complaint.updated|date:"d/m/Y g:i A" }}
+                  </div>
+                  <div style="margin-bottom: 0.5rem;">
+                    with call booked by Admin
+                  </div>
+                  {% else %}
+                  <div style="margin-bottom: 0.5rem;">
+                    Not assigned yet
+                  </div>
+                  <div style="margin-bottom: 0.5rem;">
+                    Created on {{ complaint.created|date:"d/m/Y g:i A" }}
+                  </div>
+                  {% endif %}
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Separator Line -->
+        <div style="border-top: 2px solid #3B82F6; margin: 2rem 0;"></div>
+
+        <!-- Call Update History Section -->
+        <div class="mt-8">
+          <div class="flex justify-between items-center mb-4" style="flex-wrap: wrap; gap: 1rem;">
+            <h3 class="form-section-title">CALL UPDATE HISTORY</h3>
+            <button class="btn btn-info" onclick="addCallUpdate()">
+              CALL UPDATE
+            </button>
+          </div>
+          <div class="form-group">
+            <div class="form-value" style="min-height: 80px; background: white; border: 1px solid #E5E7EB;">
+              <div style="padding: 1rem;">
+                {% if call_update_history %}
+                  {% for call_update in call_update_history %}
+                    <div style="margin-bottom: 1rem; padding-bottom: 0.5rem; {% if not forloop.last %}border-bottom: 1px solid #E5E7EB;{% endif %}">
+                      <div style="margin-bottom: 0.5rem;">
+                        <strong>Call Update on {{ call_update.call_update_date|date:"d/m/Y g:i A" }}</strong>
+                      </div>
+                      {% if call_update.attend_by %}
+                      <div style="margin-bottom: 0.5rem;">
+                        Attended by: {{ call_update.attend_by.first_name }} {{ call_update.attend_by.last_name }}
+                        {% if complaint.assign_to and call_update.attend_by.id == complaint.assign_to.id %}
+                          <span style="background: #D1FAE5; color: #065F46; padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.75rem; margin-left: 0.5rem;">ASSIGNED</span>
+                        {% endif %}
+                      </div>
+                      {% endif %}
+                      {% if call_update.solution_templates %}
+                      <div style="margin-bottom: 0.5rem;">
+                        <strong>Solution Templates:</strong> {{ call_update.solution_templates }}
+                      </div>
+                      {% endif %}
+                      {% if call_update.additional_notes %}
+                      <div style="margin-bottom: 0.5rem; font-size: 0.875rem; color: #6B7280;">
+                        <strong>Notes:</strong> {{ call_update.additional_notes|truncatewords:20 }}
+                      </div>
+                      {% endif %}
+                    </div>
+                  {% endfor %}
+                {% elif complaint.technician_remark or complaint.solution %}
+                  <div style="margin-bottom: 1rem;">
+                    <strong>Latest Update:</strong>
+                  </div>
+                  {% if complaint.technician_remark %}
+                  <div style="margin-bottom: 0.5rem;">
+                    <strong>Technician Remark:</strong> {{ complaint.technician_remark }}
+                  </div>
+                  {% endif %}
+                  {% if complaint.solution %}
+                  <div style="margin-bottom: 0.5rem;">
+                    <strong>Solution:</strong> {{ complaint.solution }}
+                  </div>
+                  {% endif %}
+                  <div style="margin-bottom: 0.5rem; color: #6B7280; font-size: 0.875rem;">
+                    Last updated: {{ complaint.updated|date:"d/m/Y g:i A" }}
+                  </div>
+                {% else %}
+                  <div style="text-align: center; color: #6B7280; padding: 1rem;">
+                    No call has been Updated Yet.
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Activity Timeline Section -->
+        <div class="mt-8">
+          <h3 class="form-section-title">Activity Timeline</h3>
+          <div class="form-group">
+            <label class="form-label">Complaint History</label>
+            <div class="form-value" style="min-height: 100px;">
+              <div style="border-left: 2px solid #E5E7EB; padding-left: 1rem;">
+                <div style="margin-bottom: 1rem;">
+                  <strong>Created:</strong> {{ complaint.created|date:"M d, Y H:i" }} - Complaint {{ complaint.reference }} was created
+                </div>
+                {% if complaint.updated != complaint.created %}
+                <div style="margin-bottom: 1rem;">
+                  <strong>Last Updated:</strong> {{ complaint.updated|date:"M d, Y H:i" }} - Complaint was modified
+                </div>
+                {% endif %}
+                {% if complaint.assign_to %}
+                <div style="margin-bottom: 1rem;">
+                  <strong>Assigned:</strong> Assigned to {{ complaint.assign_to.first_name }} {{ complaint.assign_to.last_name }}
+                </div>
+                {% endif %}
+                {% if complaint.status == 'closed' %}
+                <div style="margin-bottom: 1rem;">
+                  <strong>Closed:</strong> Complaint was resolved and closed
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="w-modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="window.history.back();">Back</button>
+        <a href="{% url 'edit_complaint_custom' complaint.reference %}" class="btn btn-primary">Edit Complaint</a>
+        <a href="{% url 'download_complaint_pdf' complaint.id %}" class="btn btn-orange">Download PDF</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Assignment Modal -->
+  <div id="assign-modal" class="modal">
+    <div class="modal-content">
+      <!-- Modal Header -->
+      <div class="modal-header">
+        <h3 class="modal-title">ASSIGN TO EMPLOYEE</h3>
+        <button onclick="closeAssignModal()" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 0;">×</button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body">
+        <form id="assign-form">
+          {% csrf_token %}
+          
+          <!-- Employee Selection -->
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 600;">ASSIGN TO EMPLOYEE</label>
+            <select id="employee-select" name="assign_to" class="form-select" required>
+              <option value="">Select Employee</option>
+              {% if complaint.assign_to %}
+                <option value="{{ complaint.assign_to.id }}" selected>{{ complaint.assign_to.first_name }} {{ complaint.assign_to.last_name }} (Current)</option>
+              {% endif %}
+            </select>
+          </div>
+
+          <!-- Date Field -->
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 600;">DATE *</label>
+            <input type="datetime-local" id="assign-date" name="assign_date" class="form-input" required>
+          </div>
+
+          <!-- Subject Field -->
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 600;">SUBJECT *</label>
+            <input type="text" id="assign-subject" name="assign_subject" class="form-input" value="Complaint assigned" required>
+          </div>
+
+          <!-- Message Field -->
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 600;">MESSAGE *</label>
+            <div style="border: 1px solid #E5E7EB; border-radius: 0.375rem; background: white;">
+              <!-- Rich Text Editor Toolbar -->
+              <div class="rich-text-toolbar">
+                <button type="button" onclick="formatText('bold')" class="toolbar-btn" style="font-weight: bold;">B</button>
+                <button type="button" onclick="formatText('italic')" class="toolbar-btn" style="font-style: italic;">I</button>
+                <button type="button" onclick="formatText('underline')" class="toolbar-btn" style="text-decoration: underline;">U</button>
+                <select class="toolbar-btn" style="font-size: 0.75rem;">
+                  <option value="12">12</option>
+                  <option value="14">14</option>
+                  <option value="16">16</option>
+                  <option value="18">18</option>
+                </select>
+                <button type="button" class="toolbar-btn">📎</button>
+              </div>
+              <!-- Message Textarea -->
+              <textarea id="assign-message" name="assign_message" class="form-textarea" placeholder="Enter assignment message..." required></textarea>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer">
+        <button type="button" onclick="closeAssignModal()" class="btn btn-secondary">CLOSE</button>
+        <button type="button" onclick="saveAssignment()" class="btn btn-primary">SAVE</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Call Update Modal -->
+  <div id="call-update-modal" class="modal">
+    <div class="modal-content">
+      <!-- Modal Header -->
+      <div class="modal-header">
+        <h3 class="modal-title">CALL UPDATE</h3>
+        <button onclick="closeCallUpdateModal()" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 0;">×</button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body">
+        <form id="call-update-form">
+          {% csrf_token %}
+          
+          <!-- Date and Attend By Fields -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+            <!-- Date Field -->
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 600;">DATE</label>
+              <input type="datetime-local" id="call-update-date" name="call_update_date" class="form-input" required>
+            </div>
+
+            <!-- Attend By Field -->
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 600;">ATTEND BY</label>
+              <select id="attend-by-select" name="attend_by" class="form-select" required>
+                <option value="">Select Employee</option>
+                {% if complaint.assign_to %}
+                  <option value="{{ complaint.assign_to.id }}" selected>{{ complaint.assign_to.first_name }} {{ complaint.assign_to.last_name }} (Assigned)</option>
+                {% endif %}
+              </select>
+            </div>
+          </div>
+
+          <!-- Complaint Solution Template Section -->
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 600; margin-bottom: 1rem;">COMPLAINT SOLUTION TEMPLATE</label>
+            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+              <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.5rem; border-radius: 0.375rem; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#F9FAFB'" onmouseout="this.style.backgroundColor='transparent'">
+                <input type="checkbox" name="solution_templates[]" value="DAY WORK COMPLETED" style="margin: 0;">
+                <span style="font-size: 0.875rem; color: #374151;">DAY WORK COMPLETED</span>
+              </label>
+              
+              <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.5rem; border-radius: 0.375rem; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#F9FAFB'" onmouseout="this.style.backgroundColor='transparent'">
+                <input type="checkbox" name="solution_templates[]" value="NO PROBLEM FOUND" style="margin: 0;">
+                <span style="font-size: 0.875rem; color: #374151;">NO PROBLEM FOUND</span>
+              </label>
+              
+              <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.5rem; border-radius: 0.375rem; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#F9FAFB'" onmouseout="this.style.backgroundColor='transparent'">
+                <input type="checkbox" name="solution_templates[]" value="WORKING" style="margin: 0;">
+                <span style="font-size: 0.875rem; color: #374151;">WORKING</span>
+              </label>
+              
+              <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.5rem; border-radius: 0.375rem; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#F9FAFB'" onmouseout="this.style.backgroundColor='transparent'">
+                <input type="checkbox" name="solution_templates[]" value="Customer Side Power Issues" style="margin: 0;">
+                <span style="font-size: 0.875rem; color: #374151;">Customer Side Power Issues</span>
+              </label>
+              
+              <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.5rem; border-radius: 0.375rem; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#F9FAFB'" onmouseout="this.style.backgroundColor='transparent'">
+                <input type="checkbox" name="solution_templates[]" value="Part Replaced" style="margin: 0;">
+                <span style="font-size: 0.875rem; color: #374151;">Part Replaced</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Additional Notes Field -->
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 600;">ADDITIONAL NOTES</label>
+            <textarea name="call_update_notes" class="form-textarea" placeholder="Enter any additional notes about the call update..." style="min-height: 120px;"></textarea>
+          </div>
+        </form>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer">
+        <button type="button" onclick="closeCallUpdateModal()" class="btn btn-secondary">CLOSE</button>
+        <button type="button" onclick="saveCallUpdate()" class="btn btn-primary">SAVE</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

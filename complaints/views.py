@@ -7,17 +7,90 @@ from django.urls import reverse
 from io import BytesIO
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 import qrcode
 import base64
 import logging
+import re
+from io import BytesIO
+try:
+    from PIL import Image, ImageDraw
+except ImportError:
+    Image = None
+    ImageDraw = None
 
 from .models import Complaint, ComplaintType, ComplaintPriority
 from customer.models import Customer
 from authentication.models import CustomUser
 
 logger = logging.getLogger(__name__)
+
+def svg_to_png_base64(svg_string, width=300, height=100):
+    """
+    Convert SVG string to PNG base64 for PDF embedding.
+    This is a basic implementation - in production, use proper SVG libraries.
+    """
+    if not svg_string or not svg_string.startswith('<svg'):
+        return None
+
+    try:
+        if Image is None or ImageDraw is None:
+            # Fallback: return None if PIL not available
+            return None
+
+        # Create a white background image
+        img = Image.new('RGB', (width, height), color='white')
+        draw = ImageDraw.Draw(img)
+
+        # Parse SVG paths (very basic parsing)
+        # Extract path data from SVG
+        path_matches = re.findall(r'd="([^"]*)"', svg_string)
+
+        # Draw black lines for each path
+        for path_data in path_matches:
+            # Very basic path parsing - only handles M and L commands
+            coords = []
+            parts = path_data.split()
+            i = 0
+            while i < len(parts):
+                if parts[i].upper() == 'M' and i + 1 < len(parts):
+                    # Move to command
+                    try:
+                        x, y = map(float, parts[i + 1].split(','))
+                        coords.append((x, y))
+                        i += 2
+                    except:
+                        i += 1
+                elif parts[i].upper() == 'L' and i + 1 < len(parts):
+                    # Line to command
+                    try:
+                        x, y = map(float, parts[i + 1].split(','))
+                        coords.append((x, y))
+                        i += 2
+                    except:
+                        i += 1
+                else:
+                    i += 1
+
+            # Draw lines connecting coordinates
+            if len(coords) > 1:
+                # Scale coordinates to fit image (assuming original SVG was 300x100)
+                scaled_coords = [(x, y) for x, y in coords]
+                if len(scaled_coords) > 1:
+                    draw.line(scaled_coords, fill='black', width=2)
+
+        # Convert to base64
+        buffer = BytesIO()
+        img.save(buffer, format='PNG')
+        buffer.seek(0)
+        img_base64 = base64.b64encode(buffer.getvalue()).decode()
+
+        return f'data:image/png;base64,{img_base64}'
+
+    except Exception as e:
+        logger.error(f"Error converting SVG to PNG: {str(e)}")
+        return None
 
 def download_complaint_pdf(request, pk):
     """
@@ -54,6 +127,8 @@ def download_complaint_pdf(request, pk):
     ),
             'technician_remark': complaint.technician_remark or '',
             'solution': complaint.solution or '',
+            'technician_signature': complaint.technician_signature or '',
+            'customer_signature': complaint.customer_signature or '',
         }
 
         # --- Create PDF ---
@@ -119,6 +194,53 @@ def download_complaint_pdf(request, pk):
         story.append(Paragraph("Resolution", styles['Heading2']))
         story.append(Paragraph(f"Technician Remark: {context['technician_remark']}", styles['Normal']))
         story.append(Paragraph(f"Solution: {context['solution']}", styles['Normal']))
+        story.append(Spacer(1, 12))
+
+        # Signatures
+        story.append(Paragraph("Signatures", styles['Heading2']))
+
+        # Technician Signature
+        story.append(Paragraph("Technician Signature:", styles['Normal']))
+        if context['technician_signature']:
+            # Try to convert SVG to image
+            tech_sig_img = svg_to_png_base64(context['technician_signature'])
+            if tech_sig_img:
+                try:
+                    # Create image from base64 data
+                    img_data = base64.b64decode(tech_sig_img.split(',')[1])
+                    img_buffer = BytesIO(img_data)
+                    sig_img = Image(img_buffer, width=200, height=60)
+                    story.append(sig_img)
+                except Exception as e:
+                    logger.error(f"Error embedding technician signature image: {str(e)}")
+                    story.append(Paragraph("[Signature captured digitally]", styles['Italic']))
+            else:
+                story.append(Paragraph("[Signature captured digitally]", styles['Italic']))
+        else:
+            story.append(Paragraph("___________________________", styles['Normal']))
+        story.append(Spacer(1, 12))
+
+        # Customer Signature
+        story.append(Paragraph("Customer Signature:", styles['Normal']))
+        if context['customer_signature']:
+            # Try to convert SVG to image
+            cust_sig_img = svg_to_png_base64(context['customer_signature'])
+            if cust_sig_img:
+                try:
+                    # Create image from base64 data
+                    img_data = base64.b64decode(cust_sig_img.split(',')[1])
+                    img_buffer = BytesIO(img_data)
+                    sig_img = Image(img_buffer, width=200, height=60)
+                    story.append(sig_img)
+                except Exception as e:
+                    logger.error(f"Error embedding customer signature image: {str(e)}")
+                    story.append(Paragraph("[Signature captured digitally]", styles['Italic']))
+            else:
+                story.append(Paragraph("[Signature captured digitally]", styles['Italic']))
+        else:
+            story.append(Paragraph("___________________________", styles['Normal']))
+        story.append(Spacer(1, 12))
+
         story.append(Spacer(1, 12))
 
         # Build and return
@@ -294,6 +416,68 @@ def get_next_complaint_reference(request):
     return JsonResponse({'reference': f'CMP{last_id + 1}'})
 
 
+@require_http_methods(["GET"])
+def get_assigned_complaints(request):
+    """
+    Get complaints assigned to the authenticated user
+    Requires token authentication
+    """
+    try:
+        # Get token from Authorization header
+        auth_header = request.META.get('HTTP_AUTHORIZATION', '')
+        if not auth_header.startswith('Token '):
+            return JsonResponse({'error': 'Authentication required'}, status=401)
+
+        token_key = auth_header.split(' ')[1]
+        from rest_framework.authtoken.models import Token
+        try:
+            token = Token.objects.get(key=token_key)
+            user = token.user
+        except Token.DoesNotExist:
+            return JsonResponse({'error': 'Invalid token'}, status=401)
+
+        # Check if user is in employee group
+        if not user.groups.exists():
+            return JsonResponse({'error': 'Access denied. Only employees can view assigned complaints'}, status=403)
+
+        # Get complaints assigned to this user
+        complaints = Complaint.objects.filter(
+            assign_to=user
+        ).select_related(
+            'customer', 'complaint_type', 'priority', 'assign_to'
+        ).order_by('-date', '-id')
+
+        # Format complaints for mobile app
+        complaints_data = []
+        for complaint in complaints:
+            complaints_data.append({
+                'id': complaint.id,
+                'reference': complaint.reference,
+                'title': f"{complaint.customer.site_name} - {complaint.contact_person_name or 'N/A'}",
+                'dateTime': complaint.date.strftime('%d %b, %Y %H:%M:%S') if complaint.date else '',
+                'status': complaint.status,
+                'ticketId': complaint.reference,
+                'amcType': complaint.complaint_type.name if complaint.complaint_type else 'N/A',
+                'siteAddress': complaint.customer.site_address if complaint.customer else '',
+                'mobileNumber': complaint.contact_person_mobile or complaint.customer.phone if complaint.customer else '',
+                'subject': complaint.subject,
+                'message': complaint.message,
+                'priority': complaint.priority.name if complaint.priority else 'N/A',
+                'assigned_to': f"{complaint.assign_to.first_name} {complaint.assign_to.last_name}".strip() or complaint.assign_to.username if complaint.assign_to else 'Unassigned',
+                'customer_name': complaint.customer.site_name if complaint.customer else '',
+                'contact_person': complaint.contact_person_name or '',
+                'block_wing': complaint.block_wing or '',
+                'technician_remark': complaint.technician_remark or '',
+                'solution': complaint.solution or '',
+            })
+
+        return JsonResponse(complaints_data, safe=False)
+
+    except Exception as e:
+        logger.error(f"Error getting assigned complaints: {str(e)}")
+        return JsonResponse({'error': 'Internal server error'}, status=500)
+
+
 @csrf_exempt
 @require_http_methods(["POST"])
 def create_complaint(request):
@@ -361,6 +545,90 @@ def update_complaint(request, reference):
         return JsonResponse({'success': True, 'message': f'Complaint {complaint.reference} updated successfully'})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def update_complaint_status(request, reference):
+    """
+    Update complaint status, technician remark, and solution
+    Requires token authentication
+    """
+    try:
+        # Get token from Authorization header
+        auth_header = request.META.get('HTTP_AUTHORIZATION', '')
+        if not auth_header.startswith('Token '):
+            return JsonResponse({'error': 'Authentication required'}, status=401)
+
+        token_key = auth_header.split(' ')[1]
+        from rest_framework.authtoken.models import Token
+        try:
+            token = Token.objects.get(key=token_key)
+            user = token.user
+        except Token.DoesNotExist:
+            return JsonResponse({'error': 'Invalid token'}, status=401)
+
+        # Check if user is in employee group
+        if not user.groups.exists():
+            return JsonResponse({'error': 'Access denied. Only employees can update complaints'}, status=403)
+
+        # Get complaint
+        complaint = get_object_or_404(Complaint, reference=reference)
+
+        # Check if complaint is assigned to this user
+        if complaint.assign_to != user:
+            return JsonResponse({'error': 'Access denied. Complaint not assigned to you'}, status=403)
+
+        # Parse request data
+        data = request.body
+        if not isinstance(data, dict):
+            import json as _json
+            try:
+                data = _json.loads(request.body or '{}')
+            except Exception:
+                data = {}
+
+        # Update fields
+        if 'status' in data:
+            complaint.status = data['status']
+        if 'technician_remark' in data:
+            complaint.technician_remark = data['technician_remark']
+        if 'solution' in data:
+            complaint.solution = data['solution']
+        if 'technician_signature' in data:
+            # Convert SVG to base64 image data for PDF compatibility
+            svg_data = data['technician_signature']
+            if svg_data and svg_data.startswith('<svg'):
+                # For now, store as-is. In production, you'd convert SVG to PNG
+                complaint.technician_signature = svg_data
+            else:
+                complaint.technician_signature = svg_data
+        if 'customer_signature' in data:
+            # Convert SVG to base64 image data for PDF compatibility
+            svg_data = data['customer_signature']
+            if svg_data and svg_data.startswith('<svg'):
+                # For now, store as-is. In production, you'd convert SVG to PNG
+                complaint.customer_signature = svg_data
+            else:
+                complaint.customer_signature = svg_data
+
+        complaint.save()
+
+        return JsonResponse({
+            'success': True,
+            'message': f'Complaint {complaint.reference} updated successfully',
+            'complaint': {
+                'id': complaint.id,
+                'reference': complaint.reference,
+                'status': complaint.status,
+                'technician_remark': complaint.technician_remark,
+                'solution': complaint.solution,
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"Error updating complaint status: {str(e)}")
+        return JsonResponse({'error': 'Internal server error'}, status=500)
 
 
 # QR Code Generation for Customer
@@ -501,4 +769,3 @@ def submit_public_complaint(request, customer_id):
     except Exception as e:
         logger.error(f"Error submitting public complaint: {str(e)}")
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
-
