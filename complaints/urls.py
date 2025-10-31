@@ -7,6 +7,7 @@ urlpatterns = [
     # Custom pages
     path('add/', views.add_complaint_custom, name='add_complaint_custom'),
     path('edit/<str:reference>/', views.edit_complaint_custom, name='edit_complaint_custom'),
+    path('view/<str:reference>/', views.view_complaint_custom, name='view_complaint_custom'),
 
     # Create/Update endpoints
     path('create/', views.create_complaint, name='create_complaint'),

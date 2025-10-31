@@ -63,8 +63,8 @@ class Complaint(models.Model):
     message = models.TextField()
     technician_remark = models.TextField(blank=True, null=True)
     solution = models.TextField(blank=True, null=True)
-    technician_signature = models.TextField(blank=True, null=True, help_text="Technician signature (SVG path or base64)")
-    customer_signature = models.TextField(blank=True, null=True, help_text="Customer signature (SVG path or base64)")
+    technician_signature = models.ImageField(upload_to='complaints/signatures/', blank=True, null=True, help_text="Technician signature image")
+    customer_signature = models.ImageField(upload_to='complaints/signatures/', blank=True, null=True, help_text="Customer signature image")
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
 
@@ -202,6 +202,7 @@ class ComplaintViewSet(SnippetViewSet):
     icon = "info-circle"
     menu_label = "All Complaints"
     inspect_view_enabled = True
+    inspect_template_name = 'complaints/view_complaint_custom.html'
 
     # 👇 Columns shown in list view
     list_display = (
@@ -288,6 +289,10 @@ class ComplaintViewSet(SnippetViewSet):
         return redirect(self.get_edit_url(instance))
     
     def view_view(self, request, pk):
+        instance = self.model.objects.get(pk=pk)
+        return redirect(self.get_view_url(instance))
+    
+    def inspect_view(self, request, pk):
         instance = self.model.objects.get(pk=pk)
         return redirect(self.get_view_url(instance))
 

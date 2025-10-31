@@ -127,8 +127,10 @@ def download_complaint_pdf(request, pk):
     ),
             'technician_remark': complaint.technician_remark or '',
             'solution': complaint.solution or '',
-            'technician_signature': complaint.technician_signature or '',
-            'customer_signature': complaint.customer_signature or '',
+            'technician_signature': complaint.technician_signature.url if complaint.technician_signature else '',
+            'customer_signature': complaint.customer_signature.url if complaint.customer_signature else '',
+            'technician_signature_file': complaint.technician_signature if complaint.technician_signature else None,
+            'customer_signature_file': complaint.customer_signature if complaint.customer_signature else None,
         }
 
         # --- Create PDF ---
@@ -201,20 +203,26 @@ def download_complaint_pdf(request, pk):
 
         # Technician Signature
         story.append(Paragraph("Technician Signature:", styles['Normal']))
-        if context['technician_signature']:
-            # Try to convert SVG to image
-            tech_sig_img = svg_to_png_base64(context['technician_signature'])
-            if tech_sig_img:
-                try:
-                    # Create image from base64 data
-                    img_data = base64.b64decode(tech_sig_img.split(',')[1])
-                    img_buffer = BytesIO(img_data)
-                    sig_img = Image(img_buffer, width=200, height=60)
-                    story.append(sig_img)
-                except Exception as e:
-                    logger.error(f"Error embedding technician signature image: {str(e)}")
-                    story.append(Paragraph("[Signature captured digitally]", styles['Italic']))
-            else:
+        if context.get('technician_signature_file'):
+            try:
+                # Use image file directly - Django ImageField
+                sig_file = context['technician_signature_file']
+                if hasattr(sig_file, 'path'):
+                    # ImageField has a path attribute
+                    with open(sig_file.path, 'rb') as f:
+                        img_buffer = BytesIO(f.read())
+                elif hasattr(sig_file, 'read'):
+                    # File object
+                    img_buffer = BytesIO(sig_file.read())
+                    sig_file.seek(0)  # Reset file pointer
+                else:
+                    # Fallback: try to open as file path string
+                    with open(sig_file, 'rb') as f:
+                        img_buffer = BytesIO(f.read())
+                sig_img = Image(img_buffer, width=200, height=60)
+                story.append(sig_img)
+            except Exception as e:
+                logger.error(f"Error embedding technician signature image: {str(e)}")
                 story.append(Paragraph("[Signature captured digitally]", styles['Italic']))
         else:
             story.append(Paragraph("___________________________", styles['Normal']))
@@ -222,20 +230,26 @@ def download_complaint_pdf(request, pk):
 
         # Customer Signature
         story.append(Paragraph("Customer Signature:", styles['Normal']))
-        if context['customer_signature']:
-            # Try to convert SVG to image
-            cust_sig_img = svg_to_png_base64(context['customer_signature'])
-            if cust_sig_img:
-                try:
-                    # Create image from base64 data
-                    img_data = base64.b64decode(cust_sig_img.split(',')[1])
-                    img_buffer = BytesIO(img_data)
-                    sig_img = Image(img_buffer, width=200, height=60)
-                    story.append(sig_img)
-                except Exception as e:
-                    logger.error(f"Error embedding customer signature image: {str(e)}")
-                    story.append(Paragraph("[Signature captured digitally]", styles['Italic']))
-            else:
+        if context.get('customer_signature_file'):
+            try:
+                # Use image file directly - Django ImageField
+                sig_file = context['customer_signature_file']
+                if hasattr(sig_file, 'path'):
+                    # ImageField has a path attribute
+                    with open(sig_file.path, 'rb') as f:
+                        img_buffer = BytesIO(f.read())
+                elif hasattr(sig_file, 'read'):
+                    # File object
+                    img_buffer = BytesIO(sig_file.read())
+                    sig_file.seek(0)  # Reset file pointer
+                else:
+                    # Fallback: try to open as file path string
+                    with open(sig_file, 'rb') as f:
+                        img_buffer = BytesIO(f.read())
+                sig_img = Image(img_buffer, width=200, height=60)
+                story.append(sig_img)
+            except Exception as e:
+                logger.error(f"Error embedding customer signature image: {str(e)}")
                 story.append(Paragraph("[Signature captured digitally]", styles['Italic']))
         else:
             story.append(Paragraph("___________________________", styles['Normal']))
@@ -269,6 +283,32 @@ def edit_complaint_custom(request, reference):
         'complaint': complaint,
     }
     return render(request, 'complaints/edit_complaint_custom.html', context)
+
+
+def view_complaint_custom(request, reference):
+    """View complaint details page"""
+    complaint = get_object_or_404(Complaint, reference=reference)
+    
+    # Get related complaints from the same customer
+    related_complaints = None
+    if complaint.customer:
+        related_complaints = Complaint.objects.filter(
+            customer=complaint.customer
+        ).exclude(id=complaint.id).order_by('-date', '-id')
+    
+    # Get assignment history
+    assignment_history = complaint.assignment_history.all().order_by('-assignment_date')
+    
+    # Get call update history
+    call_update_history = complaint.call_update_history.all().order_by('-call_update_date')
+    
+    context = {
+        'complaint': complaint,
+        'related_complaints': related_complaints,
+        'assignment_history': assignment_history,
+        'call_update_history': call_update_history,
+    }
+    return render(request, 'complaints/view_complaint_custom.html', context)
 
 
 @require_http_methods(["GET"])
@@ -541,6 +581,13 @@ def update_complaint(request, reference):
         complaint.message = data.get('message', complaint.message)
         complaint.technician_remark = data.get('technician_remark', complaint.technician_remark)
         complaint.solution = data.get('solution', complaint.solution)
+        
+        # Handle signature image files
+        if 'technician_signature' in request.FILES:
+            complaint.technician_signature = request.FILES['technician_signature']
+        if 'customer_signature' in request.FILES:
+            complaint.customer_signature = request.FILES['customer_signature']
+        
         complaint.save()
         return JsonResponse({'success': True, 'message': f'Complaint {complaint.reference} updated successfully'})
     except Exception as e:
@@ -595,22 +642,65 @@ def update_complaint_status(request, reference):
             complaint.technician_remark = data['technician_remark']
         if 'solution' in data:
             complaint.solution = data['solution']
-        if 'technician_signature' in data:
-            # Convert SVG to base64 image data for PDF compatibility
-            svg_data = data['technician_signature']
-            if svg_data and svg_data.startswith('<svg'):
-                # For now, store as-is. In production, you'd convert SVG to PNG
-                complaint.technician_signature = svg_data
-            else:
-                complaint.technician_signature = svg_data
-        if 'customer_signature' in data:
-            # Convert SVG to base64 image data for PDF compatibility
-            svg_data = data['customer_signature']
-            if svg_data and svg_data.startswith('<svg'):
-                # For now, store as-is. In production, you'd convert SVG to PNG
-                complaint.customer_signature = svg_data
-            else:
-                complaint.customer_signature = svg_data
+        
+        # Handle signature image files
+        if 'technician_signature' in request.FILES:
+            complaint.technician_signature = request.FILES['technician_signature']
+        elif 'technician_signature' in data:
+            # Handle base64 image data (from mobile apps)
+            import base64
+            from django.core.files.base import ContentFile
+            from django.core.files.uploadedfile import InMemoryUploadedFile
+            import io
+            
+            sig_data = data['technician_signature']
+            if sig_data and sig_data.startswith('data:image'):
+                # Base64 image data
+                try:
+                    format, imgstr = sig_data.split(';base64,')
+                    ext = format.split('/')[-1]
+                    img_data = base64.b64decode(imgstr)
+                    img_file = ContentFile(img_data, name=f'tech_sig_{complaint.reference}.{ext}')
+                    complaint.technician_signature = img_file
+                except Exception as e:
+                    logger.error(f"Error processing technician signature: {str(e)}")
+            elif sig_data:
+                # Try to decode as base64 without data URL prefix
+                try:
+                    img_data = base64.b64decode(sig_data)
+                    img_file = ContentFile(img_data, name=f'tech_sig_{complaint.reference}.png')
+                    complaint.technician_signature = img_file
+                except Exception:
+                    pass
+        
+        if 'customer_signature' in request.FILES:
+            complaint.customer_signature = request.FILES['customer_signature']
+        elif 'customer_signature' in data:
+            # Handle base64 image data (from mobile apps)
+            import base64
+            from django.core.files.base import ContentFile
+            from django.core.files.uploadedfile import InMemoryUploadedFile
+            import io
+            
+            sig_data = data['customer_signature']
+            if sig_data and sig_data.startswith('data:image'):
+                # Base64 image data
+                try:
+                    format, imgstr = sig_data.split(';base64,')
+                    ext = format.split('/')[-1]
+                    img_data = base64.b64decode(imgstr)
+                    img_file = ContentFile(img_data, name=f'cust_sig_{complaint.reference}.{ext}')
+                    complaint.customer_signature = img_file
+                except Exception as e:
+                    logger.error(f"Error processing customer signature: {str(e)}")
+            elif sig_data:
+                # Try to decode as base64 without data URL prefix
+                try:
+                    img_data = base64.b64decode(sig_data)
+                    img_file = ContentFile(img_data, name=f'cust_sig_{complaint.reference}.png')
+                    complaint.customer_signature = img_file
+                except Exception:
+                    pass
 
         complaint.save()
 

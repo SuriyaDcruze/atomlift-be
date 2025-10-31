@@ -79,8 +79,8 @@ class ComplaintListSerializer(serializers.ModelSerializer):
     priority = ComplaintPrioritySerializer(read_only=True)
     assign_to_name = serializers.SerializerMethodField()
     days_since_created = serializers.SerializerMethodField()
-    technician_signature = serializers.CharField(read_only=True)
-    customer_signature = serializers.CharField(read_only=True)
+    technician_signature = serializers.ImageField(read_only=True)
+    customer_signature = serializers.ImageField(read_only=True)
     
     class Meta:
         model = Complaint
@@ -141,6 +141,9 @@ class ComplaintDetailSerializer(serializers.ModelSerializer):
 class ComplaintUpdateSerializer(serializers.ModelSerializer):
     """Serializer for updating complaint status and remarks"""
     change_reason = serializers.CharField(required=False, allow_blank=True, help_text="Reason for status change")
+    
+    technician_signature = serializers.ImageField(required=False, allow_null=True)
+    customer_signature = serializers.ImageField(required=False, allow_null=True)
     
     class Meta:
         model = Complaint
