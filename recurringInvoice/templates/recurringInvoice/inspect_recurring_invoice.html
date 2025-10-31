@@ -1,0 +1,455 @@
+{% extends "wagtailadmin/base.html" %}
+{% load static wagtailcore_tags %}
+
+{% block extra_css %}
+<style>
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+.w-content-wrapper {
+  background: #f5f5f5;
+  min-height: calc(100vh - 4rem);
+  padding: 2rem;
+}
+
+.w-modal-overlay {
+  position: static;
+  inset: auto;
+  background-color: transparent;
+  display: block;
+  padding: 0;
+}
+
+.w-modal-content {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.15);
+  width: 100%;
+  max-width: 72rem;
+  margin: 2rem auto;
+  max-height: none;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+}
+
+.w-modal-header {
+  background: linear-gradient(to right, #2D3A6B, #243158);
+  padding: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.w-modal-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: white;
+}
+
+.w-modal-subtitle {
+  margin: 0;
+  color: white;
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
+
+.w-modal-body {
+  padding: 1.5rem;
+  max-height: none;
+  overflow: visible;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.form-section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 2px solid #E5E7EB;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.form-value {
+  display: block;
+  font-size: 0.875rem;
+  color: #6B7280;
+  background: #F9FAFB;
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  border: 1px solid #E5E7EB;
+}
+
+.form-value-empty {
+  color: #9CA3AF;
+  font-style: italic;
+}
+
+.info-card {
+  background: linear-gradient(to right, #ECFDF5, #D1FAE5);
+  border: 2px solid #10B981;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.info-card-header {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #065F46;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.info-card-content {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.info-item-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #047857;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+
+.info-item-value {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #065F46;
+}
+
+.info-item-value-empty {
+  color: #9CA3AF;
+  font-style: italic;
+}
+
+.warning-card {
+  background: linear-gradient(to right, #FEF3C7, #FDE68A);
+  border: 2px solid #F59E0B;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.warning-card-header {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #92400E;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.warning-card-content {
+  color: #78350F;
+  font-size: 0.875rem;
+}
+
+@media (max-width: 768px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .info-card-content {
+    grid-template-columns: 1fr;
+  }
+  
+  .w-modal-content {
+    margin: 1rem auto;
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="w-content-wrapper">
+  <div class="w-modal-overlay">
+    <div class="w-modal-content">
+      <!-- Modal Header -->
+      <div class="w-modal-header">
+        <div>
+          <h2 class="w-modal-title">Recurring Invoice Details</h2>
+          <p class="w-modal-subtitle">Reference ID: {{ instance.reference_id }}</p>
+        </div>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="w-modal-body">
+        <!-- Invoice Generation Status Card -->
+        <div class="info-card">
+          <div class="info-card-header">
+            <span>📅 Invoice Generation Schedule</span>
+          </div>
+          <div class="info-card-content">
+            <div class="info-item">
+              <div class="info-item-label">Last Generated Date</div>
+              <div class="info-item-value {% if not instance.last_generated_date %}info-item-value-empty{% endif %}">
+                {% if instance.last_generated_date %}
+                  {{ instance.last_generated_date|date:"M. d, Y" }}
+                {% else %}
+                  Not generated yet
+                {% endif %}
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="info-item-label">Next Invoice Date</div>
+              <div class="info-item-value {% if not instance.next_invoice_date %}info-item-value-empty{% endif %}">
+                {% if instance.next_invoice_date %}
+                  {{ instance.next_invoice_date|date:"M. d, Y" }}
+                {% else %}
+                  {% if not instance.auto_repeat %}
+                    Auto-repeat disabled
+                  {% elif instance.status != 'active' %}
+                    Status: {{ instance.get_status_display }}
+                  {% elif instance.end_date %}
+                    End date passed or exceeded
+                  {% else %}
+                    Not scheduled
+                  {% endif %}
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recurring Schedule Information -->
+        {% if not instance.auto_repeat %}
+        <div class="warning-card">
+          <div class="warning-card-header">
+            <span>⚠️ Auto-repeat Disabled</span>
+          </div>
+          <div class="warning-card-content">
+            Automatic invoice generation is currently disabled for this recurring invoice. 
+            Invoices will not be generated automatically based on the schedule.
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Main Details Grid -->
+        <div class="form-grid">
+          <!-- Left Column -->
+          <div class="form-column">
+            <h3 class="form-section-title">Basic Information</h3>
+
+            <div class="form-group">
+              <label class="form-label">Reference ID</label>
+              <div class="form-value">{{ instance.reference_id }}</div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Customer</label>
+              <div class="form-value">
+                {% if instance.customer %}
+                  {{ instance.customer.site_name }}
+                  {% if instance.customer.reference_id %}
+                    ({{ instance.customer.reference_id }})
+                  {% endif %}
+                {% else %}
+                  <span class="form-value-empty">No customer assigned</span>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Profile Name</label>
+              <div class="form-value">{{ instance.profile_name }}</div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Order Number</label>
+              <div class="form-value">
+                {% if instance.order_number %}
+                  {{ instance.order_number }}
+                {% else %}
+                  <span class="form-value-empty">Not provided</span>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Sales Person</label>
+              <div class="form-value">
+                {% if instance.sales_person %}
+                  {{ instance.sales_person.get_full_name|default:instance.sales_person.username }}
+                {% else %}
+                  <span class="form-value-empty">Not assigned</span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column -->
+          <div class="form-column">
+            <h3 class="form-section-title">Recurring Schedule</h3>
+
+            <div class="form-group">
+              <label class="form-label">Repeat Every</label>
+              <div class="form-value">{{ instance.get_repeat_every_display }}</div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Auto Repeat</label>
+              <div class="form-value">
+                {% if instance.auto_repeat %}
+                  <span style="color: #10B981; font-weight: 600;">✓ Enabled</span>
+                {% else %}
+                  <span style="color: #EF4444; font-weight: 600;">✗ Disabled</span>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Start Date</label>
+              <div class="form-value">{{ instance.start_date|date:"M. d, Y" }}</div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">End Date</label>
+              <div class="form-value">
+                {% if instance.end_date %}
+                  {{ instance.end_date|date:"M. d, Y" }}
+                {% else %}
+                  <span class="form-value-empty">Indefinite (no end date)</span>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Status</label>
+              <div class="form-value">
+                <span style="
+                  padding: 0.25rem 0.5rem;
+                  border-radius: 0.25rem;
+                  font-weight: 500;
+                  {% if instance.status == 'active' %}
+                    background: #D1FAE5;
+                    color: #065F46;
+                  {% elif instance.status == 'completed' %}
+                    background: #DBEAFE;
+                    color: #1E40AF;
+                  {% else %}
+                    background: #FEE2E2;
+                    color: #991B1B;
+                  {% endif %}
+                ">
+                  {{ instance.get_status_display }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Additional Information -->
+        <div style="margin-top: 2rem;">
+          <h3 class="form-section-title">Additional Information</h3>
+          
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Billing Address</label>
+              <div class="form-value" style="white-space: pre-wrap;">
+                {% if instance.billing_address %}
+                  {{ instance.billing_address }}
+                {% else %}
+                  <span class="form-value-empty">Not provided</span>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">GST Treatment</label>
+              <div class="form-value">
+                {% if instance.gst_treatment %}
+                  {{ instance.gst_treatment }}
+                {% else %}
+                  <span class="form-value-empty">Not specified</span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          {% if instance.uploads_files %}
+          <div class="form-group">
+            <label class="form-label">Uploaded Files</label>
+            <div class="form-value">
+              <a href="{{ instance.uploads_files.url }}" target="_blank" style="color: #3B82F6; text-decoration: underline;">
+                {{ instance.uploads_files.name }}
+              </a>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Invoice Items -->
+        {% if instance.items.all %}
+        <div style="margin-top: 2rem;">
+          <h3 class="form-section-title">Invoice Items</h3>
+          <table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
+            <thead>
+              <tr style="background: #F3F4F6;">
+                <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #E5E7EB; font-weight: 500; color: #374151;">Item</th>
+                <th style="padding: 0.75rem; text-align: right; border-bottom: 1px solid #E5E7EB; font-weight: 500; color: #374151;">Rate</th>
+                <th style="padding: 0.75rem; text-align: center; border-bottom: 1px solid #E5E7EB; font-weight: 500; color: #374151;">Qty</th>
+                <th style="padding: 0.75rem; text-align: right; border-bottom: 1px solid #E5E7EB; font-weight: 500; color: #374151;">Tax (%)</th>
+                <th style="padding: 0.75rem; text-align: right; border-bottom: 1px solid #E5E7EB; font-weight: 500; color: #374151;">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in instance.items.all %}
+              <tr>
+                <td style="padding: 0.75rem; border-bottom: 1px solid #E5E7EB;">
+                  {% if item.item %}
+                    {{ item.item.name }}
+                  {% else %}
+                    <span class="form-value-empty">No item selected</span>
+                  {% endif %}
+                </td>
+                <td style="padding: 0.75rem; text-align: right; border-bottom: 1px solid #E5E7EB;">₹{{ item.rate }}</td>
+                <td style="padding: 0.75rem; text-align: center; border-bottom: 1px solid #E5E7EB;">{{ item.qty }}</td>
+                <td style="padding: 0.75rem; text-align: right; border-bottom: 1px solid #E5E7EB;">{{ item.tax }}%</td>
+                <td style="padding: 0.75rem; text-align: right; border-bottom: 1px solid #E5E7EB; font-weight: 500;">₹{{ item.total }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

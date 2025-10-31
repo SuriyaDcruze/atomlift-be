@@ -495,6 +495,21 @@ body {
             </div>
 
             <div class="form-group">
+              <label class="form-label">Auto Repeat</label>
+              <div class="form-checkbox-wrapper">
+                <input
+                  type="checkbox"
+                  id="auto_repeat"
+                  name="auto_repeat"
+                  class="form-checkbox"
+                  {% if recurring_invoice.auto_repeat %}checked{% endif %}
+                />
+                <label for="auto_repeat" class="form-checkbox-label">Enable automatic invoice generation</label>
+              </div>
+              <p class="form-help">When enabled, invoices will be automatically generated based on the repeat schedule</p>
+            </div>
+
+            <div class="form-group">
               <label class="form-label">Sales Person</label>
               <div class="form-select-addon">
                 <select id="sales_person" name="sales_person" class="form-input form-select">
@@ -917,8 +932,13 @@ function createFormData() {
   var elements = document.querySelectorAll('input:not([name*="items["]), select:not([name*="items["]), textarea');
   for (var i = 0; i < elements.length; i++) {
     var element = elements[i];
-    if (element.name && element.type !== 'checkbox') {
-      if (element.type === 'file') {
+    if (element.name) {
+      if (element.type === 'checkbox') {
+        // For checkboxes, only add if checked
+        if (element.checked) {
+          formData.append(element.name, 'on');
+        }
+      } else if (element.type === 'file') {
         if (element.files && element.files[0]) {
           formData.append(element.name, element.files[0]);
         }

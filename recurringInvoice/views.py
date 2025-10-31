@@ -58,6 +58,7 @@ def create_recurring_invoice(request):
             profile_name=data.get('profile_name', ''),
             order_number=data.get('order_number', ''),
             repeat_every=data.get('repeat_every', 'month'),
+            auto_repeat='auto_repeat' in data and (data.get('auto_repeat') == 'on' or data.get('auto_repeat') == 'true' or data.get('auto_repeat') == True),
             start_date=data.get('start_date'),
             end_date=data.get('end_date') if data.get('end_date') else None,
             sales_person=sales_person,
@@ -143,6 +144,7 @@ def update_recurring_invoice(request, reference_id):
         recurring_invoice.profile_name = data.get('profile_name', recurring_invoice.profile_name)
         recurring_invoice.order_number = data.get('order_number', recurring_invoice.order_number)
         recurring_invoice.repeat_every = data.get('repeat_every', recurring_invoice.repeat_every)
+        recurring_invoice.auto_repeat = 'auto_repeat' in data and (data.get('auto_repeat') == 'on' or data.get('auto_repeat') == 'true' or data.get('auto_repeat') == True)
         recurring_invoice.start_date = data.get('start_date', recurring_invoice.start_date)
         recurring_invoice.end_date = data.get('end_date') if data.get('end_date') else None
         recurring_invoice.billing_address = data.get('billing_address', recurring_invoice.billing_address)

@@ -8,6 +8,7 @@ from wagtail.snippets.models import register_snippet
 from modelcluster.fields import ParentalKey
 from modelcluster.models import ClusterableModel
 from datetime import timedelta
+from dateutil.relativedelta import relativedelta
 from authentication.models import CustomUser  # Corrected import
 
 
@@ -26,6 +27,7 @@ class RecurringInvoice(ClusterableModel):
         ('3month', '3 Months'), ('6month', '6 Months'), ('year', 'Year'), ('2year', '2 Years'),
     ]
     repeat_every = models.CharField(max_length=20, choices=REPEAT_CHOICES, default='month')
+    auto_repeat = models.BooleanField(default=True, help_text="Enable automatic invoice generation based on repeat_every schedule")
     start_date = models.DateField()
     end_date = models.DateField(null=True, blank=True)
     last_generated_date = models.DateField(null=True, blank=True)
@@ -51,6 +53,7 @@ class RecurringInvoice(ClusterableModel):
             FieldPanel('profile_name'),
             FieldPanel('order_number'),
             FieldPanel('repeat_every'),
+            FieldPanel('auto_repeat'),
             FieldPanel('start_date'),
             FieldPanel('end_date'),
             FieldPanel('sales_person'),  # UNCOMMENTED
@@ -77,9 +80,89 @@ class RecurringInvoice(ClusterableModel):
         return self.reference_id
     
     def get_next_date(self):
-        if not self.last_generated_date: return self.start_date
-        mapping = {'week': 7, '2week': 14, 'month': 30, '2month': 60, '3month': 90, '6month': 180, 'year': 365, '2year': 730}
-        return self.last_generated_date + timedelta(days=mapping.get(self.repeat_every, 30))
+        """
+        Calculate the next invoice generation date based on repeat_every schedule
+        Uses proper date calculations for months/years (relativedelta) to handle edge cases
+        """
+        from django.utils import timezone
+        
+        # Base date: use last_generated_date if exists, otherwise use start_date
+        base_date = self.last_generated_date if self.last_generated_date else self.start_date
+        
+        # Calculate next date based on repeat_every using proper date arithmetic
+        if self.repeat_every == 'week':
+            next_date = base_date + timedelta(days=7)
+        elif self.repeat_every == '2week':
+            next_date = base_date + timedelta(days=14)
+        elif self.repeat_every == 'month':
+            next_date = base_date + relativedelta(months=1)
+        elif self.repeat_every == '2month':
+            next_date = base_date + relativedelta(months=2)
+        elif self.repeat_every == '3month':
+            next_date = base_date + relativedelta(months=3)
+        elif self.repeat_every == '6month':
+            next_date = base_date + relativedelta(months=6)
+        elif self.repeat_every == 'year':
+            next_date = base_date + relativedelta(years=1)
+        elif self.repeat_every == '2year':
+            next_date = base_date + relativedelta(years=2)
+        else:
+            # Default fallback: 30 days
+            next_date = base_date + timedelta(days=30)
+        
+        # Check if next_date exceeds end_date (if set)
+        if self.end_date and next_date > self.end_date:
+            return None  # No more invoices to generate
+        
+        # Check if next_date is in the past (shouldn't happen for active invoices)
+        today = timezone.now().date()
+        if next_date < today and self.status == 'active':
+            # If next date is in the past, recalculate from today
+            return self._calculate_next_from_date(today)
+        
+        return next_date
+    
+    def _calculate_next_from_date(self, from_date):
+        """Helper method to calculate next date from a given date"""
+        if self.repeat_every == 'week':
+            return from_date + timedelta(days=7)
+        elif self.repeat_every == '2week':
+            return from_date + timedelta(days=14)
+        elif self.repeat_every == 'month':
+            return from_date + relativedelta(months=1)
+        elif self.repeat_every == '2month':
+            return from_date + relativedelta(months=2)
+        elif self.repeat_every == '3month':
+            return from_date + relativedelta(months=3)
+        elif self.repeat_every == '6month':
+            return from_date + relativedelta(months=6)
+        elif self.repeat_every == 'year':
+            return from_date + relativedelta(years=1)
+        elif self.repeat_every == '2year':
+            return from_date + relativedelta(years=2)
+        else:
+            return from_date + timedelta(days=30)
+    
+    @property
+    def next_invoice_date(self):
+        """
+        Property to get the next invoice generation date
+        Returns None if no more invoices should be generated
+        """
+        from django.utils import timezone
+        
+        if not self.auto_repeat or self.status != 'active':
+            return None
+        
+        next_date = self.get_next_date()
+        
+        # Check if we've passed the end date
+        if self.end_date:
+            today = timezone.now().date()
+            if today > self.end_date:
+                return None
+        
+        return next_date
     
     def is_renewal_needed(self, days_before_expiry=30):
         """
@@ -131,11 +214,25 @@ class RecurringInvoice(ClusterableModel):
             elif extend_days:
                 self.end_date = self.end_date + timedelta(days=extend_days)
             else:
-                # Default: extend by the same period as repeat_every
-                mapping = {'week': 7, '2week': 14, 'month': 30, '2month': 60, 
-                          '3month': 90, '6month': 180, 'year': 365, '2year': 730}
-                extend_days = mapping.get(self.repeat_every, 30)
-                self.end_date = self.end_date + timedelta(days=extend_days)
+                # Default: extend by the same period as repeat_every using proper date calculations
+                if self.repeat_every == 'week':
+                    self.end_date = self.end_date + timedelta(days=7)
+                elif self.repeat_every == '2week':
+                    self.end_date = self.end_date + timedelta(days=14)
+                elif self.repeat_every == 'month':
+                    self.end_date = self.end_date + relativedelta(months=1)
+                elif self.repeat_every == '2month':
+                    self.end_date = self.end_date + relativedelta(months=2)
+                elif self.repeat_every == '3month':
+                    self.end_date = self.end_date + relativedelta(months=3)
+                elif self.repeat_every == '6month':
+                    self.end_date = self.end_date + relativedelta(months=6)
+                elif self.repeat_every == 'year':
+                    self.end_date = self.end_date + relativedelta(years=1)
+                elif self.repeat_every == '2year':
+                    self.end_date = self.end_date + relativedelta(years=2)
+                else:
+                    self.end_date = self.end_date + timedelta(days=30)
             
             self.save()
             return True
@@ -156,9 +253,25 @@ class RecurringInvoice(ClusterableModel):
         today = timezone.now().date()
         days_until_expiry = (self.end_date - today).days
         
-        mapping = {'week': 7, '2week': 14, 'month': 30, '2month': 60, 
-                  '3month': 90, '6month': 180, 'year': 365, '2year': 730}
-        default_extension = mapping.get(self.repeat_every, 30)
+        # Calculate default extension days based on repeat_every
+        if self.repeat_every == 'week':
+            default_extension = 7
+        elif self.repeat_every == '2week':
+            default_extension = 14
+        elif self.repeat_every == 'month':
+            default_extension = 30  # Approximate
+        elif self.repeat_every == '2month':
+            default_extension = 60  # Approximate
+        elif self.repeat_every == '3month':
+            default_extension = 90  # Approximate
+        elif self.repeat_every == '6month':
+            default_extension = 180  # Approximate
+        elif self.repeat_every == 'year':
+            default_extension = 365  # Approximate
+        elif self.repeat_every == '2year':
+            default_extension = 730  # Approximate
+        else:
+            default_extension = 30
         
         return {
             'needs_renewal': self.is_renewal_needed(),
@@ -236,6 +349,7 @@ class RecurringInvoiceViewSet(SnippetViewSet):
     icon = "group"
     menu_label = "Recurring Invoices"
     inspect_view_enabled = True
+    inspect_template_name = 'recurringInvoice/inspect_recurring_invoice.html'
 
     # ✅ Admin list view columns
     list_display = (
@@ -245,6 +359,7 @@ class RecurringInvoiceViewSet(SnippetViewSet):
         "repeat_every",
         "start_date",
         "end_date",
+        "last_generated_date",
         "status",
     )
 
@@ -256,6 +371,7 @@ class RecurringInvoiceViewSet(SnippetViewSet):
         "profile_name",
         "order_number",
         "repeat_every",
+        "auto_repeat",
         "start_date",
         "end_date",
         "last_generated_date",
@@ -292,9 +408,44 @@ class RecurringInvoiceViewSet(SnippetViewSet):
         instance = self.model.objects.get(pk=pk)
         return redirect(self.get_edit_url(instance))
     
+    def next_invoice_date_display(self, obj):
+        """Display next invoice date in list view"""
+        if not obj.auto_repeat:
+            return "Auto-repeat disabled"
+        if obj.status != 'active':
+            return f"({obj.get_status_display})"
+        
+        next_date = obj.next_invoice_date
+        if next_date:
+            return next_date.strftime("%b. %d, %Y")
+        else:
+            return "N/A"
+    
+    next_invoice_date_display.short_description = "Next Invoice Date"
+    next_invoice_date_display.admin_order_field = "last_generated_date"
+    
+    def last_generated_date_formatted(self, obj):
+        """Display last generated date with custom formatting"""
+        if obj.last_generated_date:
+            return obj.last_generated_date.strftime("%b. %d, %Y")
+        else:
+            return "Not generated yet"
+    
+    last_generated_date_formatted.short_description = "Last Generated Date"
+    last_generated_date_formatted.admin_order_field = "last_generated_date"
+    
     def get_list_display(self, request):
-        """Add renewal status to list display"""
+        """Add custom display methods to list display"""
         display = list(super().get_list_display(request))
+        # Replace last_generated_date with formatted version
+        if 'last_generated_date' in display:
+            display[display.index('last_generated_date')] = 'last_generated_date_formatted'
+        # Insert next_invoice_date_display before status
+        if 'status' in display:
+            status_index = display.index('status')
+            display.insert(status_index, 'next_invoice_date_display')
+        else:
+            display.append('next_invoice_date_display')
         display.append('renewal_status')
         return display
     
