@@ -34,6 +34,8 @@ class PaymentReceived(models.Model):
         choices=[
             ('cash', 'Cash'),
             ('bank_transfer', 'Bank Transfer'),
+            ('cheque', 'Cheque'),
+            ('neft', 'NEFT'),
         ],
         default='cash',
     )
