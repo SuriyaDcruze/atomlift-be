@@ -7,6 +7,14 @@ from .models import AMC, AMCType, PaymentTerms, Customer
 from django.utils import timezone
 from datetime import date, timedelta
 from items.models import Item
+from rest_framework.decorators import api_view, permission_classes, parser_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.pagination import PageNumberPagination
+from django.db.models import Q
+from .serializers import AMCCreateSerializer, AMCListSerializer
 
 # Create your views here.
 
@@ -449,3 +457,123 @@ def create_renewed_amc(request):
             'success': False,
             'error': str(e)
         }, status=500)
+
+
+# Mobile app API: Create AMC
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+@parser_classes([MultiPartParser, FormParser, JSONParser])
+def create_amc_mobile(request):
+    """Create a new AMC from the mobile app (token auth required)."""
+    try:
+        # Only allow employees (users in at least one group)
+        if not request.user.groups.exists():
+            return Response({"error": "Access denied. Only employees can add AMCs."}, status=status.HTTP_403_FORBIDDEN)
+
+        serializer = AMCCreateSerializer(data=request.data)
+        if serializer.is_valid():
+            amc = serializer.save()
+            data = {
+                "id": amc.id,
+                "reference_id": amc.reference_id,
+                "amcname": amc.amcname,
+                "customer": amc.customer.site_name,
+                "start_date": amc.start_date,
+                "end_date": amc.end_date,
+                "status": amc.status,
+            }
+            return Response({"message": "AMC created successfully", "amc": data}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def list_amcs_mobile(request):
+    """List AMCs for mobile app with pagination and filters."""
+    try:
+        if not request.user.groups.exists():
+            return Response({"error": "Access denied. Only employees can view AMCs."}, status=status.HTTP_403_FORBIDDEN)
+
+        queryset = AMC.objects.all().order_by('-id')
+
+        # Filters
+        search = request.query_params.get('q')
+        customer_id = request.query_params.get('customer')
+        status_filter = request.query_params.get('status')
+        amc_type_id = request.query_params.get('amc_type')
+
+        if search:
+            queryset = queryset.filter(
+                Q(reference_id__icontains=search) |
+                Q(amcname__icontains=search) |
+                Q(customer__site_name__icontains=search) |
+                Q(equipment_no__icontains=search) |
+                Q(latitude__icontains=search)
+            )
+
+        if customer_id:
+            queryset = queryset.filter(customer_id=customer_id)
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        if amc_type_id:
+            queryset = queryset.filter(amc_type_id=amc_type_id)
+
+        paginator = PageNumberPagination()
+        page_size = request.query_params.get('page_size')
+        if page_size:
+            try:
+                paginator.page_size = max(1, min(int(page_size), 100))
+            except ValueError:
+                paginator.page_size = None
+
+        page = paginator.paginate_queryset(queryset, request)
+        serializer = AMCListSerializer(page, many=True)
+        return paginator.get_paginated_response(serializer.data)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def list_amc_types_mobile(request):
+    """List AMC types for mobile app."""
+    try:
+        if not request.user.groups.exists():
+            return Response({"error": "Access denied. Only employees can view AMC types."}, status=status.HTTP_403_FORBIDDEN)
+
+        amc_types = AMCType.objects.all().order_by('name')
+        data = [
+            {"id": amc_type.id, "name": amc_type.name}
+            for amc_type in amc_types
+        ]
+        return Response({"amc_types": data}, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def create_amc_type_mobile(request):
+    """Create a new AMC type from mobile app (token auth required)."""
+    try:
+        if not request.user.groups.exists():
+            return Response({"error": "Access denied. Only employees can add AMC types."}, status=status.HTTP_403_FORBIDDEN)
+
+        name = request.data.get('name', '').strip()
+        
+        if not name:
+            return Response({"error": "Name is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if AMCType.objects.filter(name=name).exists():
+            return Response({"error": "AMC type already exists"}, status=status.HTTP_400_BAD_REQUEST)
+
+        amc_type = AMCType.objects.create(name=name)
+        data = {
+            "id": amc_type.id,
+            "name": amc_type.name
+        }
+        return Response({"message": "AMC type created successfully", "amc_type": data}, status=status.HTTP_201_CREATED)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

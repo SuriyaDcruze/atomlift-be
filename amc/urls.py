@@ -21,6 +21,12 @@ urlpatterns = [
     path("amc/expiring/this-month/", views.amc_expiring_this_month, name="amc_expiring_this_month"),
     path("amc/expiring/last-month/", views.amc_expiring_last_month, name="amc_expiring_last_month"),
     path("amc/expiring/next-month/", views.amc_expiring_next_month, name="amc_expiring_next_month"),
+
+    # Mobile app API endpoints
+    path("api/amc/list/", views.list_amcs_mobile, name="list_amcs_mobile"),
+    path("api/amc/create/", views.create_amc_mobile, name="create_amc_mobile"),
+    path("api/amc/types/list/", views.list_amc_types_mobile, name="list_amc_types_mobile"),
+    path("api/amc/types/create/", views.create_amc_type_mobile, name="create_amc_type_mobile"),
 ]
 
 # Serve media files in development
