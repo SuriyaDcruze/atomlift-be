@@ -342,6 +342,7 @@ class CustomerLicenseViewSet(SnippetViewSet):
     delete_view_enabled = False
     list_display = ("license_no", "customer", "lift_details", "period_start", "period_end", "status")
     list_export = list_display
+    list_display_add_buttons = None  # Hide the add button from list view header
 
 
 # ======================================================

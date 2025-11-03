@@ -10,7 +10,7 @@ from wagtail.admin.panels import FieldPanel, MultiFieldPanel
 from wagtail.snippets.widgets import SnippetListingButton
 import json
 
-from .models import Customer, Route, Branch, ProvinceState
+from .models import Customer, Route, Branch, ProvinceState, CustomerLicense
 
 
 @hooks.register('register_admin_urls')
@@ -55,6 +55,9 @@ def customize_customer_listing_buttons(buttons, snippet, user, context=None):
             priority=90,
             icon_name='view',
         ))
+    elif isinstance(snippet, CustomerLicense):
+        # Remove all action buttons (Edit, Delete) for CustomerLicense
+        buttons[:] = []
     
     return buttons
 
@@ -76,7 +79,7 @@ def add_customer_custom(request):
             data = json.loads(request.body)
             
             # Validate required fields
-            required_fields = ['site_id', 'site_name', 'mobile']
+            required_fields = ['site_id', 'site_name', 'mobile', 'job_no', 'city']
             for field in required_fields:
                 if not data.get(field):
                     return JsonResponse({
@@ -183,6 +186,15 @@ def edit_customer_custom(request, pk):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
+            
+            # Validate required fields
+            required_fields = ['site_id', 'site_name', 'mobile', 'job_no', 'city']
+            for field in required_fields:
+                if not data.get(field):
+                    return JsonResponse({
+                        'success': False,
+                        'error': f'{field.replace("_", " ").title()} is required'
+                    }, status=400)
             
             # Update fields
             customer.site_id = data.get('site_id', customer.site_id)

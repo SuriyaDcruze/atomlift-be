@@ -118,6 +118,10 @@ body {
   color: #6B7280;
 }
 
+.form-input::placeholder {
+  font-size: 0.875rem;
+}
+
 .form-textarea {
   min-height: 3rem;
   resize: vertical;
@@ -470,16 +474,19 @@ body {
             </div>
 
             <div class="form-group">
-              <label class="form-label">Lift Code</label>
+              <label class="form-label">
+                Lift Code<span class="form-required">*</span>
+              </label>
               <input
                 type="text"
                 id="lift_code"
                 name="lift_code"
                 value="{% if is_edit %}{{ lift.lift_code }}{% elif job_no %}{{ job_no }}{% endif %}"
                 class="form-input"
-                placeholder="Enter custom lift code (optional)"
+                placeholder="Enter lift code"
+                required
               />
-              <p class="form-help">{% if job_no %}Pre-filled with customer job number{% else %}Optional custom code for the lift{% endif %}</p>
+              <p class="form-help">{% if job_no %}Pre-filled with customer job number{% else %}Custom code for the lift{% endif %}</p>
             </div>
 
             <div class="form-group">
@@ -570,9 +577,12 @@ body {
                 type="text"
                 id="license_no"
                 name="license_no"
-                value="{% if is_edit %}{{ lift.license_no }}{% endif %}"
+                value="{% if is_edit %}{{ lift.license_no }}{% elif suggested_license_no %}{{ suggested_license_no }}{% endif %}"
                 class="form-input"
               />
+              {% if suggested_license_no %}
+              <p class="form-help">Auto-filled from customer's existing lift license</p>
+              {% endif %}
             </div>
 
             <div class="form-group">
@@ -1248,8 +1258,8 @@ function handleFormSubmit(event) {
 
   var data = createFormData();
 
-  if (!data.name || !data.price || !data.model || !data.no_of_passengers || !data.speed || !data.brand || !data.lift_type || !data.machine_type || !data.door_type) {
-    showMessage('error', 'Please fill in all required fields (Name, Price, Model, No. of Passengers, Speed, Brand, Lift Type, Machine Type, Door Type)');
+  if (!data.lift_code || !data.name || !data.price || !data.model || !data.no_of_passengers || !data.speed || !data.brand || !data.lift_type || !data.machine_type || !data.door_type) {
+    showMessage('error', 'Please fill in all required fields (Lift Code, Name, Price, Model, No. of Passengers, Speed, Brand, Lift Type, Machine Type, Door Type)');
     return;
   }
 

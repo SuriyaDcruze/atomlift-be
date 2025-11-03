@@ -96,7 +96,7 @@ class Lift(models.Model):
     controller_brand = models.ForeignKey(ControllerBrand, on_delete=models.SET_NULL, null=True)
     cabin = models.ForeignKey(Cabin, on_delete=models.SET_NULL, null=True)
     block = models.CharField(max_length=50, blank=True, null=True)
-    license_no = models.CharField(max_length=50, unique=True, blank=True, null=True)
+    license_no = models.CharField(max_length=50, blank=True, null=True)
     license_start_date = models.DateField(blank=True, null=True)
     license_end_date = models.DateField(blank=True, null=True)
 

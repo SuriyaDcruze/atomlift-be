@@ -1310,6 +1310,22 @@ def add_lift_custom(request, job_no=None):
     door_brands = DoorBrand.objects.all()
     controller_brands = ControllerBrand.objects.all()
     cabins = Cabin.objects.all()
+    
+    # Get customer info if job_no is provided
+    customer = None
+    suggested_license_no = None
+    if job_no:
+        try:
+            from customer.models import Customer
+            customer = Customer.objects.filter(job_no=job_no).first()
+            if customer:
+                # Get existing lift's license for this customer if any
+                from lift.models import Lift
+                existing_lift = Lift.objects.filter(lift_code=job_no).first()
+                if existing_lift and existing_lift.license_no:
+                    suggested_license_no = existing_lift.license_no
+        except Exception:
+            pass
 
     if request.method == 'POST':
         try:
@@ -1390,7 +1406,9 @@ def add_lift_custom(request, job_no=None):
         'controller_brands': controller_brands,
         'cabins': cabins,
         'is_edit': False,
-        'job_no': job_no  # Pass job_no to template for pre-filling
+        'job_no': job_no,  # Pass job_no to template for pre-filling
+        'customer': customer,  # Pass customer for license auto-fill
+        'suggested_license_no': suggested_license_no  # Pass suggested license no
     })
 
 

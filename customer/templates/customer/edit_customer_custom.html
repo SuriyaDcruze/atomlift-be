@@ -15,6 +15,7 @@ body { font-family: 'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI','Roboto'
 .form-section-title { font-size:1.125rem; font-weight:600; color:#374151; border-bottom:2px solid #E5E7EB; padding-bottom:.5rem; margin-bottom:1rem; }
 .form-group { margin-bottom:1rem; }
 .form-label { display:block; font-size:.875rem; font-weight:500; color:#374151; margin-bottom:.5rem; }
+.form-required { color:#EF4444; margin-left:.25rem; }
 .form-input { width:100%; padding:.5rem .75rem; border-radius:.375rem; border:1px solid #D1D5DB; box-shadow:0 1px 2px rgba(0,0,0,.05); font-size:.875rem; transition:all .2s; }
 .form-input:focus { outline:none; border-color:#F97316; box-shadow:0 0 0 3px rgba(249,115,22,.1); }
 .form-textarea { min-height:3rem; resize:vertical; padding:.5rem .75rem; }
@@ -105,12 +106,12 @@ body { font-family: 'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI','Roboto'
           <div class="form-column">
             <h3 class="form-section-title">Organization Details</h3>
             <div class="form-group">
-              <label class="form-label">Job No</label>
-              <input type="text" id="job_no" name="job_no" value="{{ customer.job_no }}" class="form-input" oninput="updateJobNo(this.value)" />
+              <label class="form-label">Job No<span class="form-required">*</span></label>
+              <input type="text" id="job_no" name="job_no" value="{{ customer.job_no }}" class="form-input" oninput="updateJobNo(this.value)" required />
             </div>
             <div class="form-group">
-              <label class="form-label">City</label>
-              <input type="text" id="city" name="city" value="{{ customer.city }}" class="form-input" />
+              <label class="form-label">City<span class="form-required">*</span></label>
+              <input type="text" id="city" name="city" value="{{ customer.city }}" class="form-input" required />
             </div>
             <div class="form-group">
               <label class="form-label">Pin Code</label>
@@ -187,6 +188,6 @@ function loadBranchesDropdown(){var currentBranchId={% if customer.branch %}{{ c
 function getCsrfToken(){var t=document.querySelector('[name=csrfmiddlewaretoken]');return t?t.value:''}
 function showMessage(type,message){alert(message)}
 function createFormData(){var els=document.querySelectorAll('input,select,textarea');var data={};for(var i=0;i<els.length;i++){var el=els[i];if(el.name){if(el.type==='checkbox'){data[el.name]=el.checked;}else{data[el.name]=el.value;}}}data.same_as_site_address=data.same_as_site_address||false;return data;}
-function handleFormSubmit(e){if(e)e.preventDefault();var data=createFormData();if(!data.site_id||!data.site_name||!data.mobile){showMessage('error','Please fill in all required fields (Site ID, Site Name, Mobile)');return;}if(data.mobile.length!==10){showMessage('error','Mobile number must be exactly 10 digits');return;}if(data.phone&&data.phone.length!==10){showMessage('error','Phone number must be exactly 10 digits');return;}var btn=document.getElementById('submitBtn');var txt=btn.textContent;btn.textContent='Saving...';btn.disabled=true;fetch(submitUrl,{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':getCsrfToken()},body:JSON.stringify(data)}).then(r=>r.json()).then(result=>{btn.textContent=txt;btn.disabled=false;if(result.success){window.location.href=adminHomeUrl;}else{showMessage('error',result.error||'Failed');}}).catch(()=>{btn.textContent=txt;btn.disabled=false;showMessage('error','An error occurred while saving the customer');});}
+function handleFormSubmit(e){if(e)e.preventDefault();var data=createFormData();if(!data.site_id||!data.site_name||!data.mobile||!data.job_no||!data.city){showMessage('error','Please fill in all required fields (Site ID, Site Name, Mobile, Job No, City)');return;}if(data.mobile.length!==10){showMessage('error','Mobile number must be exactly 10 digits');return;}if(data.phone&&data.phone.length!==10){showMessage('error','Phone number must be exactly 10 digits');return;}var btn=document.getElementById('submitBtn');var txt=btn.textContent;btn.textContent='Saving...';btn.disabled=true;fetch(submitUrl,{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':getCsrfToken()},body:JSON.stringify(data)}).then(r=>r.json()).then(result=>{btn.textContent=txt;btn.disabled=false;if(result.success){window.location.href=adminHomeUrl;}else{showMessage('error',result.error||'Failed');}}).catch(()=>{btn.textContent=txt;btn.disabled=false;showMessage('error','An error occurred while saving the customer');});}
 </script>
 {% endblock %}

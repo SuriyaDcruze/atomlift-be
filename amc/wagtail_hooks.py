@@ -102,6 +102,31 @@ def add_amc_custom(request):
                     'error': 'Please select an AMC Service Item when generating contract'
                 }, status=400)
 
+            # Handle optional numeric fields - allow empty/None values
+            def parse_int(value, default=None):
+                """Parse integer value, return None if empty/invalid"""
+                if value is None or value == '':
+                    return default
+                try:
+                    return int(value) if str(value).strip() else default
+                except (ValueError, TypeError):
+                    return default
+
+            def parse_decimal(value, default=None):
+                """Parse decimal value, return None if empty/invalid"""
+                if value is None or value == '':
+                    return default
+                try:
+                    return float(value) if str(value).strip() else default
+                except (ValueError, TypeError):
+                    return default
+
+            no_of_services = parse_int(data.get('no_of_services'))
+            price = parse_decimal(data.get('price'), default=0)
+            no_of_lifts = parse_int(data.get('no_of_lifts'), default=0)
+            gst_percentage = parse_decimal(data.get('gst_percentage'), default=0)
+            total_amount_paid = parse_decimal(data.get('total_amount_paid'), default=0)
+
             # Create AMC
             amc = AMC.objects.create(
                 customer=customer,
@@ -114,12 +139,12 @@ def add_amc_custom(request):
                 latitude=data.get('latitude', ''),
                 notes=data.get('notes', ''),
                 is_generate_contract=generate_contract,
-                no_of_services=data.get('no_of_services', 12),
+                no_of_services=no_of_services,
                 amc_service_item=amc_service_item,
-                price=data.get('price', 0),
-                no_of_lifts=data.get('no_of_lifts', 0),
-                gst_percentage=data.get('gst_percentage', 0),
-                total_amount_paid=data.get('total_amount_paid', 0),
+                price=price,
+                no_of_lifts=no_of_lifts,
+                gst_percentage=gst_percentage,
+                total_amount_paid=total_amount_paid,
             )
 
             return JsonResponse({
@@ -188,11 +213,43 @@ def edit_amc_custom(request, pk):
             amc.latitude = data.get('latitude', amc.latitude)
             amc.notes = data.get('notes', amc.notes)
             amc.is_generate_contract = data.get('is_generate_contract', amc.is_generate_contract)
-            amc.no_of_services = data.get('no_of_services', amc.no_of_services)
-            amc.price = data.get('price', amc.price)
-            amc.no_of_lifts = data.get('no_of_lifts', amc.no_of_lifts)
-            amc.gst_percentage = data.get('gst_percentage', amc.gst_percentage)
-            amc.total_amount_paid = data.get('total_amount_paid', amc.total_amount_paid)
+            
+            # Handle optional numeric fields - allow empty/None values
+            def parse_int(value, default=None):
+                """Parse integer value, return None if empty/invalid"""
+                if value is None or value == '':
+                    return default
+                try:
+                    return int(value) if str(value).strip() else default
+                except (ValueError, TypeError):
+                    return default
+
+            def parse_decimal(value, default=None):
+                """Parse decimal value, return None if empty/invalid"""
+                if value is None or value == '':
+                    return default
+                try:
+                    return float(value) if str(value).strip() else default
+                except (ValueError, TypeError):
+                    return default
+            
+            # Handle no_of_services - allow empty/None values
+            if 'no_of_services' in data:
+                amc.no_of_services = parse_int(data.get('no_of_services'))
+            # If not in data, keep existing value (don't change it)
+            
+            if 'price' in data:
+                price_val = parse_decimal(data.get('price'), default=0)
+                amc.price = price_val if price_val is not None else 0
+            if 'no_of_lifts' in data:
+                lifts_val = parse_int(data.get('no_of_lifts'), default=0)
+                amc.no_of_lifts = lifts_val if lifts_val is not None else 0
+            if 'gst_percentage' in data:
+                gst_val = parse_decimal(data.get('gst_percentage'), default=0)
+                amc.gst_percentage = gst_val if gst_val is not None else 0
+            if 'total_amount_paid' in data:
+                paid_val = parse_decimal(data.get('total_amount_paid'), default=0)
+                amc.total_amount_paid = paid_val if paid_val is not None else 0
             
             # Update foreign keys
             if data.get('amc_type'):

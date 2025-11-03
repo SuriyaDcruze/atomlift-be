@@ -580,7 +580,7 @@ body {
                   type="number"
                   id="threshold_qty"
                   name="threshold_qty"
-                  value="{% if is_edit %}{{ item.threshold_qty }}{% else %}0{% endif %}"
+                  value="{% if is_edit and item.threshold_qty is not None %}{{ item.threshold_qty }}{% endif %}"
                   class="form-input"
                 />
               </div>
@@ -608,7 +608,7 @@ body {
                   id="purchase_price"
                   name="purchase_price"
                   step="0.01"
-                  value="{% if is_edit %}{{ item.purchase_price }}{% else %}0{% endif %}"
+                  value="{% if is_edit and item.purchase_price is not None %}{{ item.purchase_price }}{% endif %}"
                   class="form-input"
                 />
               </div>
@@ -1021,9 +1021,15 @@ function createFormData() {
   const form = document.getElementById('itemForm');
   const data = {};
   new FormData(form).forEach((value, key) => {
-    if (key === 'threshold_qty') value = parseInt(value) || null;
-    if (key === 'sale_price' || key === 'purchase_price' || key === 'igst' || key === 'gst') value = parseFloat(value) || null;
-    if (key === 'make' || key === 'type' || key === 'unit') value = value ? parseInt(value) : null;
+    if (key === 'threshold_qty') {
+      value = value === '' ? null : (isNaN(parseInt(value)) ? null : parseInt(value));
+    } else if (key === 'purchase_price') {
+      value = value === '' ? null : (isNaN(parseFloat(value)) ? null : parseFloat(value));
+    } else if (key === 'sale_price' || key === 'igst' || key === 'gst') {
+      value = parseFloat(value) || null;
+    } else if (key === 'make' || key === 'type' || key === 'unit') {
+      value = value ? parseInt(value) : null;
+    }
     data[key] = value;
   });
   return data;

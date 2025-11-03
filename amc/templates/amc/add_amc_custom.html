@@ -660,8 +660,9 @@ body {
                     type="number"
                     id="no_of_services"
                     name="no_of_services"
-                    value="{% if is_edit %}{{ amc.no_of_services|default:'12' }}{% endif %}"
+                    value="{% if is_edit %}{{ amc.no_of_services|default:'' }}{% endif %}"
                     class="form-input"
+                    min="0"
                   />
                 </div>
 
@@ -1327,6 +1328,37 @@ function handleAMCFormSubmit(event) {
   const formData = new FormData(form);
   const data = Object.fromEntries(formData.entries());
   data.is_generate_contract = document.getElementById('is_generate_contract').checked;
+
+  // Convert empty strings to null for optional numeric fields
+  // Only include them in the data if they have a value, or explicitly set to null
+  if (data.no_of_services === '' || data.no_of_services === null || data.no_of_services === undefined) {
+    data.no_of_services = null;
+  } else {
+    // Ensure it's a valid number
+    const numValue = parseInt(data.no_of_services);
+    data.no_of_services = isNaN(numValue) ? null : numValue;
+  }
+  
+  if (data.price === '' || data.price === null || data.price === undefined) {
+    data.price = null;
+  } else {
+    const numValue = parseFloat(data.price);
+    data.price = isNaN(numValue) ? null : numValue;
+  }
+  
+  if (data.no_of_lifts === '' || data.no_of_lifts === null || data.no_of_lifts === undefined) {
+    data.no_of_lifts = null;
+  } else {
+    const numValue = parseInt(data.no_of_lifts);
+    data.no_of_lifts = isNaN(numValue) ? null : numValue;
+  }
+  
+  if (data.gst_percentage === '' || data.gst_percentage === null || data.gst_percentage === undefined) {
+    data.gst_percentage = null;
+  } else {
+    const numValue = parseFloat(data.gst_percentage);
+    data.gst_percentage = isNaN(numValue) ? null : numValue;
+  }
 
   if (!data.customer || !data.start_date || !data.end_date) {
     showMessage('error', 'Please fill in all required fields (Customer, Start Date, End Date)');

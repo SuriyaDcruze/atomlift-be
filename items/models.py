@@ -43,9 +43,9 @@ class Item(models.Model):
     model = models.CharField(max_length=100)
     type = models.ForeignKey(Type, on_delete=models.SET_NULL, null=True)
     capacity = models.CharField(max_length=50)
-    threshold_qty = models.IntegerField(default=0)
+    threshold_qty = models.IntegerField(blank=True, null=True)
     sale_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    purchase_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    purchase_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     service_type = models.CharField(
         max_length=10,
         choices=[('Goods', 'Goods'), ('Services', 'Services')],

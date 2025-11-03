@@ -629,7 +629,7 @@ body {
             <h3 class="form-section-title">Organization Details</h3>
 
             <div class="form-group">
-              <label class="form-label">Job No</label>
+              <label class="form-label">Job No<span class="form-required">*</span></label>
               <input
                 type="text"
                 id="job_no"
@@ -637,17 +637,19 @@ body {
                 value="{% if is_edit %}{{ customer.job_no }}{% endif %}"
                 class="form-input"
                 oninput="updateJobNo(this.value)"
+                required
               />
             </div>
 
             <div class="form-group">
-              <label class="form-label">City</label>
+              <label class="form-label">City<span class="form-required">*</span></label>
               <input
                 type="text"
                 id="city"
                 name="city"
                 value="{% if is_edit %}{{ customer.city }}{% endif %}"
                 class="form-input"
+                required
               />
             </div>
 
@@ -1146,8 +1148,8 @@ function handleFormSubmit(event) {
 
   var data = createFormData();
 
-  if (!data.site_id || !data.site_name || !data.mobile) {
-    showMessage('error', 'Please fill in all required fields (Site ID, Site Name, Mobile)');
+  if (!data.site_id || !data.site_name || !data.mobile || !data.job_no || !data.city) {
+    showMessage('error', 'Please fill in all required fields (Site ID, Site Name, Mobile, Job No, City)');
     return;
   }
 

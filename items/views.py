@@ -23,9 +23,9 @@ def add_item_custom(request):
                 model=data.get('model'),
                 type_id=data.get('type') if data.get('type') else None,
                 capacity=data.get('capacity'),
-                threshold_qty=data.get('threshold_qty', 0),
+                threshold_qty=data.get('threshold_qty') if data.get('threshold_qty') is not None else None,
                 sale_price=data.get('sale_price', 0),
-                purchase_price=data.get('purchase_price', 0),
+                purchase_price=data.get('purchase_price') if data.get('purchase_price') is not None else None,
                 service_type=data.get('service_type', 'Goods'),
                 tax_preference=data.get('tax_preference', 'Non-Taxable'),
                 unit_id=data.get('unit') if data.get('unit') else None,
@@ -72,9 +72,9 @@ def edit_item_custom(request, item_number):
             item.model = data.get('model')
             item.type_id = data.get('type') if data.get('type') else None
             item.capacity = data.get('capacity')
-            item.threshold_qty = data.get('threshold_qty', 0)
+            item.threshold_qty = data.get('threshold_qty') if data.get('threshold_qty') is not None else None
             item.sale_price = data.get('sale_price', 0)
-            item.purchase_price = data.get('purchase_price', 0)
+            item.purchase_price = data.get('purchase_price') if data.get('purchase_price') is not None else None
             item.service_type = data.get('service_type', 'Goods')
             item.tax_preference = data.get('tax_preference', 'Non-Taxable')
             item.unit_id = data.get('unit') if data.get('unit') else None
