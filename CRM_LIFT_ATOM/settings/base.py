@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "services_shedule",
     "Routine_services",
     "employeeleave",
+    "travelling",
     "search",
     "wagtail_modeladmin",
     "wagtail.contrib.forms",
@@ -245,4 +246,3 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOW_ALL_ORIGINS = True  # Only for development, remove in production
-

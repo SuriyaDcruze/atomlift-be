@@ -28,6 +28,7 @@ urlpatterns = [
     path('routine-services/', include('Routine_services.urls')),
     path('auth/', include('authentication.urls')),
     path('employeeleave/', include('employeeleave.urls')),
+    path('travelling/', include('travelling.urls')),
     path("django-admin/", admin.site.urls),
     path("admin/", include(wagtailadmin_urls)),
     path("documents/", include(wagtaildocs_urls)),

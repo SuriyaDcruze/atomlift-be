@@ -12,6 +12,9 @@ urlpatterns = [
     path('api/makes/<int:pk>/', views.manage_makes_detail, name='api_manage_makes_detail'),
     path('api/units/', views.manage_units, name='api_manage_units'),
     path('api/units/<int:pk>/', views.manage_units_detail, name='api_manage_units_detail'),
+
+    # API endpoint for items list
+    path('api/items/', views.manage_items, name='api_manage_items'),
 ]
 
 if settings.DEBUG:

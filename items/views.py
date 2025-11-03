@@ -234,3 +234,29 @@ def manage_units_detail(request, pk):
         return JsonResponse({'success': False, 'error': 'Unit not found'}, status=404)
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@csrf_exempt
+def manage_items(request):
+    """API for getting items list"""
+    if request.method == 'GET':
+        try:
+            items = Item.objects.select_related('make', 'type', 'unit').all().order_by('name')
+            data = []
+            for item in items:
+                data.append({
+                    'id': item.id,
+                    'item_number': item.item_number,
+                    'name': item.name,
+                    'make': item.make.value if item.make else None,
+                    'model': item.model,
+                    'type': item.type.value if item.type else None,
+                    'capacity': item.capacity,
+                    'unit': item.unit.value if item.unit else None,
+                    'sale_price': str(item.sale_price),
+                    'purchase_price': str(item.purchase_price),
+                })
+            return JsonResponse(data, safe=False)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    else:
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
