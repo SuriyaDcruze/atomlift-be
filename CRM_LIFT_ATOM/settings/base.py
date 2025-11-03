@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "monthly_load",
     "services_shedule",
     "Routine_services",
+    "employeeleave",
     "search",
     "wagtail_modeladmin",
     "wagtail.contrib.forms",
