@@ -90,8 +90,40 @@ class LeaveRequestAdmin(ModelAdmin):
         return redirect(self.url_helper.index_url)
     
     def edit_view(self, request, instance_pk):
-        """Override edit view to use custom template"""
+        """Override edit view to use custom template with status update capability"""
         leave_request = get_object_or_404(LeaveRequest, pk=instance_pk)
+        
+        # Handle POST request for status update
+        if request.method == 'POST':
+            old_status = leave_request.status
+            new_status = request.POST.get('status')
+            admin_remarks = request.POST.get('admin_remarks', '')
+            
+            # Validate status
+            valid_statuses = ['pending', 'approved', 'rejected']
+            if new_status and new_status in valid_statuses:
+                # Update status and admin remarks
+                leave_request.status = new_status
+                leave_request.admin_remarks = admin_remarks
+                leave_request.save()
+                
+                # Email will be sent automatically via the signal (send_leave_status_email_signal)
+                
+                # Show success message
+                if old_status != new_status:
+                    messages.success(
+                        request,
+                        f"Leave request status updated to '{leave_request.get_status_display()}' successfully. "
+                        f"Email notification has been sent to the employee."
+                    )
+                else:
+                    messages.success(request, "Leave request updated successfully.")
+                
+                # Redirect to prevent resubmission - redirect back to the same edit page
+                return redirect(request.path)
+            else:
+                messages.error(request, "Invalid status value.")
+        
         context = {
             'leave_request': leave_request,
         }

@@ -1,5 +1,6 @@
 {% extends "wagtailadmin/base.html" %}
 {% load static wagtailcore_tags %}
+{% load i18n %}
 
 {% block extra_css %}
 <style>
@@ -109,6 +110,57 @@ body {
   font-style: italic;
 }
 
+.form-input, .form-select, .form-textarea {
+  width: 100%;
+  font-size: 0.875rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  border: 1px solid #D1D5DB;
+  background: white;
+  color: #374151;
+  font-family: inherit;
+}
+
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  outline: none;
+  border-color: #2D3A6B;
+  box-shadow: 0 0 0 3px rgba(45, 58, 107, 0.1);
+}
+
+.form-select {
+  cursor: pointer;
+}
+
+.form-textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.status-badge-display {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-badge-display.status-pending {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.status-badge-display.status-approved {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.status-badge-display.status-rejected {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
 .w-modal-footer {
   padding: 1rem 1.5rem;
   background: #F9FAFB;
@@ -185,6 +237,14 @@ body {
 
       <!-- Modal Body -->
       <div class="w-modal-body">
+        <!-- Messages -->
+        {% if messages %}
+          {% for message in messages %}
+            <div class="message message-{{ message.tags }}" style="padding: 1rem; margin-bottom: 1rem; border-radius: 0.375rem; {% if message.tags == 'success' %}background-color: #d1fae5; color: #065f46;{% elif message.tags == 'error' %}background-color: #fee2e2; color: #991b1b;{% else %}background-color: #fef3c7; color: #92400e;{% endif %}">
+              {{ message }}
+            </div>
+          {% endfor %}
+        {% endif %}
         <!-- Leave Request Details -->
         <div class="form-grid">
           <!-- Left Column -->
@@ -225,20 +285,43 @@ body {
         <!-- Status & Remarks Section -->
         <div class="mt-8">
           <h3 class="form-section-title">Status & Remarks</h3>
-          <div class="form-grid">
-            <div class="form-group">
-              <label class="form-label">Status</label>
-              <div class="form-value">{{ leave_request.get_status_display|default:"Not provided" }}</div>
+          
+          <!-- Update Status Form -->
+          <form method="POST" action="" id="status-form">
+            {% csrf_token %}
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Current Status</label>
+                <div class="form-value">
+                  <span class="status-badge-display status-{{ leave_request.status }}">
+                    {{ leave_request.get_status_display }}
+                  </span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Update Status <span style="color: red;">*</span></label>
+                <select name="status" class="form-select" required>
+                  <option value="pending" {% if leave_request.status == 'pending' %}selected{% endif %}>Pending</option>
+                  <option value="approved" {% if leave_request.status == 'approved' %}selected{% endif %}>Approved</option>
+                  <option value="rejected" {% if leave_request.status == 'rejected' %}selected{% endif %}>Rejected</option>
+                </select>
+                <small style="color: #6B7280; font-size: 0.75rem; margin-top: 0.25rem; display: block;">
+                  Changing status will automatically send an email notification to the employee.
+                </small>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Reason</label>
+                <div class="form-value">{{ leave_request.reason|default:"Not provided" }}</div>
+              </div>
+              <div class="form-group" style="grid-column: 1 / -1;">
+                <label class="form-label">Admin Remarks</label>
+                <textarea name="admin_remarks" class="form-textarea" placeholder="Enter admin remarks (optional)">{{ leave_request.admin_remarks|default:"" }}</textarea>
+                <small style="color: #6B7280; font-size: 0.75rem; margin-top: 0.25rem; display: block;">
+                  Admin remarks will be included in the email notification to the employee.
+                </small>
+              </div>
             </div>
-            <div class="form-group">
-              <label class="form-label">Reason</label>
-              <div class="form-value">{{ leave_request.reason|default:"Not provided" }}</div>
-            </div>
-            <div class="form-group" style="grid-column: 1 / -1;">
-              <label class="form-label">Admin Remarks</label>
-              <div class="form-value">{{ leave_request.admin_remarks|default:"Not provided" }}</div>
-            </div>
-          </div>
+          </form>
         </div>
 
         <!-- Timestamps Section -->
@@ -260,6 +343,7 @@ body {
       <!-- Modal Footer -->
       <div class="w-modal-footer">
         <button type="button" class="btn btn-secondary" onclick="window.history.back();">Back</button>
+        <button type="submit" form="status-form" class="btn btn-primary">Update Status</button>
       </div>
     </div>
   </div>
