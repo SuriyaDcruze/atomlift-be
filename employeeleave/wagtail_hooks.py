@@ -1,8 +1,9 @@
 from wagtail_modeladmin.options import ModelAdmin, modeladmin_register
 from django.contrib import messages
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render, get_object_or_404
 from django.utils.html import format_html
 from django.utils import timezone
+from wagtail import hooks
 from .models import LeaveRequest
 
 
@@ -19,22 +20,23 @@ class LeaveRequestAdmin(ModelAdmin):
         "get_user_info",
         "get_user_leave_counts",
         "get_leave_details",
-        "get_dates",
+        "get_from_date",
+        "get_to_date",
         "get_reason",
         "get_status_badge",
         "get_admin_remarks",
         "created_at",
     )
     
-    # Proper Wagtail admin filters - will display in sidebar like default Wagtail admin
-    list_filter = (
-        "status",
-        "leave_type",
-        "half_day",
-        "user",
-        "from_date",
-        "created_at",
-    )
+    # Filters removed as per requirement
+    # list_filter = (
+    #     "status",
+    #     "leave_type",
+    #     "half_day",
+    #     "user",
+    #     "from_date",
+    #     "created_at",
+    # )
     
     search_fields = (
         "user__username",
@@ -87,6 +89,14 @@ class LeaveRequestAdmin(ModelAdmin):
         # Redirect back to the list view
         return redirect(self.url_helper.index_url)
     
+    def edit_view(self, request, instance_pk):
+        """Override edit view to use custom template"""
+        leave_request = get_object_or_404(LeaveRequest, pk=instance_pk)
+        context = {
+            'leave_request': leave_request,
+        }
+        return render(request, 'employeeleave/view_leave_request_custom.html', context)
+    
     # Custom display methods for responsive layout
     def get_user_info(self, obj):
         """Display user information in a compact, responsive format"""
@@ -125,11 +135,11 @@ class LeaveRequestAdmin(ModelAdmin):
         rejected = counts['rejected'] or 0
         
         return format_html(
-            '<div class="leave-counts" style="font-size: 12px; line-height: 1.6;">'
+            '<div class="leave-counts">'
             '<div><strong>Total:</strong> {}</div>'
-            '<div style="color: #ff9800;"><strong>Pending:</strong> {}</div>'
-            '<div style="color: #4caf50;"><strong>Approved:</strong> {}</div>'
-            '<div style="color: #f44336;"><strong>Rejected:</strong> {}</div>'
+            '<div><strong>Pending:</strong> {}</div>'
+            '<div><strong>Approved:</strong> {}</div>'
+            '<div><strong>Rejected:</strong> {}</div>'
             '</div>',
             total,
             pending,
@@ -145,15 +155,7 @@ class LeaveRequestAdmin(ModelAdmin):
         half_day_indicator = ""
         if obj.half_day:
             half_day_indicator = format_html(
-                '<span class="half-day-badge" style="'
-                'display: inline-block; '
-                'background-color: #ff9800; '
-                'color: white; '
-                'padding: 2px 8px; '
-                'border-radius: 12px; '
-                'font-size: 11px; '
-                'margin-left: 8px;'
-                '">Half Day</span>'
+                '<span class="half-day-badge">Half Day</span>'
             )
         
         return format_html(
@@ -164,19 +166,29 @@ class LeaveRequestAdmin(ModelAdmin):
     get_leave_details.short_description = "Leave Type"
     get_leave_details.admin_order_field = "leave_type"
     
-    def get_dates(self, obj):
-        """Display date range in a compact format"""
-        if obj.from_date == obj.to_date:
+    def get_from_date(self, obj):
+        """Display from date"""
+        if obj.from_date:
             date_str = obj.from_date.strftime("%b %d, %Y")
-        else:
-            date_str = f"{obj.from_date.strftime('%b %d')} - {obj.to_date.strftime('%b %d, %Y')}"
-        
-        return format_html(
-            '<div class="leave-dates">{}</div>',
-            date_str
-        )
-    get_dates.short_description = "Dates"
-    get_dates.admin_order_field = "from_date"
+            return format_html(
+                '<div class="leave-date">{}</div>',
+                date_str
+            )
+        return format_html('<span>—</span>')
+    get_from_date.short_description = "From Date"
+    get_from_date.admin_order_field = "from_date"
+    
+    def get_to_date(self, obj):
+        """Display to date"""
+        if obj.to_date:
+            date_str = obj.to_date.strftime("%b %d, %Y")
+            return format_html(
+                '<div class="leave-date">{}</div>',
+                date_str
+            )
+        return format_html('<span>—</span>')
+    get_to_date.short_description = "To Date"
+    get_to_date.admin_order_field = "to_date"
     
     def get_reason(self, obj):
         """Display reason with truncation for responsive view"""
@@ -185,15 +197,11 @@ class LeaveRequestAdmin(ModelAdmin):
             if len(reason) > 60:
                 reason = reason[:60] + "..."
             return format_html(
-                '<div class="leave-reason" title="{}" style="'
-                'max-width: 200px; '
-                'font-size: 12px; '
-                'color: #555;'
-                '">{}</div>',
+                '<div class="leave-reason" title="{}">{}</div>',
                 obj.reason,
                 reason
             )
-        return format_html('<span style="color: #999;">—</span>')
+        return format_html('<span>—</span>')
     get_reason.short_description = "Reason"
     get_reason.admin_order_field = "reason"
     
@@ -201,26 +209,10 @@ class LeaveRequestAdmin(ModelAdmin):
         """Display status with color-coded badge"""
         status = obj.status
         status_display = obj.get_status_display()
-        
-        # Color coding for different statuses
-        color_map = {
-            'pending': '#ff9800',  # Orange
-            'approved': '#4caf50',  # Green
-            'rejected': '#f44336',  # Red
-        }
-        bg_color = color_map.get(status, '#757575')  # Default gray
-        
+
         return format_html(
-            '<span class="status-badge" style="'
-            'display: inline-block; '
-            'background-color: {}; '
-            'color: white; '
-            'padding: 4px 12px; '
-            'border-radius: 12px; '
-            'font-size: 12px; '
-            'font-weight: 500;'
-            '">{}</span>',
-            bg_color,
+            '<span class="status-badge status-{}">{}</span>',
+            status,
             status_display
         )
     get_status_badge.short_description = "Status"
@@ -237,7 +229,7 @@ class LeaveRequestAdmin(ModelAdmin):
                 obj.admin_remarks,
                 remarks
             )
-        return format_html('<span style="color: #999;">—</span>')
+        return format_html('<span>—</span>')
     get_admin_remarks.short_description = "Admin Remarks"
     get_admin_remarks.admin_order_field = "admin_remarks"
     
@@ -269,124 +261,13 @@ class LeaveRequestAdmin(ModelAdmin):
 modeladmin_register(LeaveRequestAdmin)
 
 
-# Add custom CSS for responsive design
-from wagtail import hooks
-from django.utils.html import format_html
-
+# Register custom CSS for leave request admin styling
 @hooks.register('insert_global_admin_css')
-def leave_request_admin_css():
-    """Add custom CSS for responsive leave request admin"""
-    # Use format_html with escaped curly braces
-    css_content = """
-    <style>
-    /* Responsive Leave Request Admin Styles */
-    @media screen and (max-width: 768px) {{
-        .modeladmin-index .listing {{
-            overflow-x: auto;
-        }}
-        
-        .modeladmin-index table {{
-            min-width: 600px;
-        }}
-        
-        .leave-user-info {{
-            min-width: 150px;
-        }}
-        
-        .leave-type {{
-            white-space: nowrap;
-        }}
-        
-        .leave-dates {{
-            white-space: nowrap;
-            font-size: 13px;
-        }}
-        
-        .status-badge {{
-            display: inline-block !important;
-        }}
-        
-        .admin-remarks {{
-            max-width: 200px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }}
-    }}
-    
-    /* Desktop and Tablet Styles */
-    .leave-user-info {{
-        line-height: 1.4;
-    }}
-    
-    .leave-user-info .user-name {{
-        display: block;
-        font-size: 14px;
-        color: #333;
-    }}
-    
-    .leave-user-info .user-email {{
-        display: block;
-        font-size: 12px;
-        color: #666;
-        margin-top: 2px;
-    }}
-    
-    .leave-type {{
-        font-weight: 500;
-        color: #333;
-    }}
-    
-    .half-day-badge {{
-        vertical-align: middle;
-    }}
-    
-    .leave-dates {{
-        font-size: 13px;
-        color: #555;
-    }}
-    
-    .status-badge {{
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }}
-    
-        .admin-remarks {{
-            font-size: 12px;
-            color: #666;
-            max-width: 250px;
-        }}
-        
-        .leave-reason {{
-            font-size: 12px;
-            color: #555;
-            max-width: 200px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }}
-        
-        /* Filter Sidebar Responsive */
-    @media screen and (max-width: 1024px) {{
-        .modeladmin-index .sidebar {{
-            width: 100%;
-            margin-top: 20px;
-        }}
-        
-        .modeladmin-index .listing {{
-            width: 100%;
-        }}
-    }}
-    
-    /* Table row hover effect */
-    .modeladmin-index table tbody tr:hover {{
-        background-color: #f5f5f5;
-    }}
-    
-    /* Better spacing in filter sidebar */
-    .filter-section {{
-        margin-bottom: 20px;
-    }}
-    </style>
+def global_admin_css():
+    """Add custom CSS for leave request admin styling"""
+    return """
+    <link rel="stylesheet" href="/static/employeeleave/css/employeeleave.css">
     """
-    return format_html(css_content)
 
+
+# Custom filter functionality removed as per requirement
