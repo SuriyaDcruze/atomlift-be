@@ -10,7 +10,7 @@ from wagtail.admin.panels import FieldPanel, MultiFieldPanel
 from wagtail.snippets.widgets import SnippetListingButton
 import json
 
-from .models import Customer, Route, Branch, ProvinceState, CustomerLicense
+from .models import Customer, Route, Branch, ProvinceState, CustomerLicense, CustomerContact, CustomerFeedback, CustomerFollowUp
 
 
 @hooks.register('register_admin_urls')
@@ -26,6 +26,10 @@ def register_customer_form_url():
         path('api/customer/branches/<int:pk>/', manage_branches, name='api_manage_branches_detail'),
         path('api/customer/states/', manage_states, name='api_manage_states'),
         path('api/customer/states/<int:pk>/', manage_states, name='api_manage_states_detail'),
+        path('api/customer/contacts/create/', create_customer_contact, name='create_customer_contact'),
+        path('api/customer/<int:customer_id>/notes/', update_customer_notes, name='update_customer_notes'),
+        path('api/customer/feedback/create/', create_customer_feedback, name='create_customer_feedback'),
+        path('api/customer/followup/create/', create_customer_followup, name='create_customer_followup'),
     ]
 
 
@@ -299,17 +303,14 @@ def view_customer_custom(request, pk):
     except:
         complaints = []
     
-    # Get feedback (if you have a feedback model)
-    feedbacks = []
-    # feedbacks = Feedback.objects.filter(customer=customer).order_by('-created_date')
+    # Get feedbacks for this customer
+    feedbacks = CustomerFeedback.objects.filter(customer=customer).order_by('-created_date')
     
-    # Get follow-ups (if you have a follow-up model)
-    follow_ups = []
-    # follow_ups = FollowUp.objects.filter(customer=customer).order_by('-created_date')
+    # Get follow-ups for this customer
+    follow_ups = CustomerFollowUp.objects.filter(customer=customer).select_related('contact').order_by('-follow_up_date', '-created_date')
     
-    # Get contacts (if you have a contacts model)
-    contacts = []
-    # contacts = Contact.objects.filter(customer=customer).order_by('first_name')
+    # Get contacts for this customer
+    contacts = CustomerContact.objects.filter(customer=customer).order_by('first_name', 'last_name')
     
     context = {
         'customer': customer,
@@ -451,3 +452,294 @@ def manage_states(request, pk):
             
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def create_customer_contact(request):
+    """API endpoint to create a customer contact"""
+    try:
+        data = json.loads(request.body)
+        
+        # Validate required fields
+        customer_id = data.get('customer_id')
+        first_name = data.get('first_name', '').strip()
+        
+        if not customer_id:
+            return JsonResponse({
+                'success': False,
+                'error': 'Customer ID is required'
+            }, status=400)
+        
+        if not first_name:
+            return JsonResponse({
+                'success': False,
+                'error': 'First name is required'
+            }, status=400)
+        
+        # Get customer
+        try:
+            customer = Customer.objects.get(pk=customer_id)
+        except Customer.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'Customer not found'
+            }, status=404)
+        
+        # Create contact
+        contact = CustomerContact.objects.create(
+            customer=customer,
+            first_name=first_name,
+            last_name=data.get('last_name', '').strip() or None,
+            email=data.get('email', '').strip() or None,
+            phone=data.get('phone', '').strip() or None,
+            mobile=data.get('mobile', '').strip() or None,
+            designation=data.get('designation', '').strip() or None,
+            address=data.get('address', '').strip() or None,
+            pin_code=data.get('pin_code', '').strip() or None,
+            city=data.get('city', '').strip() or None,
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Contact created successfully',
+            'contact': {
+                'id': contact.id,
+                'first_name': contact.first_name,
+                'last_name': contact.last_name,
+                'email': contact.email,
+                'phone': contact.phone,
+                'mobile': contact.mobile,
+                'designation': contact.designation,
+                'city': contact.city,
+            }
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST", "PUT"])
+def update_customer_notes(request, customer_id):
+    """API endpoint to update customer notes"""
+    try:
+        # Get customer
+        try:
+            customer = Customer.objects.get(pk=customer_id)
+        except Customer.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'Customer not found'
+            }, status=404)
+        
+        # Get notes from request
+        data = json.loads(request.body)
+        notes = data.get('notes', '').strip()
+        
+        # Update notes
+        customer.notes = notes
+        customer.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Notes updated successfully',
+            'notes': customer.notes or ''
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def create_customer_feedback(request):
+    """API endpoint to create customer feedback"""
+    try:
+        data = json.loads(request.body)
+        
+        # Validate required fields
+        customer_id = data.get('customer_id')
+        rating = data.get('rating', 0)
+        
+        if not customer_id:
+            return JsonResponse({
+                'success': False,
+                'error': 'Customer ID is required'
+            }, status=400)
+        
+        # Validate rating
+        try:
+            rating = int(rating)
+            if rating < 0 or rating > 5:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Rating must be between 0 and 5'
+                }, status=400)
+        except (ValueError, TypeError):
+            return JsonResponse({
+                'success': False,
+                'error': 'Rating must be a number'
+            }, status=400)
+        
+        # Get customer
+        try:
+            customer = Customer.objects.get(pk=customer_id)
+        except Customer.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'Customer not found'
+            }, status=404)
+        
+        # Create feedback
+        feedback = CustomerFeedback.objects.create(
+            customer=customer,
+            rating=rating,
+            friendliness=data.get('friendliness') or None,
+            knowledge=data.get('knowledge') or None,
+            quickness=data.get('quickness') or None,
+            review=data.get('review', '').strip() or None,
+            improvement_suggestion=data.get('improvement_suggestion', '').strip() or None,
+            status=data.get('status', 'pending'),
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Feedback created successfully',
+            'feedback': {
+                'id': feedback.id,
+                'feedback_id': feedback.feedback_id,
+                'rating': feedback.rating,
+                'created_date': feedback.created_date.strftime('%Y-%m-%d'),
+            }
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def create_customer_followup(request):
+    """API endpoint to create customer follow-up"""
+    try:
+        data = json.loads(request.body)
+        
+        # Validate required fields
+        customer_id = data.get('customer_id')
+        follow_up_date = data.get('follow_up_date')
+        contact_id = data.get('contact_id')
+        
+        if not customer_id:
+            return JsonResponse({
+                'success': False,
+                'error': 'Customer ID is required'
+            }, status=400)
+        
+        if not follow_up_date:
+            return JsonResponse({
+                'success': False,
+                'error': 'Follow-up date is required'
+            }, status=400)
+        
+        # Get customer
+        try:
+            customer = Customer.objects.get(pk=customer_id)
+        except Customer.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'Customer not found'
+            }, status=404)
+        
+        # Get contact if provided
+        contact = None
+        if contact_id:
+            # Handle empty string or None
+            contact_id_str = str(contact_id).strip()
+            if contact_id_str and contact_id_str != '' and contact_id_str.lower() != 'null':
+                try:
+                    contact = CustomerContact.objects.get(pk=int(contact_id_str), customer=customer)
+                except (CustomerContact.DoesNotExist, ValueError, TypeError):
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'Contact not found'
+                    }, status=404)
+        
+        # Parse the date string
+        from datetime import datetime
+        from django.utils.dateparse import parse_date
+        try:
+            # Try to parse the date string (format: YYYY-MM-DD)
+            if isinstance(follow_up_date, str):
+                parsed_date = parse_date(follow_up_date)
+                if parsed_date is None:
+                    # Fallback to datetime.strptime
+                    parsed_date = datetime.strptime(follow_up_date, '%Y-%m-%d').date()
+            elif hasattr(follow_up_date, 'date'):
+                # It's a datetime object, convert to date
+                parsed_date = follow_up_date.date()
+            else:
+                # Already a date object
+                parsed_date = follow_up_date
+        except (ValueError, TypeError, AttributeError) as e:
+            return JsonResponse({
+                'success': False,
+                'error': f'Invalid date format. Expected YYYY-MM-DD, got: {follow_up_date} (type: {type(follow_up_date).__name__})'
+            }, status=400)
+        
+        # Create follow-up
+        try:
+            followup = CustomerFollowUp.objects.create(
+                customer=customer,
+                follow_up_date=parsed_date,
+                contact=contact,
+                comment=data.get('comment', '').strip() or None,
+            )
+        except Exception as e:
+            import traceback
+            error_details = traceback.format_exc()
+            return JsonResponse({
+                'success': False,
+                'error': f'Failed to create follow-up: {str(e)}',
+                'traceback': error_details
+            }, status=400)
+        
+        # Format the date safely for JSON response
+        try:
+            if hasattr(followup.follow_up_date, 'strftime'):
+                follow_up_date_str = followup.follow_up_date.strftime('%Y-%m-%d')
+            elif hasattr(followup.follow_up_date, 'isoformat'):
+                follow_up_date_str = followup.follow_up_date.isoformat()
+            else:
+                follow_up_date_str = str(followup.follow_up_date)
+        except Exception as e:
+            follow_up_date_str = str(followup.follow_up_date)
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Follow-up created successfully',
+            'followup': {
+                'id': followup.id,
+                'followup_id': followup.followup_id,
+                'follow_up_date': follow_up_date_str,
+                'contact_name': f"{followup.contact.first_name} {followup.contact.last_name or ''}".strip() if followup.contact else None,
+            }
+        })
+        
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        return JsonResponse({
+            'success': False,
+            'error': str(e),
+            'traceback': error_details
+        }, status=500)

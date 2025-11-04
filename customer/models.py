@@ -75,6 +75,7 @@ class Customer(models.Model):
     handover_date = models.DateField(null=True, blank=True)
     billing_name = models.CharField(max_length=100, blank=True, null=True)
     uploads_files = models.FileField(upload_to='customer_uploads/', null=True, blank=True, max_length=100)
+    notes = models.TextField(blank=True, null=True, help_text="Additional notes for this customer")
 
     generate_license_now = models.BooleanField(default=False)
 
@@ -108,6 +109,7 @@ class Customer(models.Model):
             FieldPanel("handover_date"),
             FieldPanel("billing_name"),
             FieldPanel("uploads_files"),
+            FieldPanel("notes"),
         ], heading="Location & Other Info"),
 
         MultiFieldPanel([
@@ -235,6 +237,137 @@ class CustomerLicense(models.Model):
             f"{getattr(lift.door_brand, 'value', 'N/A')} | Controller: {getattr(lift.controller_brand, 'value', 'N/A')} | "
             f"Cabin: {getattr(lift.cabin, 'value', 'N/A')} | Load: {lift.load_kg} Kg | Speed: {lift.speed}"
         )
+
+
+# ======================================================
+#  CUSTOMER CONTACT MODEL
+# ======================================================
+
+class CustomerContact(models.Model):
+    """Contact information for a customer"""
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name="contacts")
+    first_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100, blank=True, null=True)
+    email = models.EmailField(blank=True, null=True)
+    phone = models.CharField(max_length=15, blank=True, null=True)
+    mobile = models.CharField(max_length=15, blank=True, null=True)
+    designation = models.CharField(max_length=100, blank=True, null=True)
+    address = models.TextField(blank=True, null=True)
+    pin_code = models.CharField(max_length=10, blank=True, null=True)
+    city = models.CharField(max_length=100, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Customer Contact"
+        verbose_name_plural = "Customer Contacts"
+        ordering = ['first_name', 'last_name']
+
+    def __str__(self):
+        return f"{self.first_name} {self.last_name or ''}".strip() or f"Contact #{self.id}"
+
+
+# ======================================================
+#  CUSTOMER FEEDBACK MODEL
+# ======================================================
+
+SATISFACTION_CHOICES = (
+    ('very_satisfied', 'Very Satisfied'),
+    ('satisfied', 'Satisfied'),
+    ('neutral', 'Neutral'),
+    ('unsatisfied', 'Unsatisfied'),
+    ('very_unsatisfied', 'Very Unsatisfied'),
+)
+
+STATUS_CHOICES = (
+    ('pending', 'Pending'),
+    ('reviewed', 'Reviewed'),
+    ('resolved', 'Resolved'),
+)
+
+class CustomerFeedback(models.Model):
+    """Feedback for a customer"""
+    feedback_id = models.CharField(max_length=50, unique=True, editable=False)
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name="feedbacks")
+    
+    # Rating (1-5 stars)
+    rating = models.IntegerField(default=0, help_text="Rating out of 5 stars")
+    
+    # Overall satisfaction ratings
+    friendliness = models.CharField(max_length=20, choices=SATISFACTION_CHOICES, blank=True, null=True)
+    knowledge = models.CharField(max_length=20, choices=SATISFACTION_CHOICES, blank=True, null=True)
+    quickness = models.CharField(max_length=20, choices=SATISFACTION_CHOICES, blank=True, null=True)
+    
+    # Text feedback
+    review = models.TextField(blank=True, null=True, help_text="Review/comment")
+    improvement_suggestion = models.TextField(blank=True, null=True, help_text="How can we improve our service?")
+    
+    # Status
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    
+    # Timestamps
+    created_date = models.DateTimeField(auto_now_add=True)
+    updated_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Customer Feedback"
+        verbose_name_plural = "Customer Feedbacks"
+        ordering = ['-created_date']
+
+    def __str__(self):
+        return f"Feedback {self.feedback_id} - {self.customer.site_name}"
+
+    def save(self, *args, **kwargs):
+        # Auto-generate feedback ID
+        if not self.feedback_id:
+            last = CustomerFeedback.objects.order_by('id').last()
+            if last and last.feedback_id.startswith('FB'):
+                try:
+                    next_id = int(last.feedback_id.replace('FB', '')) + 1
+                except ValueError:
+                    next_id = 1
+            else:
+                next_id = 1
+            self.feedback_id = f'FB{next_id:04d}'
+        super().save(*args, **kwargs)
+
+
+# ======================================================
+#  CUSTOMER FOLLOW-UP MODEL
+# ======================================================
+
+class CustomerFollowUp(models.Model):
+    """Follow-up entries for a customer"""
+    followup_id = models.CharField(max_length=50, unique=True, editable=False)
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name="follow_ups")
+    follow_up_date = models.DateField(help_text="Date for the follow-up")
+    contact = models.ForeignKey(CustomerContact, on_delete=models.SET_NULL, null=True, blank=True, related_name="follow_ups", help_text="Contact person for this follow-up")
+    comment = models.TextField(blank=True, null=True, help_text="Comment/notes for the follow-up")
+    created_date = models.DateTimeField(auto_now_add=True)
+    updated_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Customer Follow-Up"
+        verbose_name_plural = "Customer Follow-Ups"
+        ordering = ['-follow_up_date', '-created_date']
+
+    def __str__(self):
+        contact_name = f"{self.contact.first_name} {self.contact.last_name or ''}".strip() if self.contact else "No Contact"
+        return f"Follow-Up {self.followup_id} - {self.customer.site_name} ({contact_name})"
+
+    def save(self, *args, **kwargs):
+        # Auto-generate follow-up ID
+        if not self.followup_id:
+            last = CustomerFollowUp.objects.order_by('id').last()
+            if last and last.followup_id.startswith('FU'):
+                try:
+                    next_id = int(last.followup_id.replace('FU', '')) + 1
+                except ValueError:
+                    next_id = 1
+            else:
+                next_id = 1
+            self.followup_id = f'FU{next_id:04d}'
+        super().save(*args, **kwargs)
 
 
 # ======================================================

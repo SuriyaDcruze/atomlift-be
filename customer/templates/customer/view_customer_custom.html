@@ -364,18 +364,95 @@ tr {
     const contactModal = document.getElementById('contact-modal');
     const openContactModal = document.getElementById('open-contact-modal');
     const closeContactModal = document.getElementById('close-contact-modal');
+    const contactForm = document.getElementById('contact-form');
+    const contactEmailInput = document.getElementById('contact-email');
+    const contactPhoneInput = document.getElementById('contact-phone');
+    const contactMobileInput = document.getElementById('contact-mobile');
 
     if (openContactModal && contactModal && closeContactModal) {
       openContactModal.addEventListener('click', () => {
+        // Auto-fill email, phone, mobile from customer
+        contactEmailInput.value = '{{ customer.email|default:"" }}';
+        contactPhoneInput.value = '{{ customer.phone|default:"" }}';
+        contactMobileInput.value = '{{ customer.mobile|default:"" }}';
         contactModal.style.display = 'block';
       });
       closeContactModal.addEventListener('click', () => {
         contactModal.style.display = 'none';
+        // Reset form
+        if (contactForm) {
+          contactForm.reset();
+        }
       });
       // Close modal when clicking outside
       contactModal.addEventListener('click', (e) => {
         if (e.target === contactModal) {
           contactModal.style.display = 'none';
+          // Reset form
+          if (contactForm) {
+            contactForm.reset();
+          }
+        }
+      });
+    }
+
+    // Handle contact form submission
+    if (contactForm) {
+      contactForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const submitButton = contactForm.querySelector('button[type="submit"]');
+        const originalText = submitButton.textContent;
+        submitButton.disabled = true;
+        submitButton.textContent = 'Saving...';
+
+        try {
+          const formData = new FormData(contactForm);
+          const data = {
+            customer_id: {{ customer.id }},
+            first_name: formData.get('first_name'),
+            last_name: formData.get('last_name'),
+            email: formData.get('email'),
+            phone: formData.get('phone'),
+            mobile: formData.get('mobile'),
+            designation: formData.get('designation'),
+            address: formData.get('address'),
+            pin_code: formData.get('pin_code'),
+            city: formData.get('city'),
+          };
+
+          // Get CSRF token from form
+          const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+          const response = await fetch('/admin/api/customer/contacts/create/', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': csrfToken,
+            },
+            body: JSON.stringify(data),
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            // Show success message
+            alert('Contact added successfully!');
+            // Close modal
+            contactModal.style.display = 'none';
+            // Reset form
+            contactForm.reset();
+            // Reload page to show new contact
+            window.location.reload();
+          } else {
+            alert('Error: ' + (result.error || 'Failed to add contact'));
+            submitButton.disabled = false;
+            submitButton.textContent = originalText;
+          }
+        } catch (error) {
+          alert('Network error. Please try again.');
+          submitButton.disabled = false;
+          submitButton.textContent = originalText;
         }
       });
     }
@@ -436,6 +513,296 @@ tr {
       qrModal.addEventListener('click', (e) => {
         if (e.target === qrModal) {
           qrModal.style.display = 'none';
+        }
+      });
+    }
+
+    // Handle Notes Save
+    const saveNotesBtn = document.getElementById('save-notes-btn');
+    const customerNotesTextarea = document.getElementById('customer-notes');
+
+    if (saveNotesBtn && customerNotesTextarea) {
+      saveNotesBtn.addEventListener('click', async () => {
+        const originalText = saveNotesBtn.textContent;
+        saveNotesBtn.disabled = true;
+        saveNotesBtn.textContent = 'Saving...';
+
+        try {
+          const notes = customerNotesTextarea.value;
+          
+          // Get CSRF token from form or cookies
+          let csrfToken = null;
+          const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+          if (csrfInput) {
+            csrfToken = csrfInput.value;
+          } else {
+            const cookies = document.cookie.split(';');
+            for (let cookie of cookies) {
+              const [name, value] = cookie.trim().split('=');
+              if (name === 'csrftoken') {
+                csrfToken = value;
+                break;
+              }
+            }
+          }
+          
+          if (!csrfToken) {
+            alert('CSRF token not found. Please refresh the page.');
+            saveNotesBtn.disabled = false;
+            saveNotesBtn.textContent = originalText;
+            return;
+          }
+
+          const response = await fetch('/admin/api/customer/{{ customer.id }}/notes/', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': csrfToken,
+            },
+            body: JSON.stringify({ notes: notes }),
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            // Show success message
+            saveNotesBtn.textContent = 'Saved!';
+            saveNotesBtn.style.background = '#10B981';
+            setTimeout(() => {
+              saveNotesBtn.textContent = originalText;
+              saveNotesBtn.style.background = '';
+              saveNotesBtn.disabled = false;
+            }, 2000);
+          } else {
+            alert('Error: ' + (result.error || 'Failed to save notes'));
+            saveNotesBtn.disabled = false;
+            saveNotesBtn.textContent = originalText;
+          }
+        } catch (error) {
+          alert('Network error. Please try again.');
+          saveNotesBtn.disabled = false;
+          saveNotesBtn.textContent = originalText;
+        }
+      });
+    }
+
+    // Handle Feedback Modal
+    const feedbackModal = document.getElementById('feedback-modal');
+    const openFeedbackModal = document.getElementById('open-feedback-modal');
+    const closeFeedbackModal = document.getElementById('close-feedback-modal');
+    const feedbackForm = document.getElementById('feedback-form');
+    const starRatingBtns = document.querySelectorAll('.star-rating-btn');
+    const feedbackRatingInput = document.getElementById('feedback-rating');
+
+    // Star rating functionality
+    starRatingBtns.forEach((btn, index) => {
+      btn.addEventListener('click', () => {
+        const rating = index + 1;
+        feedbackRatingInput.value = rating;
+        
+        // Update star colors
+        starRatingBtns.forEach((star, starIndex) => {
+          if (starIndex < rating) {
+            star.style.color = '#FCD34D'; // Yellow for selected
+          } else {
+            star.style.color = '#D1D5DB'; // Gray for unselected
+          }
+        });
+      });
+    });
+
+    if (openFeedbackModal && feedbackModal && closeFeedbackModal) {
+      openFeedbackModal.addEventListener('click', () => {
+        feedbackModal.style.display = 'block';
+        // Reset form
+        if (feedbackForm) {
+          feedbackForm.reset();
+          feedbackRatingInput.value = 0;
+          starRatingBtns.forEach(star => star.style.color = '#D1D5DB');
+        }
+      });
+      closeFeedbackModal.addEventListener('click', () => {
+        feedbackModal.style.display = 'none';
+        // Reset form
+        if (feedbackForm) {
+          feedbackForm.reset();
+          feedbackRatingInput.value = 0;
+          starRatingBtns.forEach(star => star.style.color = '#D1D5DB');
+        }
+      });
+      // Close modal when clicking outside
+      feedbackModal.addEventListener('click', (e) => {
+        if (e.target === feedbackModal) {
+          feedbackModal.style.display = 'none';
+          // Reset form
+          if (feedbackForm) {
+            feedbackForm.reset();
+            feedbackRatingInput.value = 0;
+            starRatingBtns.forEach(star => star.style.color = '#D1D5DB');
+          }
+        }
+      });
+    }
+
+    // Handle feedback form submission
+    if (feedbackForm) {
+      feedbackForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const submitButton = feedbackForm.querySelector('button[type="submit"]');
+        const originalText = submitButton.textContent;
+        submitButton.disabled = true;
+        submitButton.textContent = 'Submitting...';
+
+        try {
+          const formData = new FormData(feedbackForm);
+          const data = {
+            customer_id: {{ customer.id }},
+            rating: parseInt(feedbackRatingInput.value) || 0,
+            friendliness: formData.get('friendliness') || null,
+            knowledge: formData.get('knowledge') || null,
+            quickness: formData.get('quickness') || null,
+            review: formData.get('review') || '',
+            improvement_suggestion: formData.get('improvement_suggestion') || '',
+          };
+
+          // Get CSRF token
+          const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+          const response = await fetch('/admin/api/customer/feedback/create/', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': csrfToken,
+            },
+            body: JSON.stringify(data),
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            // Show success message
+            alert('Feedback submitted successfully!');
+            // Close modal
+            feedbackModal.style.display = 'none';
+            // Reset form
+            feedbackForm.reset();
+            feedbackRatingInput.value = 0;
+            starRatingBtns.forEach(star => star.style.color = '#D1D5DB');
+            // Reload page to show new feedback
+            window.location.reload();
+          } else {
+            alert('Error: ' + (result.error || 'Failed to submit feedback'));
+            submitButton.disabled = false;
+            submitButton.textContent = originalText;
+          }
+        } catch (error) {
+          alert('Network error. Please try again.');
+          submitButton.disabled = false;
+          submitButton.textContent = originalText;
+        }
+      });
+    }
+
+    // Handle Follow-Up Modal
+    const followupModal = document.getElementById('followup-modal');
+    const openFollowupModal = document.getElementById('open-followup-modal');
+    const closeFollowupModal = document.getElementById('close-followup-modal');
+    const closeFollowupModalBtn = document.getElementById('close-followup-modal-btn');
+    const followupForm = document.getElementById('followup-form');
+
+    if (openFollowupModal && followupModal && closeFollowupModal) {
+      openFollowupModal.addEventListener('click', () => {
+        followupModal.style.display = 'block';
+        // Reset form
+        if (followupForm) {
+          followupForm.reset();
+        }
+      });
+      
+      const closeModal = () => {
+        followupModal.style.display = 'none';
+        // Reset form
+        if (followupForm) {
+          followupForm.reset();
+        }
+      };
+      
+      closeFollowupModal.addEventListener('click', closeModal);
+      if (closeFollowupModalBtn) {
+        closeFollowupModalBtn.addEventListener('click', closeModal);
+      }
+      
+      // Close modal when clicking outside
+      followupModal.addEventListener('click', (e) => {
+        if (e.target === followupModal) {
+          closeModal();
+        }
+      });
+    }
+
+    // Handle follow-up form submission
+    if (followupForm) {
+      followupForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const submitButton = followupForm.querySelector('button[type="submit"]');
+        const originalText = submitButton.textContent;
+        submitButton.disabled = true;
+        submitButton.textContent = 'Saving...';
+
+        try {
+          const formData = new FormData(followupForm);
+          const contactId = formData.get('contact_id');
+          const followUpDate = formData.get('follow_up_date');
+          
+          // Validate required fields
+          if (!followUpDate || followUpDate.trim() === '') {
+            alert('Please select a follow-up date');
+            submitButton.disabled = false;
+            submitButton.textContent = originalText;
+            return;
+          }
+          
+          const data = {
+            customer_id: {{ customer.id }},
+            follow_up_date: followUpDate,
+            contact_id: (contactId && contactId.trim() !== '' && contactId !== '-') ? contactId : null,
+            comment: formData.get('comment') || '',
+          };
+
+          // Get CSRF token
+          const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+          const response = await fetch('/admin/api/customer/followup/create/', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': csrfToken,
+            },
+            body: JSON.stringify(data),
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            // Show success message
+            alert('Follow-up added successfully!');
+            // Close modal
+            followupModal.style.display = 'none';
+            // Reset form
+            followupForm.reset();
+            // Reload page to show new follow-up
+            window.location.reload();
+          } else {
+            alert('Error: ' + (result.error || 'Failed to add follow-up'));
+            submitButton.disabled = false;
+            submitButton.textContent = originalText;
+          }
+        } catch (error) {
+          alert('Network error. Please try again.');
+          submitButton.disabled = false;
+          submitButton.textContent = originalText;
         }
       });
     }
@@ -1011,7 +1378,7 @@ tr {
         <div class="mt-8">
           <div class="flex justify-between items-center mb-4">
             <h3 class="form-section-title">Feedback</h3>
-            <!-- <a href="#" class="btn btn-purple">Add Feedback</a> -->
+            <button id="open-feedback-modal" class="btn btn-cyan">Add Feedback</button>
           </div>
           {% if feedbacks %}
           <div class="table-container">
@@ -1022,22 +1389,20 @@ tr {
                   <th>Date</th>
                   <th>Rating</th>
                   <th>Comment</th>
-                  <th>Status</th>
                 </tr>
               </thead>
               <tbody>
                 {% for feedback in feedbacks %}
                 <tr>
-                  <td>{{ feedback.feedback_id|default:"N/A" }}</td>
+                  <td><strong>{{ feedback.feedback_id|default:"N/A" }}</strong></td>
                   <td>{{ feedback.created_date|date:"M d, Y"|default:"N/A" }}</td>
                   <td>
                     {% for i in "12345" %}
-                      <span class="{% if forloop.counter0 < feedback.rating %}text-yellow-400{% else %}text-gray-300{% endif %}">★</span>
+                      <span style="color: {% if forloop.counter0 < feedback.rating %}#FCD34D{% else %}#D1D5DB{% endif %};">★</span>
                     {% endfor %}
                     ({{ feedback.rating|default:"0" }}/5)
                   </td>
-                  <td>{{ feedback.comment|default:"N/A" }}</td>
-                  <td><span class="form-value">{{ feedback.status|default:"N/A" }}</span></td>
+                  <td>{{ feedback.review|default:"N/A"|truncatewords:20 }}</td>
                 </tr>
                 {% endfor %}
               </tbody>
@@ -1055,7 +1420,7 @@ tr {
         <div class="mt-8">
           <div class="flex justify-between items-center mb-4">
             <h3 class="form-section-title">Follow-Ups</h3>
-            <!-- <a href="#" class="btn btn-indigo">Add Follow-Up</a> -->
+            <button id="open-followup-modal" class="btn btn-cyan">Add Follow-Up</button>
           </div>
           {% if follow_ups %}
           <div class="table-container">
@@ -1063,20 +1428,20 @@ tr {
               <thead>
                 <tr>
                   <th>Follow-Up ID</th>
-                  <th>Date</th>
-                  <th>Subject</th>
-                  <th>Next Action</th>
-                  <th>Status</th>
+                  <th>Follow-Up Date</th>
+                  <th>Contact</th>
+                  <th>Comment</th>
+                  <th>Created Date</th>
                 </tr>
               </thead>
               <tbody>
                 {% for follow_up in follow_ups %}
                 <tr>
-                  <td>{{ follow_up.followup_id|default:"N/A" }}</td>
+                  <td><strong>{{ follow_up.followup_id|default:"N/A" }}</strong></td>
+                  <td>{{ follow_up.follow_up_date|date:"M d, Y"|default:"N/A" }}</td>
+                  <td>{{ follow_up.contact.first_name|default:"" }} {{ follow_up.contact.last_name|default:"" }} {% if not follow_up.contact %}N/A{% endif %}</td>
+                  <td>{{ follow_up.comment|default:"N/A"|truncatewords:20 }}</td>
                   <td>{{ follow_up.created_date|date:"M d, Y"|default:"N/A" }}</td>
-                  <td>{{ follow_up.subject|default:"N/A" }}</td>
-                  <td>{{ follow_up.next_action|default:"N/A" }}</td>
-                  <td><span class="form-value">{{ follow_up.status|default:"N/A" }}</span></td>
                 </tr>
                 {% endfor %}
               </tbody>
@@ -1092,16 +1457,12 @@ tr {
 
         <!-- Notes Section -->
         <div class="mt-8">
-          <h3 class="form-section-title">Notes</h3>
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="form-section-title">Notes</h3>
+            <button id="save-notes-btn" class="btn btn-primary">Save Notes</button>
+          </div>
           <div class="notes-editor">
-            {% if customer.notes %}
-              {{ customer.notes|richtext }}
-            {% else %}
-              <div class="empty-state">
-                <p>No Notes</p>
-                <p class="text-sm">Edit customer to add notes</p>
-              </div>
-            {% endif %}
+            <textarea id="customer-notes" style="width: 100%; min-height: 280px; border: none; resize: vertical; font-size: 0.875rem; color: #374151; padding: 1rem; font-family: inherit;">{{ customer.notes|default:"" }}</textarea>
           </div>
         </div>
       </div>
@@ -1161,15 +1522,15 @@ tr {
           </div>
           <div class="form-group">
             <label class="form-label">Email</label>
-            <input type="email" name="email" class="form-value" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #E5E7EB; border-radius: 0.375rem; font-size: 0.875rem;">
+            <input type="email" name="email" id="contact-email" class="form-value" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #E5E7EB; border-radius: 0.375rem; font-size: 0.875rem;">
           </div>
           <div class="form-group">
             <label class="form-label">Phone</label>
-            <input type="tel" name="phone" class="form-value" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #E5E7EB; border-radius: 0.375rem; font-size: 0.875rem;">
+            <input type="tel" name="phone" id="contact-phone" class="form-value" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #E5E7EB; border-radius: 0.375rem; font-size: 0.875rem;">
           </div>
           <div class="form-group">
             <label class="form-label">Mobile</label>
-            <input type="tel" name="mobile" class="form-value" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #E5E7EB; border-radius: 0.375rem; font-size: 0.875rem;">
+            <input type="tel" name="mobile" id="contact-mobile" class="form-value" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #E5E7EB; border-radius: 0.375rem; font-size: 0.875rem;">
           </div>
           <div class="form-group">
             <label class="form-label">Designation</label>
@@ -1203,6 +1564,146 @@ tr {
           <button type="submit" class="btn btn-primary">Save Contact</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Add Feedback Modal -->
+  <div id="feedback-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;">
+    <div style="background: white; margin: 2% auto; padding: 2rem; border-radius: 0.75rem; max-width: 900px; min-height: 90vh;">
+      <h3 class="form-section-title" style="margin-bottom: 1.5rem;">Feedback</h3>
+      <form id="feedback-form" method="post" action="#">
+        {% csrf_token %}
+        
+        <!-- Rating Section -->
+        <div style="margin-bottom: 2rem;">
+          <h4 style="font-size: 1rem; font-weight: 600; color: #374151; margin-bottom: 1rem; text-align: center;">RATING</h4>
+          <div style="display: flex; justify-content: center; gap: 0.5rem; margin-bottom: 1rem;">
+            {% for i in "12345" %}
+            <button type="button" class="star-rating-btn" data-rating="{{ forloop.counter }}" style="font-size: 2rem; background: none; border: none; color: #D1D5DB; cursor: pointer; padding: 0;">★</button>
+            {% endfor %}
+          </div>
+          <input type="hidden" name="rating" id="feedback-rating" value="0">
+        </div>
+
+        <!-- Overall Satisfaction Section -->
+        <div style="margin-bottom: 2rem;">
+          <h4 style="font-size: 1rem; font-weight: 600; color: #374151; margin-bottom: 1rem;">OVERALL SATISFACTION OF SERVICE</h4>
+          <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
+              <thead>
+                <tr>
+                  <th style="padding: 0.75rem; text-align: left; border: 1px solid #E5E7EB; background: #F9FAFB; font-weight: 600;"></th>
+                  <th style="padding: 0.75rem; text-align: center; border: 1px solid #E5E7EB; background: #F9FAFB; font-weight: 600;">Very Satisfied</th>
+                  <th style="padding: 0.75rem; text-align: center; border: 1px solid #E5E7EB; background: #F9FAFB; font-weight: 600;">Satisfied</th>
+                  <th style="padding: 0.75rem; text-align: center; border: 1px solid #E5E7EB; background: #F9FAFB; font-weight: 600;">Neutral</th>
+                  <th style="padding: 0.75rem; text-align: center; border: 1px solid #E5E7EB; background: #F9FAFB; font-weight: 600;">Unsatisfied</th>
+                  <th style="padding: 0.75rem; text-align: center; border: 1px solid #E5E7EB; background: #F9FAFB; font-weight: 600;">Very Unsatisfied</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="padding: 0.75rem; border: 1px solid #E5E7EB; font-weight: 500;">Friendliness</td>
+                  <td style="padding: 0.75rem; text-align: center; border: 1px solid #E5E7EB;"><input type="radio" name="friendliness" value="very_satisfied"></td>
+                  <td style="padding: 0.75rem; text-align: center; border: 1px solid #E5E7EB;"><input type="radio" name="friendliness" value="satisfied"></td>
+                  <td style="padding: 0.75rem; text-align: center; border: 1px solid #E5E7EB;"><input type="radio" name="friendliness" value="neutral"></td>
+                  <td style="padding: 0.75rem; text-align: center; border: 1px solid #E5E7EB;"><input type="radio" name="friendliness" value="unsatisfied"></td>
+                  <td style="padding: 0.75rem; text-align: center; border: 1px solid #E5E7EB;"><input type="radio" name="friendliness" value="very_unsatisfied"></td>
+                </tr>
+                <tr>
+                  <td style="padding: 0.75rem; border: 1px solid #E5E7EB; font-weight: 500;">Knowledge</td>
+                  <td style="padding: 0.75rem; text-align: center; border: 1px solid #E5E7EB;"><input type="radio" name="knowledge" value="very_satisfied"></td>
+                  <td style="padding: 0.75rem; text-align: center; border: 1px solid #E5E7EB;"><input type="radio" name="knowledge" value="satisfied"></td>
+                  <td style="padding: 0.75rem; text-align: center; border: 1px solid #E5E7EB;"><input type="radio" name="knowledge" value="neutral"></td>
+                  <td style="padding: 0.75rem; text-align: center; border: 1px solid #E5E7EB;"><input type="radio" name="knowledge" value="unsatisfied"></td>
+                  <td style="padding: 0.75rem; text-align: center; border: 1px solid #E5E7EB;"><input type="radio" name="knowledge" value="very_unsatisfied"></td>
+                </tr>
+                <tr>
+                  <td style="padding: 0.75rem; border: 1px solid #E5E7EB; font-weight: 500;">Quickness</td>
+                  <td style="padding: 0.75rem; text-align: center; border: 1px solid #E5E7EB;"><input type="radio" name="quickness" value="very_satisfied"></td>
+                  <td style="padding: 0.75rem; text-align: center; border: 1px solid #E5E7EB;"><input type="radio" name="quickness" value="satisfied"></td>
+                  <td style="padding: 0.75rem; text-align: center; border: 1px solid #E5E7EB;"><input type="radio" name="quickness" value="neutral"></td>
+                  <td style="padding: 0.75rem; text-align: center; border: 1px solid #E5E7EB;"><input type="radio" name="quickness" value="unsatisfied"></td>
+                  <td style="padding: 0.75rem; text-align: center; border: 1px solid #E5E7EB;"><input type="radio" name="quickness" value="very_unsatisfied"></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Review Section -->
+        <div style="margin-bottom: 2rem;">
+          <h4 style="font-size: 1rem; font-weight: 600; color: #374151; margin-bottom: 0.75rem;">REVIEW</h4>
+          <textarea name="review" id="feedback-review" style="width: 100%; min-height: 120px; padding: 0.75rem; border: 1px solid #E5E7EB; border-radius: 0.375rem; font-size: 0.875rem; resize: vertical; font-family: inherit;"></textarea>
+        </div>
+
+        <!-- Improvement Suggestion Section -->
+        <div style="margin-bottom: 2rem;">
+          <h4 style="font-size: 1rem; font-weight: 600; color: #374151; margin-bottom: 0.75rem;">HOW CAN WE IMPROVE OUR SERVICE?</h4>
+          <textarea name="improvement_suggestion" id="feedback-improvement" style="width: 100%; min-height: 120px; padding: 0.75rem; border: 1px solid #E5E7EB; border-radius: 0.375rem; font-size: 0.875rem; resize: vertical; font-family: inherit;"></textarea>
+        </div>
+
+        <div class="flex gap-2 justify-end" style="margin-top: 1.5rem;">
+          <button type="button" id="close-feedback-modal" class="btn btn-secondary">BACK</button>
+          <button type="submit" class="btn btn-primary">SUBMIT</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add Follow-Up Modal -->
+  <div id="followup-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000;">
+    <div style="background: white; margin: 5% auto; padding: 0; border-radius: 0.75rem; max-width: 600px; overflow: hidden;">
+      <!-- Modal Header -->
+      <div style="background: linear-gradient(to right, #3B82F6, #1D4ED8); padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0; color: white; font-size: 1rem; font-weight: 600; text-transform: uppercase;">ADD FOLLOW UP'S</h3>
+        <button type="button" id="close-followup-modal" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 0; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;">×</button>
+      </div>
+      
+      <!-- Modal Body -->
+      <div style="padding: 1.5rem;">
+        <form id="followup-form" method="post" action="#">
+          {% csrf_token %}
+          
+          <!-- Follow Up Date -->
+          <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label class="form-label" style="font-weight: 600; text-transform: uppercase; font-size: 0.875rem; color: #374151; margin-bottom: 0.5rem; display: block;">FOLLOW UP DATE *</label>
+            <div style="position: relative;">
+              <input type="date" name="follow_up_date" id="followup-date" required style="width: 100%; padding: 0.5rem 2.5rem 0.5rem 0.75rem; border: 1px solid #E5E7EB; border-radius: 0.375rem; font-size: 0.875rem;">
+              <span style="position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); pointer-events: none; color: #6B7280;">📅</span>
+            </div>
+          </div>
+
+          <!-- Contact -->
+          <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label class="form-label" style="font-weight: 600; text-transform: uppercase; font-size: 0.875rem; color: #374151; margin-bottom: 0.5rem; display: block;">CONTACT</label>
+            <div style="position: relative;">
+              <select name="contact_id" id="followup-contact" style="width: 100%; padding: 0.5rem 2.5rem 0.5rem 0.75rem; border: 1px solid #E5E7EB; border-radius: 0.375rem; font-size: 0.875rem; appearance: none; background-color: white;">
+                <option value="">-</option>
+                {% if contacts %}
+                  {% for contact in contacts %}
+                  <option value="{{ contact.id }}">{{ contact.first_name }} {{ contact.last_name|default:"" }}</option>
+                  {% endfor %}
+                {% else %}
+                  <option value="" disabled>No contacts available. Please add contacts first.</option>
+                {% endif %}
+              </select>
+              <span style="position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); pointer-events: none; color: #6B7280;">▼</span>
+            </div>
+          </div>
+
+          <!-- Comment -->
+          <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label class="form-label" style="font-weight: 600; text-transform: uppercase; font-size: 0.875rem; color: #374151; margin-bottom: 0.5rem; display: block;">COMMENT</label>
+            <textarea name="comment" id="followup-comment" style="width: 100%; min-height: 120px; padding: 0.75rem; border: 1px solid #E5E7EB; border-radius: 0.375rem; font-size: 0.875rem; resize: vertical; font-family: inherit;"></textarea>
+          </div>
+
+          <!-- Action Buttons -->
+          <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.5rem;">
+            <button type="button" id="close-followup-modal-btn" class="btn btn-secondary" style="background: #374151; color: white;">CLOSE</button>
+            <button type="submit" class="btn btn-primary" style="background: linear-gradient(to right, #3B82F6, #1D4ED8); color: white;">SAVE</button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 
