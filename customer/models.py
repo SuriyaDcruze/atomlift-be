@@ -476,6 +476,20 @@ class CustomerLicenseViewSet(SnippetViewSet):
     list_display = ("license_no", "customer", "lift_details", "period_start", "period_end", "status")
     list_export = list_display
     list_display_add_buttons = None  # Hide the add button from list view header
+    
+    @property
+    def permission_policy(self):
+        """Use custom permission policy to deny add permission"""
+        from wagtail.permissions import ModelPermissionPolicy
+        
+        class NoAddCustomerLicensePermissionPolicy(ModelPermissionPolicy):
+            """Custom permission policy that disallows adding new customer licenses"""
+            def user_has_permission(self, user, action):
+                if action == "add":
+                    return False
+                return super().user_has_permission(user, action)
+        
+        return NoAddCustomerLicensePermissionPolicy(self.model)
 
 
 # ======================================================

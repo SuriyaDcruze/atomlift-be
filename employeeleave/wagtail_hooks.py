@@ -1,16 +1,37 @@
-from wagtail_modeladmin.options import ModelAdmin, modeladmin_register
+from wagtail.snippets.models import register_snippet
+from wagtail.snippets.views.snippets import SnippetViewSet, SnippetViewSetGroup
+from wagtail import hooks
+from wagtail.admin.menu import MenuItem
+from wagtail.permissions import ModelPermissionPolicy
+from django.urls import reverse
 from django.contrib import messages
 from django.shortcuts import redirect
 from .models import LeaveRequest
 
 
-class LeaveRequestAdmin(ModelAdmin):
+# Custom permission policy to deny add permission
+class NoAddLeaveRequestPermissionPolicy(ModelPermissionPolicy):
+    """Custom permission policy that disallows adding new leave requests"""
+    def user_has_permission(self, user, action):
+        if action == "add":
+            return False
+        return super().user_has_permission(user, action)
+
+
+class LeaveRequestViewSet(SnippetViewSet):
     model = LeaveRequest
+    icon = "date"
     menu_label = "Leave Requests"
-    menu_icon = "date"  # Using date icon for leave requests
-    menu_order = 202  # After User Profiles (201)
-    add_to_settings_menu = True  # Add to Settings menu
-    exclude_from_explorer = False
+    menu_order = 202
+    add_to_settings_menu = True  # Add to Settings menu (like Users)
+    inspect_view_enabled = True  # Enable Wagtail default inspect view
+    create_view_enabled = False  # Disable manual creation - leave requests can only be created via mobile app API
+    edit_view_enabled = True  # Allow editing existing requests
+    
+    @property
+    def permission_policy(self):
+        """Use custom permission policy to deny add permission"""
+        return NoAddLeaveRequestPermissionPolicy(self.model)
     
     # Standard list display using model fields
     list_display = (
@@ -24,8 +45,6 @@ class LeaveRequestAdmin(ModelAdmin):
         "created_at",
     )
     
-    
-    
     search_fields = (
         "user__username",
         "user__email",
@@ -35,9 +54,19 @@ class LeaveRequestAdmin(ModelAdmin):
         "admin_remarks"
     )
     
+    # Filter options
+    list_filter = (
+        "status",
+        "leave_type",
+        "half_day",
+        "user",
+        "from_date",
+        "to_date",
+        "created_at",
+    )
+    
     list_display_add_buttons = None  # Remove the add button from list view
     list_per_page = 20  # Pagination
-    ordering = ["-created_at"]  # Show newest first
     
     # Enable export for better data management
     list_export = [
@@ -64,32 +93,39 @@ class LeaveRequestAdmin(ModelAdmin):
             return response
         return super().list_view(request)
     
-    # Disable the ability to create new leave requests manually
-    # Leave requests can only be created via mobile app API
-    def get_permission_helper_class(self):
-        """Override permission helper to disable 'add' permission"""
-        from wagtail_modeladmin.helpers import PermissionHelper
-        
-        class LeaveRequestPermissionHelper(PermissionHelper):
-            def user_can_create(self, user):
-                """Disable manual leave request creation - leave requests can only be created via mobile app"""
-                return False
-        
-        return LeaveRequestPermissionHelper
-    
-    def create_view(self, request):
-        """Override create view to prevent manual leave request creation"""
+    def add_view(self, request):
+        """Override add view to prevent manual leave request creation"""
         messages.error(
             request, 
             "Leave Requests cannot be created manually. They can only be created through the mobile app. "
             "Please edit an existing leave request or ask the employee to submit a request via the mobile app."
         )
-        # Redirect back to the list view
-        return redirect(self.url_helper.index_url)
+        # Redirect back to the list view using the snippet URL pattern
+        from django.urls import reverse
+        return redirect(reverse('snippets:list', args=[self.model._meta.app_label, self.model._meta.model_name]))
 
 
-# Register LeaveRequest in Wagtail Admin Settings
-modeladmin_register(LeaveRequestAdmin)
+# Create a group for Leave Requests (not needed for settings menu, but kept for consistency)
+class LeaveRequestGroup(SnippetViewSetGroup):
+    items = (LeaveRequestViewSet,)
+    menu_icon = "date"
+    menu_label = "Leave Requests"
+    menu_name = "leave_requests"
+    menu_order = 13
+
+# Register the Leave Request ViewSet (will appear in Settings menu due to add_to_settings_menu = True)
+register_snippet(LeaveRequestViewSet)
+
+# Hook to remove any add buttons that might appear
+@hooks.register('construct_snippet_listing_buttons')
+def remove_leave_request_add_buttons(buttons, snippet, user, context=None):
+    """Remove any add buttons for LeaveRequest"""
+    if isinstance(snippet, LeaveRequest):
+        # Remove any add/create buttons
+        buttons[:] = [btn for btn in buttons if not (
+            hasattr(btn, 'label') and ('Add' in str(btn.label) or 'Create' in str(btn.label))
+        )]
+    return buttons
 
 
 
