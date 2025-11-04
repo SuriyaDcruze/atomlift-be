@@ -148,6 +148,13 @@ body {
   color: #6B7280;
 }
 
+.form-input::placeholder {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: #9CA3AF;
+  opacity: 1;
+}
+
 .form-select-addon {
   display: flex;
   align-items: center;
@@ -498,7 +505,7 @@ body {
                   type="text" 
                   id="customerSearch" 
                   class="form-input" 
-                  placeholder="Search customer by name, job no, or site ID..."
+                  placeholder="Search customer by name ."
                   autocomplete="off"
                 />
                 <select id="customer" name="customer" class="form-select" required style="display: none;">
