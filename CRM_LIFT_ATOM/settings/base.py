@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "Routine_services",
     "employeeleave",
     "travelling",
+    "attendance",
     "search",
     "wagtail_modeladmin",
     "wagtail.contrib.forms",
