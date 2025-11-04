@@ -492,9 +492,7 @@ body {
                 value="{% if is_edit %}{{ customer.site_name }}{% endif %}"
                 required
                 class="form-input"
-                oninput="updateSiteName(this.value)"
               />
-              <p class="form-help">Site name will be auto-formatted with job number if provided</p>
             </div>
 
             <div class="form-group">
@@ -636,7 +634,6 @@ body {
                 name="job_no"
                 value="{% if is_edit %}{{ customer.job_no }}{% endif %}"
                 class="form-input"
-                oninput="updateJobNo(this.value)"
                 required
               />
             </div>
@@ -804,22 +801,8 @@ const submitUrl = "{% if is_edit %}{% url 'edit_customer_custom' customer.id %}{
 const amcUrl = "/admin/amc/add-custom/";
 const adminHomeUrl = "/admin/snippets/customer/customer";
 
-function updateSiteName(value) {
-  var jobNo = document.getElementById('job_no').value;
-  if (jobNo) {
-    document.getElementById('site_name').value = value + ' - ' + jobNo;
-  }
-}
-
-function updateJobNo(value) {
-  var siteName = document.getElementById('site_name').value;
-  if (siteName && siteName.indexOf(' - ') === -1) {
-    document.getElementById('site_name').value = siteName + ' - ' + value;
-  } else if (siteName.indexOf(' - ') !== -1) {
-    var baseName = siteName.split(' - ')[0];
-    document.getElementById('site_name').value = baseName + ' - ' + value;
-  }
-}
+// Removed updateSiteName and updateJobNo functions - site name formatting removed from add customer custom page
+// The combined format (site name - job no) will still be saved/displayed in other places via backend logic
 
 function handleOfficeAddressSync() {
   var sameAsSite = document.getElementById('same_as_site_address').checked;
@@ -835,6 +818,26 @@ function handleOfficeAddressSync() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+  // Strip job number from site name in edit mode for display
+  if (isEditMode) {
+    var siteNameInput = document.getElementById('site_name');
+    var jobNoInput = document.getElementById('job_no');
+    if (siteNameInput && siteNameInput.value && jobNoInput && jobNoInput.value) {
+      var siteNameValue = siteNameInput.value;
+      var jobNoValue = jobNoInput.value;
+      // Remove " - job_number" suffix if it matches the job_no field
+      if (siteNameValue.endsWith(' - ' + jobNoValue)) {
+        siteNameInput.value = siteNameValue.substring(0, siteNameValue.length - (' - ' + jobNoValue).length);
+      } else {
+        // Also handle case where job number might be the last part after splitting
+        var parts = siteNameValue.split(' - ');
+        if (parts.length > 1 && parts[parts.length - 1] === jobNoValue) {
+          siteNameInput.value = parts.slice(0, -1).join(' - ');
+        }
+      }
+    }
+  }
+
   if (!isEditMode) {
     fetch('/customer/api/customer/next-reference/')
       .then(function(r){return r.json();})

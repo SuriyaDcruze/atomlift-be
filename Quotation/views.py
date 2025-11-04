@@ -15,6 +15,14 @@ from lift.models import Lift
 
 # quotation/views.py (relevant excerpts)
 def add_quotation_custom(request):
+    customer_id = request.GET.get('customer_id')
+    preselected_customer = None
+    if customer_id:
+        try:
+            preselected_customer = Customer.objects.get(id=customer_id)
+        except Customer.DoesNotExist:
+            preselected_customer = None
+    
     context = {
         'customers': Customer.objects.all().order_by('site_name'),
         'amc_types': AMCType.objects.all().order_by('name'),
@@ -22,6 +30,8 @@ def add_quotation_custom(request):
         'lifts': Lift.objects.all().order_by('name'),
         'is_edit': False,
         'selected_lift_ids': '',
+        'preselected_customer_id': customer_id if preselected_customer else None,
+        'preselected_customer': preselected_customer,
     }
     return render(request, 'quotation/add_quotation_custom.html', context)
 
@@ -165,7 +175,15 @@ def get_customers(request):
     try:
         customers = Customer.objects.all().order_by('site_name')
         data = [
-            {"id": customer.id, "site_name": customer.site_name}
+            {
+                "id": customer.id, 
+                "site_name": customer.site_name,
+                "job_no": customer.job_no or "",
+                "site_id": customer.site_id or "",
+                "reference_id": customer.reference_id or "",
+                "email": customer.email or "",
+                "phone": customer.phone or ""
+            }
             for customer in customers
         ]
         return JsonResponse(data, safe=False)
@@ -227,6 +245,36 @@ def get_lifts(request):
                 "id": lift.id, 
                 "name": lift.name,
                 "reference_id": lift.reference_id,
+                "brand": str(lift.brand) if lift.brand else "N/A"
+            }
+            for lift in lifts
+        ]
+        return JsonResponse(data, safe=False)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@require_http_methods(["GET"])
+def get_lifts_by_customer(request):
+    """Get lifts by customer ID (based on job_no matching lift_code)"""
+    try:
+        customer_id = request.GET.get('customer_id')
+        if not customer_id:
+            return JsonResponse({"error": "customer_id parameter is required"}, status=400)
+        
+        customer = get_object_or_404(Customer, id=customer_id)
+        
+        # Fetch lifts where lift_code matches customer's job_no
+        lifts = []
+        if customer.job_no:
+            lifts = Lift.objects.filter(lift_code=customer.job_no).order_by('name')
+        
+        data = [
+            {
+                "id": lift.id, 
+                "name": lift.name,
+                "reference_id": lift.reference_id,
+                "lift_code": lift.lift_code or "",
                 "brand": str(lift.brand) if lift.brand else "N/A"
             }
             for lift in lifts

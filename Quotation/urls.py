@@ -17,5 +17,6 @@ urlpatterns = [
     path('api/amc-types/', views.get_amc_types, name='api_get_amc_types'),
     path('api/executives/', views.get_executives, name='api_get_executives'),
     path('api/lifts/', views.get_lifts, name='api_get_lifts'),
+    path('api/lifts-by-customer/', views.get_lifts_by_customer, name='api_get_lifts_by_customer'),
     path('api/quotations/', views.get_quotations, name='api_get_quotations'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -714,6 +714,15 @@ function loadCustomers() {
         option.textContent = customer.site_name;
         select.appendChild(option);
       });
+      
+      // Auto-select customer if preselected from URL parameter
+      {% if preselected_customer_id %}
+      const customerId = {{ preselected_customer_id }};
+      const customer = allCustomers.find(c => c.id == customerId);
+      if (customer) {
+        selectCustomer(customer);
+      }
+      {% endif %}
     })
     .catch(error => {
       console.error('Error loading customers:', error);
@@ -1035,6 +1044,91 @@ function selectCustomer(customer) {
   // Clear error if any
   const errorElement = document.getElementById('customer-error');
   if (errorElement) errorElement.style.display = 'none';
+  
+  // Auto-fetch lifts based on customer job_no
+  if (customer.id) {
+    loadLiftsByCustomer(customer.id);
+  }
+}
+
+function loadLiftsByCustomer(customerId) {
+  const liftSelect = document.getElementById('lift');
+  liftSelect.innerHTML = '<option value="">Loading lifts...</option>';
+  liftSelect.disabled = true;
+  
+  // Fetch customer-specific lifts
+  fetch(`/quotation/api/lifts-by-customer/?customer_id=${customerId}`)
+    .then(response => response.json())
+    .then(customerLifts => {
+      // Also load all lifts to allow manual selection
+      return fetch('/quotation/api/lifts/')
+        .then(response => response.json())
+        .then(allLifts => {
+          // Store customer lift IDs for highlighting
+          const customerLiftIds = customerLifts.map(l => l.id);
+          
+          // Populate dropdown with all lifts
+          liftSelect.innerHTML = '<option value="">Select Lift</option>';
+          
+          // Add customer's lifts first (if any)
+          if (customerLifts.length > 0) {
+            // Add a separator option
+            const separatorOption = document.createElement('option');
+            separatorOption.disabled = true;
+            separatorOption.textContent = '--- Customer Lifts (Recommended) ---';
+            liftSelect.appendChild(separatorOption);
+            
+            customerLifts.forEach(lift => {
+              const option = document.createElement('option');
+              option.value = lift.id;
+              option.textContent = `${lift.name} (${lift.reference_id}${lift.brand ? ' - ' + lift.brand : ''})`;
+              option.style.backgroundColor = '#E6F3FF'; // Light blue background
+              liftSelect.appendChild(option);
+            });
+            
+            // Add another separator
+            const separatorOption2 = document.createElement('option');
+            separatorOption2.disabled = true;
+            separatorOption2.textContent = '--- All Available Lifts ---';
+            liftSelect.appendChild(separatorOption2);
+            
+            // Auto-select first customer lift if only one
+            if (customerLifts.length === 1) {
+              liftSelect.value = customerLifts[0].id;
+            }
+          }
+          
+          // Add all other lifts (excluding customer lifts to avoid duplicates)
+          allLifts.forEach(lift => {
+            if (!customerLiftIds.includes(lift.id)) {
+              const option = document.createElement('option');
+              option.value = lift.id;
+              option.textContent = `${lift.name} (${lift.reference_id}${lift.brand ? ' - ' + lift.brand : ''})`;
+              liftSelect.appendChild(option);
+            }
+          });
+          
+          // If no customer lifts, show all lifts normally
+          if (customerLifts.length === 0) {
+            liftSelect.innerHTML = '<option value="">Select Lift</option>';
+            allLifts.forEach(lift => {
+              const option = document.createElement('option');
+              option.value = lift.id;
+              option.textContent = `${lift.name} (${lift.reference_id}${lift.brand ? ' - ' + lift.brand : ''})`;
+              liftSelect.appendChild(option);
+            });
+          }
+          
+          liftSelect.disabled = false;
+        });
+    })
+    .catch(error => {
+      console.error('Error loading lifts:', error);
+      liftSelect.innerHTML = '<option value="">Error loading lifts</option>';
+      liftSelect.disabled = false;
+      // Fallback to loading all lifts
+      loadLifts();
+    });
 }
 </script>
 {% endblock %}
