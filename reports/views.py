@@ -185,6 +185,13 @@ def payment_report(request):
         totals = qs.values('date__year', 'date__month').annotate(total=Sum('amount')).order_by('date__year', 'date__month')
         labels = [f"{row['date__year']}-{str(row['date__month']).zfill(2)}" for row in totals]
         data = [float(row['total'] or 0) for row in totals]
+        
+        # Ensure we have at least empty arrays if no data
+        if not labels:
+            labels = []
+        if not data:
+            data = []
+        
         context = {
             'graph_title': 'Payments by Month (Total Amount)',
             'labels_json': json.dumps(labels),
@@ -195,6 +202,7 @@ def payment_report(request):
                     'borderColor': '#10b981',
                     'backgroundColor': 'rgba(16,185,129,0.2)',
                     'fill': True,
+                    'tension': 0.4,
                 }
             ]),
             'chart_type': 'line',

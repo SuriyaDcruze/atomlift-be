@@ -15,31 +15,104 @@
 
 {% block table_content %}
 <div style="padding:1rem;">
-  <div class="chart-container" style="position:relative; width:100%; height:clamp(240px, 40vh, 520px);">
-    <canvas id="reportChart"></canvas>
+  <div class="chart-container" style="position:relative; width:100%; height:clamp(240px, 40vh, 520px); background-color:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; display:flex; align-items:center; justify-content:center;">
+    <canvas id="reportChart" style="max-width:100%; max-height:100%;"></canvas>
   </div>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script>
-    const ctx = document.getElementById('reportChart').getContext('2d');
-    const chart = new Chart(ctx, {
-      type: '{{ chart_type|default:"bar" }}',
-      data: {
-        labels: {{ labels_json|safe }},
-        datasets: {{ datasets_json|safe }}
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { position: 'top' },
-          title: { display: true, text: '{{ graph_title }}' }
-        },
-        scales: {
-          y: { beginAtZero: true, stacked: {{ stacked|yesno:"true,false" }} },
-          x: { stacked: {{ stacked|yesno:"true,false" }} }
-        }
+    function initChart() {
+      // Check if Chart.js is loaded
+      if (typeof Chart === 'undefined') {
+        console.error('Chart.js is not loaded');
+        setTimeout(initChart, 100);
+        return;
       }
-    });
+      
+      const ctx = document.getElementById('reportChart');
+      if (!ctx) {
+        console.error('Chart canvas element not found');
+        return;
+      }
+      
+      const chartType = '{{ chart_type|default:"bar" }}';
+      const isStacked = {{ stacked|yesno:"true,false" }};
+      
+      try {
+        const labels = {{ labels_json|safe }};
+        const datasets = {{ datasets_json|safe }};
+        
+        console.log('Chart Type:', chartType);
+        console.log('Labels:', labels);
+        console.log('Datasets:', datasets);
+        
+        // Check if we have data
+        if (!labels || labels.length === 0) {
+          ctx.parentElement.innerHTML = '<p style="text-align:center; padding:2rem; color:#6b7280;">No data available for the selected filters.</p>';
+          return;
+        }
+        
+        const chartConfig = {
+          type: chartType,
+          data: {
+            labels: labels,
+            datasets: datasets
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { 
+                position: 'top',
+                display: true
+              },
+              title: { 
+                display: true, 
+                text: '{{ graph_title }}',
+                font: { size: 16 }
+              }
+            },
+            scales: {
+              y: { 
+                beginAtZero: true,
+                stacked: isStacked && chartType !== 'line',
+                title: {
+                  display: true,
+                  text: chartType === 'line' ? 'Amount' : 'Count'
+                }
+              }
+            }
+          }
+        };
+        
+        // For line charts, configure x-axis differently
+        if (chartType === 'line') {
+          chartConfig.options.scales.x = {
+            display: true,
+            title: {
+              display: true,
+              text: 'Month'
+            }
+          };
+        } else {
+          chartConfig.options.scales.x = {
+            stacked: isStacked
+          };
+        }
+        
+        const chart = new Chart(ctx.getContext('2d'), chartConfig);
+        console.log('Chart created successfully');
+      } catch (error) {
+        console.error('Error creating chart:', error);
+        ctx.parentElement.innerHTML = '<p style="text-align:center; padding:2rem; color:#dc2626;">Error loading chart: ' + error.message + '</p>';
+      }
+    }
+    
+    // Wait for DOM and Chart.js to be ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initChart);
+    } else {
+      initChart();
+    }
   </script>
   {% if total_count is not None %}
   <div style="margin-top:0.75rem; display:flex; justify-content:space-between; align-items:center; gap:0.75rem; flex-wrap:wrap;">
