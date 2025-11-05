@@ -295,6 +295,18 @@ class AMCViewSet(SnippetViewSet):
         "equipment_no",
     )
 
+    # 👇 Filter fields
+    list_filter = (
+        "status",
+        "customer",
+        "amc_type",
+        "invoice_frequency",
+        "start_date",
+        "end_date",
+        "is_generate_contract",
+        "created",
+    )
+
     def get_add_url(self):
         from django.urls import reverse
         return reverse("add_amc_custom")
@@ -342,6 +354,7 @@ class AMCExpiringThisMonthViewSet(SnippetViewSet):
     create_view_enabled = False
     edit_view_enabled = False
     delete_view_enabled = False
+    list_display_add_buttons = None  # Hide the add button from list view header
 
     list_display = (
         "reference_id",
@@ -396,6 +409,20 @@ class AMCExpiringThisMonthViewSet(SnippetViewSet):
             next_month_first = first_day.replace(month=first_day.month + 1, day=1)
         last_day = next_month_first - timedelta(days=1)
         return AMC.objects.filter(end_date__gte=first_day, end_date__lte=last_day).order_by("end_date")
+    
+    @property
+    def permission_policy(self):
+        """Use custom permission policy to deny add/edit/delete permissions"""
+        from wagtail.permissions import ModelPermissionPolicy
+        
+        class NoAddAMCExpiringPermissionPolicy(ModelPermissionPolicy):
+            """Custom permission policy that disallows adding/editing/deleting AMC expiring records"""
+            def user_has_permission(self, user, action):
+                if action in ["add", "edit", "delete"]:
+                    return False
+                return super().user_has_permission(user, action)
+        
+        return NoAddAMCExpiringPermissionPolicy(self.model)
 
 
 class AMCExpiringLastMonthViewSet(SnippetViewSet):
@@ -406,6 +433,7 @@ class AMCExpiringLastMonthViewSet(SnippetViewSet):
     create_view_enabled = False
     edit_view_enabled = False
     delete_view_enabled = False
+    list_display_add_buttons = None  # Hide the add button from list view header
 
     list_display = (
         "reference_id",
@@ -457,6 +485,20 @@ class AMCExpiringLastMonthViewSet(SnippetViewSet):
         last_month_last_day = first_of_this_month - timedelta(days=1)
         last_month_first_day = last_month_last_day.replace(day=1)
         return AMC.objects.filter(end_date__gte=last_month_first_day, end_date__lte=last_month_last_day).order_by("end_date")
+    
+    @property
+    def permission_policy(self):
+        """Use custom permission policy to deny add/edit/delete permissions"""
+        from wagtail.permissions import ModelPermissionPolicy
+        
+        class NoAddAMCExpiringPermissionPolicy(ModelPermissionPolicy):
+            """Custom permission policy that disallows adding/editing/deleting AMC expiring records"""
+            def user_has_permission(self, user, action):
+                if action in ["add", "edit", "delete"]:
+                    return False
+                return super().user_has_permission(user, action)
+        
+        return NoAddAMCExpiringPermissionPolicy(self.model)
 
 
 class AMCExpiringNextMonthViewSet(SnippetViewSet):
@@ -467,6 +509,7 @@ class AMCExpiringNextMonthViewSet(SnippetViewSet):
     create_view_enabled = False
     edit_view_enabled = False
     delete_view_enabled = False
+    list_display_add_buttons = None  # Hide the add button from list view header
 
     list_display = (
         "reference_id",
@@ -524,13 +567,27 @@ class AMCExpiringNextMonthViewSet(SnippetViewSet):
             month_after_next_first = next_month_first.replace(month=next_month_first.month + 1, day=1)
         next_month_last = month_after_next_first - timedelta(days=1)
         return AMC.objects.filter(end_date__gte=next_month_first, end_date__lte=next_month_last).order_by("end_date")
+    
+    @property
+    def permission_policy(self):
+        """Use custom permission policy to deny add/edit/delete permissions"""
+        from wagtail.permissions import ModelPermissionPolicy
+        
+        class NoAddAMCExpiringPermissionPolicy(ModelPermissionPolicy):
+            """Custom permission policy that disallows adding/editing/deleting AMC expiring records"""
+            def user_has_permission(self, user, action):
+                if action in ["add", "edit", "delete"]:
+                    return False
+                return super().user_has_permission(user, action)
+        
+        return NoAddAMCExpiringPermissionPolicy(self.model)
 
 class AMCManagementGroup(SnippetViewSetGroup):
     items = (
         AMCViewSet,
-        AMCExpiringThisMonthViewSet,
-        AMCExpiringLastMonthViewSet,
-        AMCExpiringNextMonthViewSet,
+        AMCExpiringThisMonthViewSet,  # Hidden from menu via wagtail_hooks
+        AMCExpiringLastMonthViewSet,  # Hidden from menu via wagtail_hooks
+        AMCExpiringNextMonthViewSet,  # Hidden from menu via wagtail_hooks
         AMCTypeViewSet,
         PaymentTermsViewSet,
     )
