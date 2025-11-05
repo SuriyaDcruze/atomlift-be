@@ -201,11 +201,93 @@ body {
   border-color: #EF4444;
 }
 
-.form-error-message {
-  color: #EF4444;
-  font-size: 0.75rem;
-  margin-top: 0.25rem;
-}
+ .form-error-message {
+   color: #EF4444;
+   font-size: 0.75rem;
+   margin-top: 0.25rem;
+ }
+
+ .year-picker-container {
+   position: absolute;
+   top: 100%;
+   left: 0;
+   right: 0;
+   background: white;
+   border: 1px solid #D1D5DB;
+   border-radius: 0.375rem;
+   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+   z-index: 1000;
+   margin-top: 0.25rem;
+   padding: 1rem;
+ }
+
+ .year-picker-header {
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+   margin-bottom: 0.75rem;
+   padding-bottom: 0.75rem;
+   border-bottom: 1px solid #E5E7EB;
+ }
+
+ .year-picker-title {
+   font-weight: 600;
+   color: #374151;
+   font-size: 0.875rem;
+ }
+
+ .year-picker-nav {
+   background: #F3F4F6;
+   border: 1px solid #D1D5DB;
+   border-radius: 0.25rem;
+   padding: 0.375rem 0.75rem;
+   cursor: pointer;
+   font-size: 0.875rem;
+   color: #374151;
+   transition: all 0.2s;
+ }
+
+ .year-picker-nav:hover {
+   background: #E5E7EB;
+   border-color: #9CA3AF;
+ }
+
+ .year-picker-grid {
+   display: grid;
+   grid-template-columns: repeat(5, 1fr);
+   gap: 0.5rem;
+   max-height: 200px;
+   overflow-y: auto;
+ }
+
+ .year-picker-item {
+   padding: 0.5rem;
+   text-align: center;
+   border: 1px solid #E5E7EB;
+   border-radius: 0.25rem;
+   cursor: pointer;
+   font-size: 0.875rem;
+   color: #374151;
+   transition: all 0.2s;
+   background: white;
+ }
+
+ .year-picker-item:hover {
+   background: #F3F4F6;
+   border-color: #3B82F6;
+ }
+
+ .year-picker-item.selected {
+   background: linear-gradient(to right, #2D3A6B, #243158);
+   color: white;
+   border-color: #2D3A6B;
+   font-weight: 600;
+ }
+
+ .year-picker-item.today {
+   border-color: #F97316;
+   font-weight: 500;
+ }
 
 .form-help {
   font-size: 0.75rem;
@@ -550,16 +632,41 @@ body {
           <div class="space-y-4">
             <h3 class="form-section-title">Additional Information</h3>
 
-            <div class="form-group">
+            <div class="form-group" style="position: relative;">
               <label class="form-label">Year of Make</label>
-              <input
-                type="text"
-                id="year_of_make"
-                name="year_of_make"
-                class="form-input"
-                placeholder="e.g., 2023"
-                maxlength="4"
-              />
+              <div style="position: relative;">
+                <input
+                  type="text"
+                  id="year_of_make"
+                  name="year_of_make"
+                  class="form-input"
+                  placeholder="e.g., 2023"
+                  maxlength="4"
+                  pattern="[0-9]{4}"
+                  inputmode="numeric"
+                  oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 4);"
+                  readonly
+                  style="cursor: pointer;"
+                />
+                <button type="button" class="year-picker-btn" onclick="toggleYearPicker()" style="position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 0.25rem; color: #6B7280;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                  </svg>
+                </button>
+              </div>
+              <div id="yearPicker" class="year-picker-container" style="display: none;">
+                <div class="year-picker-header">
+                  <button type="button" class="year-picker-nav" onclick="changeYearDecade(-10)">‹‹</button>
+                  <span id="yearPickerDecade" class="year-picker-title">1900-1909</span>
+                  <button type="button" class="year-picker-nav" onclick="changeYearDecade(10)">››</button>
+                </div>
+                <div id="yearPickerGrid" class="year-picker-grid"></div>
+              </div>
+              <p id="year_of_make-error" class="form-error-message" style="display: none;"></p>
+              <p class="form-help">Click to select year (1900-2099)</p>
             </div>
 
             <div class="form-group">
@@ -679,7 +786,134 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('submitBtn').addEventListener('click', handleFormSubmit);
   fetchNextReferenceId();
   setupCustomerSearch();
+  initializeYearPicker();
 });
+
+// Year Picker functionality
+let currentYearDecade = 1900;
+let selectedYear = null;
+
+function initializeYearPicker() {
+  const yearInput = document.getElementById('year_of_make');
+  const yearPicker = document.getElementById('yearPicker');
+  
+  // Click on input to toggle picker
+  yearInput.addEventListener('click', function(e) {
+    e.preventDefault();
+    toggleYearPicker();
+  });
+  
+  // Close picker when clicking outside
+  document.addEventListener('click', function(e) {
+    if (!yearInput.contains(e.target) && !yearPicker.contains(e.target) && !e.target.closest('.year-picker-btn')) {
+      yearPicker.style.display = 'none';
+    }
+  });
+  
+  // Initialize with current year if empty
+  if (!yearInput.value) {
+    const currentYear = new Date().getFullYear();
+    currentYearDecade = Math.floor(currentYear / 10) * 10;
+  } else {
+    const year = parseInt(yearInput.value);
+    if (!isNaN(year)) {
+      currentYearDecade = Math.floor(year / 10) * 10;
+      selectedYear = year;
+    }
+  }
+  
+  renderYearPicker();
+}
+
+function toggleYearPicker() {
+  const yearPicker = document.getElementById('yearPicker');
+  const yearInput = document.getElementById('year_of_make');
+  
+  if (yearPicker.style.display === 'none' || !yearPicker.style.display) {
+    // Set current decade based on input value or current year
+    if (yearInput.value) {
+      const year = parseInt(yearInput.value);
+      if (!isNaN(year) && year >= 1900 && year <= 2099) {
+        currentYearDecade = Math.floor(year / 10) * 10;
+        selectedYear = year;
+      }
+    } else {
+      const currentYear = new Date().getFullYear();
+      currentYearDecade = Math.floor(currentYear / 10) * 10;
+      selectedYear = currentYear;
+    }
+    renderYearPicker();
+    yearPicker.style.display = 'block';
+  } else {
+    yearPicker.style.display = 'none';
+  }
+}
+
+function changeYearDecade(offset) {
+  currentYearDecade += offset;
+  if (currentYearDecade < 1900) currentYearDecade = 1900;
+  if (currentYearDecade > 2090) currentYearDecade = 2090;
+  renderYearPicker();
+}
+
+function renderYearPicker() {
+  const grid = document.getElementById('yearPickerGrid');
+  const decadeLabel = document.getElementById('yearPickerDecade');
+  const currentYear = new Date().getFullYear();
+  
+  // Update decade label
+  decadeLabel.textContent = `${currentYearDecade}-${currentYearDecade + 9}`;
+  
+  // Clear grid
+  grid.innerHTML = '';
+  
+  // Render years in current decade (10 years)
+  for (let i = 0; i < 10; i++) {
+    const year = currentYearDecade + i;
+    if (year >= 1900 && year <= 2099) {
+      const yearItem = document.createElement('div');
+      yearItem.className = 'year-picker-item';
+      yearItem.textContent = year;
+      
+      // Highlight selected year
+      if (year === selectedYear) {
+        yearItem.classList.add('selected');
+      }
+      
+      // Highlight current year
+      if (year === currentYear) {
+        yearItem.classList.add('today');
+      }
+      
+      yearItem.addEventListener('click', function() {
+        selectYear(year);
+      });
+      
+      grid.appendChild(yearItem);
+    }
+  }
+}
+
+function selectYear(year) {
+  const yearInput = document.getElementById('year_of_make');
+  yearInput.value = year;
+  selectedYear = year;
+  
+  // Update input to remove readonly temporarily to trigger validation
+  yearInput.readOnly = false;
+  yearInput.dispatchEvent(new Event('input'));
+  yearInput.readOnly = true;
+  
+  // Close picker
+  document.getElementById('yearPicker').style.display = 'none';
+  
+  // Clear any error messages
+  const errorElement = document.getElementById('year_of_make-error');
+  if (errorElement) {
+    errorElement.style.display = 'none';
+  }
+  yearInput.classList.remove('form-error');
+}
 
 function fetchNextReferenceId() {
   fetch('/quotation/api/quotations/')
@@ -831,6 +1065,7 @@ function validateForm() {
   const type = document.getElementById('type').value;
   const date = document.getElementById('date').value;
   const selectedLift = document.getElementById('lift').value;
+  const yearOfMake = document.getElementById('year_of_make').value;
 
   if (!customer) {
     errors.customer = 'Customer is required';
@@ -876,34 +1111,56 @@ function validateForm() {
     document.getElementById('lifts-error').style.display = 'none';
   }
 
+  // Validate year of make if provided
+  if (yearOfMake) {
+    const year = parseInt(yearOfMake);
+    if (isNaN(year) || year < 1900 || year > 2099 || yearOfMake.length !== 4) {
+      errors.year_of_make = 'Year must be a valid 4-digit year between 1900 and 2099';
+      document.getElementById('year_of_make').classList.add('form-error');
+      document.getElementById('year_of_make-error').textContent = errors.year_of_make;
+      document.getElementById('year_of_make-error').style.display = 'block';
+      isValid = false;
+    } else {
+      document.getElementById('year_of_make').classList.remove('form-error');
+      document.getElementById('year_of_make-error').style.display = 'none';
+    }
+  }
+
   return isValid;
 }
 
-function createFormData() {
-  const formData = new FormData();
-  formData.append('csrfmiddlewaretoken', getCsrfToken());
-  formData.append('reference_id', document.getElementById('reference_id').value);
-
-  const elements = document.querySelectorAll('input:not([type=checkbox]):not([readonly]), select, textarea');
-  elements.forEach(element => {
-    if (element.name) {
-      if (element.type === 'file') {
-        Array.from(element.files).forEach(file => {
-          formData.append('uploads_files', file);
-        });
-      } else {
-        formData.append(element.name, element.value);
-      }
-    }
-  });
-
-  const selectedLift = document.getElementById('lift').value;
-  if (selectedLift) {
-    formData.append('lifts', selectedLift);
-  }
-
-  return formData;
-}
+ function createFormData() {
+   const formData = new FormData();
+   formData.append('csrfmiddlewaretoken', getCsrfToken());
+   formData.append('reference_id', document.getElementById('reference_id').value);
+ 
+   // Include readonly fields (like year_of_make) by using a more specific selector
+   const elements = document.querySelectorAll('input:not([type=checkbox]):not([type=file]), select, textarea');
+   elements.forEach(element => {
+     if (element.name) {
+       if (element.type === 'file') {
+         Array.from(element.files).forEach(file => {
+           formData.append('uploads_files', file);
+         });
+       } else {
+         formData.append(element.name, element.value);
+       }
+     }
+   });
+ 
+   // Explicitly add year_of_make if it exists (since it's readonly, ensure it's included)
+   const yearOfMake = document.getElementById('year_of_make');
+   if (yearOfMake && yearOfMake.value) {
+     formData.append('year_of_make', yearOfMake.value);
+   }
+ 
+   const selectedLift = document.getElementById('lift').value;
+   if (selectedLift) {
+     formData.append('lifts', selectedLift);
+   }
+ 
+   return formData;
+ }
 
 function handleFormSubmit() {
   if (!validateForm()) {

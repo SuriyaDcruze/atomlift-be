@@ -27,20 +27,25 @@ def dashboard_metrics(request):
     # Recent complaints for dashboard table
     recent_complaints = Complaint.objects.select_related('assign_to').order_by('-created')[:5]
 
-    # Weekly payment received data for the graph
+    # Weekly payment received data for the graph - using PaymentReceived model
     today = timezone.now().date()
     week_start = today - timedelta(days=today.weekday())  # Start of current week (Monday)
+    week_end = week_start + timedelta(days=6)  # End of current week (Sunday)
     
     weekly_payments = []
-    weekly_services = []  # We'll keep services data for now, but you can modify this
+    weekly_services = []
     
-    # Get payment data for each day of the week
+    # Get payment received data for each day of the week from PaymentReceived model
     for i in range(7):
         day = week_start + timedelta(days=i)
-        day_payments = PaymentReceived.objects.filter(date=day).aggregate(total=Sum('amount'))['total'] or 0
+        # Sum all PaymentReceived amounts for this specific day
+        # Filter by date field and exclude any NULL dates
+        day_payments = PaymentReceived.objects.filter(
+            date=day
+        ).exclude(date__isnull=True).aggregate(total=Sum('amount'))['total'] or 0
         
-        # Convert to float for chart display
-        payment_amount = float(day_payments)
+        # Convert Decimal to float for chart display
+        payment_amount = float(day_payments) if day_payments else 0.0
         weekly_payments.append(payment_amount)
         
         # Count completed services for each day

@@ -72,13 +72,16 @@ def create_quotation(request):
         if data.get('sales_service_executive'):
             sales_service_executive = get_object_or_404(CustomUser, id=data.get('sales_service_executive'))
         
+        # Get year_of_make (handle empty string explicitly)
+        year_of_make = data.get('year_of_make', '').strip() if data.get('year_of_make') else ''
+        
         # Create quotation
         quotation = Quotation.objects.create(
             customer=customer,
             amc_type=amc_type,
             sales_service_executive=sales_service_executive,
             type=data.get('type', 'Parts/Peripheral Quotation'),
-            year_of_make=data.get('year_of_make', ''),
+            year_of_make=year_of_make,
             remark=data.get('remark', ''),
             other_remark=data.get('other_remark', ''),
         )
@@ -137,7 +140,9 @@ def update_quotation(request, reference_id):
         
         # Update other fields
         quotation.type = data.get('type', quotation.type)
-        quotation.year_of_make = data.get('year_of_make', quotation.year_of_make)
+        # Explicitly handle year_of_make - if it's in the form data (even if empty), use it
+        if 'year_of_make' in data:
+            quotation.year_of_make = data.get('year_of_make', '').strip() if data.get('year_of_make') else ''
         quotation.remark = data.get('remark', quotation.remark)
         quotation.other_remark = data.get('other_remark', quotation.other_remark)
         
