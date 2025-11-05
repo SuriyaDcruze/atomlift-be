@@ -41,25 +41,38 @@ def complaints_report(request):
         complaints = complaints.filter(customer__site_name=customer_filter)
     
     if status_filter != 'ALL':
-        complaints = complaints.filter(priority=status_filter)
+        # Map display names to model values
+        status_map = {
+            'Open': 'open',
+            'In Progress': 'in_progress',
+            'Closed': 'closed',
+        }
+        status_value = status_map.get(status_filter, status_filter.lower().replace(' ', '_'))
+        complaints = complaints.filter(status=status_value)
     
     # Get customer list for filter dropdown
     customers = Customer.objects.all().values_list('site_name', flat=True).distinct()
     
     if view_mode == 'graph':
-        by_status = complaints.values('priority').annotate(count=Count('id')).order_by()
-        labels = [row['priority'] or 'Unknown' for row in by_status]
+        by_status = complaints.values('status').annotate(count=Count('id')).order_by()
+        # Map status values to display names
+        status_display_map = {
+            'open': 'Open',
+            'in_progress': 'In Progress',
+            'closed': 'Closed',
+        }
+        labels = [status_display_map.get(row['status'], row['status'] or 'Unknown') for row in by_status]
         data = [row['count'] for row in by_status]
         context = {
             'graph_title': 'Complaints by Status',
-            'labels': labels,
-            'datasets': [
+            'labels_json': json.dumps(labels),
+            'datasets_json': json.dumps([
                 {
                     'label': 'Count',
                     'data': data,
                     'backgroundColor': ['#60a5fa', '#34d399', '#fbbf24', '#a78bfa', '#f87171'][:len(data)],
                 }
-            ],
+            ]),
             'chart_type': 'bar',
         }
         return render(request, 'reports/graph_report.html', context)
@@ -110,14 +123,14 @@ def invoice_report(request):
         data = [row['count'] for row in by_status]
         context = {
             'graph_title': 'Invoices by Status',
-            'labels': labels,
-            'datasets': [
+            'labels_json': json.dumps(labels),
+            'datasets_json': json.dumps([
                 {
                     'label': 'Count',
                     'data': data,
                     'backgroundColor': ['#60a5fa', '#34d399', '#fbbf24', '#a78bfa', '#f87171'][:len(data)],
                 }
-            ],
+            ]),
             'chart_type': 'doughnut',
         }
         return render(request, 'reports/graph_report.html', context)
@@ -155,8 +168,8 @@ def payment_report(request):
     
     if start_date and end_date:
         payments = payments.filter(
-            payment_date__gte=start_date,
-            payment_date__lte=end_date
+            date__gte=start_date,
+            date__lte=end_date
         )
     
     # Get customer list for filter dropdown
@@ -174,8 +187,8 @@ def payment_report(request):
         data = [float(row['total'] or 0) for row in totals]
         context = {
             'graph_title': 'Payments by Month (Total Amount)',
-            'labels': labels,
-            'datasets': [
+            'labels_json': json.dumps(labels),
+            'datasets_json': json.dumps([
                 {
                     'label': 'Amount',
                     'data': data,
@@ -183,7 +196,7 @@ def payment_report(request):
                     'backgroundColor': 'rgba(16,185,129,0.2)',
                     'fill': True,
                 }
-            ],
+            ]),
             'chart_type': 'line',
         }
         return render(request, 'reports/graph_report.html', context)
@@ -231,25 +244,25 @@ def quotation_report(request):
         quotations = quotations.filter(customer__site_name=customer_filter)
     
     if status_filter != 'ALL':
-        quotations = quotations.filter(status=status_filter)
-    
+        quotations = quotations.filter(type=status_filter)
+
     # Get customer list for filter dropdown
     customers = Customer.objects.all().values_list('site_name', flat=True).distinct()
     
     if view_mode == 'graph':
-        by_status = quotations.values('status').annotate(count=Count('id')).order_by()
-        labels = [row['status'] or 'Unknown' for row in by_status]
+        by_status = quotations.values('type').annotate(count=Count('id')).order_by()
+        labels = [row['type'] or 'Unknown' for row in by_status]
         data = [row['count'] for row in by_status]
         context = {
-            'graph_title': 'Quotations by Status',
-            'labels': labels,
-            'datasets': [
+            'graph_title': 'Quotations by Type',
+            'labels_json': json.dumps(labels),
+            'datasets_json': json.dumps([
                 {
                     'label': 'Count',
                     'data': data,
                     'backgroundColor': ['#60a5fa', '#34d399', '#fbbf24', '#a78bfa', '#f87171'][:len(data)],
                 }
-            ],
+            ]),
             'chart_type': 'pie',
         }
         return render(request, 'reports/graph_report.html', context)
@@ -307,14 +320,14 @@ def routine_service_report(request):
         data = [row['count'] for row in by_type]
         context = {
             'graph_title': 'Routine Services by AMC Type',
-            'labels': labels,
-            'datasets': [
+            'labels_json': json.dumps(labels),
+            'datasets_json': json.dumps([
                 {
                     'label': 'Count',
                     'data': data,
                     'backgroundColor': ['#60a5fa', '#34d399', '#fbbf24', '#a78bfa', '#f87171'][:len(data)],
                 }
-            ],
+            ]),
             'chart_type': 'bar',
         }
         return render(request, 'reports/graph_report.html', context)

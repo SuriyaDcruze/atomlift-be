@@ -48,8 +48,8 @@
         <label>Status</label>
         <select name="status">
             <option value="ALL" {% if selected_status == 'ALL' %}selected{% endif %}>ALL</option>
-            <option value="In Progress" {% if selected_status == 'In Progress' %}selected{% endif %}>In Progress</option>
             <option value="Open" {% if selected_status == 'Open' %}selected{% endif %}>Open</option>
+            <option value="In Progress" {% if selected_status == 'In Progress' %}selected{% endif %}>In Progress</option>
             <option value="Closed" {% if selected_status == 'Closed' %}selected{% endif %}>Closed</option>
         </select>
     </div>

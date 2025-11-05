@@ -46,11 +46,13 @@
         </select>
     </div>
     <div class="filter-field">
-        <label>Status</label>
+        <label>Type</label>
         <select name="status">
             <option value="ALL" {% if selected_status == 'ALL' %}selected{% endif %}>ALL</option>
-            <option value="Active" {% if selected_status == 'Active' %}selected{% endif %}>Active</option>
-            <option value="Closed" {% if selected_status == 'Closed' %}selected{% endif %}>Closed</option>
+            <option value="Parts/Peripheral Quotation" {% if selected_status == 'Parts/Peripheral Quotation' %}selected{% endif %}>Parts/Peripheral Quotation</option>
+            <option value="Repair" {% if selected_status == 'Repair' %}selected{% endif %}>Repair</option>
+            <option value="AMC Renewal Quotation" {% if selected_status == 'AMC Renewal Quotation' %}selected{% endif %}>AMC Renewal Quotation</option>
+            <option value="AMC" {% if selected_status == 'AMC' %}selected{% endif %}>AMC</option>
         </select>
     </div>
 </div>
@@ -69,7 +71,6 @@
             <th>GST</th>
             <th>NET AMOUNT</th>
             <th>LIFTS</th>
-            <th>STATUS</th>
         </tr>
     </thead>
     <tbody>
@@ -84,17 +85,10 @@
             <td>{{ quotation.gst|default:"0%" }}</td>
             <td>{{ quotation.net_amount|default:"0" }}</td>
             <td>{{ quotation.lifts|default:"No Lifts" }}</td>
-            <td>
-                {% if quotation.status == "Active" %}
-                    <span class="badge badge-green">Active</span>
-                {% else %}
-                    <span class="badge badge-red">{{ quotation.status|default:"Closed" }}</span>
-                {% endif %}
-            </td>
         </tr>
         {% empty %}
         <tr>
-            <td colspan="10" class="no-data">No quotation reports found for the selected period</td>
+            <td colspan="9" class="no-data">No quotation reports found for the selected period</td>
         </tr>
         {% endfor %}
     </tbody>
