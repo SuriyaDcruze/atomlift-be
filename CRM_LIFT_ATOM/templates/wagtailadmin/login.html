@@ -49,6 +49,35 @@
       outline: 0;
       box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25); /* ring-indigo-200 */
     }
+    .password-wrapper {
+      position: relative;
+    }
+    .password-wrapper .form-input {
+      padding-right: 2.5rem; /* Make room for the eye icon */
+    }
+    .password-toggle {
+      position: absolute;
+      right: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: #6b7280; /* text-gray-500 */
+      cursor: pointer;
+      padding: 0.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.15s ease-in-out;
+      z-index: 10;
+    }
+    .password-toggle:hover {
+      color: #374151; /* text-gray-700 */
+    }
+    .password-toggle:focus {
+      outline: none;
+      color: #6366f1; /* indigo-500 */
+    }
     .btn-primary {
       width: 100%;
       padding: 0.75rem 1rem; /* py-2 px-4 */
@@ -96,7 +125,12 @@
         </div>
         <div class="mb-6">
           <label for="{{ form.password.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-          <input type="password" name="{{ form.password.name }}" id="{{ form.password.id_for_label }}" class="form-input" placeholder="Enter your password" required />
+          <div class="password-wrapper">
+            <input type="password" name="{{ form.password.name }}" id="{{ form.password.id_for_label }}" class="form-input" placeholder="Enter your password" required />
+            <button type="button" class="password-toggle" id="passwordToggle" aria-label="Toggle password visibility">
+              <i class="fas fa-eye" id="passwordToggleIcon"></i>
+            </button>
+          </div>
           {% if form.password.errors %}
             <p class="text-red-500 text-xs mt-1">{% for error in form.password.errors %}{{ error }}{% endfor %}</p>
           {% endif %}
@@ -142,6 +176,30 @@
     <div class="right-pane hidden md:block"></div>
   </div>
   <script>
+    // Password toggle functionality
+    document.addEventListener('DOMContentLoaded', function() {
+      const passwordToggle = document.getElementById('passwordToggle');
+      const passwordWrapper = document.querySelector('.password-wrapper');
+      const passwordInput = passwordWrapper ? passwordWrapper.querySelector('input') : null;
+      const passwordToggleIcon = document.getElementById('passwordToggleIcon');
+
+      if (passwordToggle && passwordInput && passwordToggleIcon) {
+        passwordToggle.addEventListener('click', function() {
+          const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+          passwordInput.setAttribute('type', type);
+          
+          // Toggle icon
+          if (type === 'text') {
+            passwordToggleIcon.classList.remove('fa-eye');
+            passwordToggleIcon.classList.add('fa-eye-slash');
+          } else {
+            passwordToggleIcon.classList.remove('fa-eye-slash');
+            passwordToggleIcon.classList.add('fa-eye');
+          }
+        });
+      }
+    });
+
     // Simple UI toggling for OTP login (no backend logic)
     const showOtpBtn = document.getElementById('showOtpBtn');
     const otpForm = document.getElementById('otpForm');
