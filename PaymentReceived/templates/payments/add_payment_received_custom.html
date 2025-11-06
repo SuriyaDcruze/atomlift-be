@@ -11,6 +11,8 @@
 .form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1.5rem}
 .form-group{margin-bottom:1rem}
 .form-label{display:block;font-size:.875rem;font-weight:500;color:#374151;margin-bottom:.25rem}
+.form-required{color:#EF4444;margin-left:.25rem}
+.form-error{font-size:.75rem;color:#EF4444;margin-top:.25rem}
 .form-input,.form-select{width:100%;padding:.625rem 1rem;border-radius:.5rem;border:1px solid #D1D5DB;background:#fff;font-size:.875rem}
 .w-modal-footer{padding:1rem 1.5rem;background:#F9FAFB;border-top:1px solid #E5E7EB;display:flex;justify-content:flex-end;gap:.75rem;position:sticky;bottom:0;z-index:1}
 .btn{padding:.625rem 1.25rem;border-radius:.5rem;font-size:.875rem;font-weight:500}
@@ -76,6 +78,81 @@
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
 }
+
+.toast-container {
+  position: fixed;
+  top: 1.25rem;
+  right: 1.25rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.toast {
+  background: white;
+  border-radius: 0.375rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  min-width: 20rem;
+  max-width: 31.25rem;
+  border-left: 4px solid;
+  animation: slideInRight 0.3s ease-out;
+}
+
+.toast--success {
+  border-left-color: #10B981;
+}
+
+.toast--error {
+  border-left-color: #EF4444;
+}
+
+.toast-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+}
+
+.toast-message {
+  flex: 1;
+  margin-right: 1rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.toast-message strong {
+  font-weight: 600;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6B7280;
+  padding: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.toast-close:hover {
+  color: #374151;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
 </style>
 {% endblock %}
 
@@ -89,7 +166,7 @@
           <div>
             <div class="form-group"><label class="form-label">Payment No</label><input id="payment_number" class="form-input" type="text" readonly /></div>
             <div class="form-group">
-              <label class="form-label">Customer</label>
+              <label class="form-label">Customer<span class="form-required">*</span></label>
               <div style="position: relative;">
                 <input 
                   type="text" 
@@ -98,16 +175,21 @@
                   placeholder="Search customer..."
                   autocomplete="off"
                 />
-                <select id="customer" class="form-select" style="display: none;"></select>
+                <select id="customer" class="form-select" style="display: none;" required></select>
                 <div id="customerDropdown" class="customer-dropdown" style="display: none;">
                   <div id="customerList"></div>
                 </div>
+                <p id="customerError" class="form-error" style="display: none;"></p>
               </div>
             </div>
             <div class="form-group"><label class="form-label">Invoice</label><select id="invoice" class="form-select"></select></div>
           </div>
           <div>
-            <div class="form-group"><label class="form-label">Amount</label><input id="amount" class="form-input" type="number" step="0.01" /></div>
+            <div class="form-group">
+              <label class="form-label">Amount<span class="form-required">*</span></label>
+              <input id="amount" class="form-input" type="number" step="0.01" required />
+              <p id="amountError" class="form-error" style="display: none;"></p>
+            </div>
             <div class="form-group"><label class="form-label">Date</label><input id="date" class="form-input" type="date" /></div>
             <div class="form-group"><label class="form-label">Payment Type</label><select id="payment_type" class="form-select"><option value="cash">Cash</option><option value="bank_transfer">Bank Transfer</option><option value="cheque">Cheque</option><option value="neft">NEFT</option></select></div>
             <div class="form-group"><label class="form-label">Tax Deducted</label><select id="tax_deducted" class="form-select"><option value="no">No Tax deducted</option><option value="yes_tds">Yes, TDS (Income Tax)</option></select></div>
@@ -120,6 +202,9 @@
       </div>
     </div>
   </div>
+  
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
 </div>
 <script>
 let allCustomers = [];
@@ -128,6 +213,25 @@ let selectedCustomerId = {% if preselected_customer %}{{ preselected_customer.id
 function getCsrfToken(){
   var t=document.querySelector('[name=csrfmiddlewaretoken]');
   return t?t.value:''
+}
+
+function showMessage(type, message, description = '') {
+  const toast = document.createElement('div');
+  toast.className = `toast toast--${type}`;
+  toast.innerHTML = `
+    <div class="toast-content">
+      <div class="toast-message">
+        <strong>${type.charAt(0).toUpperCase() + type.slice(1)}:</strong> ${message}
+        ${description ? `<div>${description}</div>` : ''}
+      </div>
+      <button class="toast-close" onclick="this.parentElement.parentElement.remove()">×</button>
+    </div>
+  `;
+  const toastContainer = document.getElementById('toastContainer');
+  toastContainer.appendChild(toast);
+  setTimeout(() => {
+    if (toast.parentElement) toast.remove();
+  }, type === 'success' ? 3000 : 5000);
 }
 
 function loadSelect(id,url,map){
@@ -186,6 +290,11 @@ document.addEventListener('DOMContentLoaded',function(){
   loadSelect('invoice','/payments/api/payments/invoices/',i=>i.number);
   
   document.getElementById('submitBtn').addEventListener('click',function(){
+    // Validate before submitting
+    if (!validateCustomer() || !validateAmount()) {
+      return;
+    }
+    
     const payload={
       customer:document.getElementById('customer').value,
       invoice:document.getElementById('invoice').value,
@@ -200,11 +309,44 @@ document.addEventListener('DOMContentLoaded',function(){
       body:JSON.stringify(payload)
     }).then(r=>r.json()).then(res=>{
       if(res.success){
-        window.location.href='{% url "wagtailadmin_home" %}'
+        showMessage('success', res.message || 'Payment created successfully');
+        setTimeout(() => {
+          window.location.href='{% url "wagtailadmin_home" %}';
+        }, 2000);
       }else{
-        alert(res.error||'Failed')
+        // Display error message
+        const errorMsg = res.error || 'Failed to create payment';
+        showMessage('error', errorMsg);
+        
+        // Show field-specific errors if available
+        if (errorMsg.includes('Customer')) {
+          const customerError = document.getElementById('customerError');
+          if (customerError) {
+            customerError.textContent = errorMsg;
+            customerError.style.display = 'block';
+          }
+        }
+        if (errorMsg.includes('Amount')) {
+          const amountError = document.getElementById('amountError');
+          if (amountError) {
+            amountError.textContent = errorMsg;
+            amountError.style.display = 'block';
+          }
+        }
       }
+    }).catch(error => {
+      showMessage('error', 'An error occurred while creating the payment');
+      console.error('Error:', error);
     });
+  });
+  
+  // Add validation on amount input
+  document.getElementById('amount').addEventListener('blur', validateAmount);
+  document.getElementById('amount').addEventListener('input', function() {
+    const amountError = document.getElementById('amountError');
+    if (amountError && amountError.style.display === 'block') {
+      validateAmount();
+    }
   });
 });
 
@@ -276,15 +418,50 @@ function displayCustomers(customers) {
   `).join('');
 }
 
+function validateCustomer() {
+  const customerSelect = document.getElementById('customer');
+  const customerError = document.getElementById('customerError');
+  
+  if (!customerSelect || !customerSelect.value) {
+    customerError.textContent = 'Customer is required. Please select a customer.';
+    customerError.style.display = 'block';
+    return false;
+  }
+  
+  customerError.style.display = 'none';
+  return true;
+}
+
+function validateAmount() {
+  const amountInput = document.getElementById('amount');
+  const amountError = document.getElementById('amountError');
+  const amount = parseFloat(amountInput.value);
+  
+  if (!amountInput.value || isNaN(amount) || amount <= 0) {
+    amountError.textContent = 'Amount is required and must be greater than 0.';
+    amountError.style.display = 'block';
+    return false;
+  }
+  
+  amountError.style.display = 'none';
+  return true;
+}
+
 function selectCustomer(customer) {
   selectedCustomerId = customer.id;
   const searchInput = document.getElementById('customerSearch');
   const dropdown = document.getElementById('customerDropdown');
   const hiddenSelect = document.getElementById('customer');
+  const customerError = document.getElementById('customerError');
   
   searchInput.value = `${customer.site_name}${customer.job_no ? ' (' + customer.job_no + ')' : ''}`;
   hiddenSelect.value = customer.id;
   dropdown.style.display = 'none';
+  
+  // Clear error when customer is selected
+  if (customerError) {
+    customerError.style.display = 'none';
+  }
 }
 </script>
 {% endblock %}

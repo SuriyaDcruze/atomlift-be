@@ -8,11 +8,19 @@
         <div class="form-grid">
           <div>
             <div class="form-group"><label class="form-label">Payment No</label><input id="payment_number" class="form-input" type="text" value="{{ payment.payment_number }}" readonly /></div>
-            <div class="form-group"><label class="form-label">Customer</label><select id="customer" class="form-select"></select></div>
+            <div class="form-group">
+              <label class="form-label">Customer<span class="form-required">*</span></label>
+              <select id="customer" class="form-select" required></select>
+              <p id="customerError" class="form-error" style="display: none;"></p>
+            </div>
             <div class="form-group"><label class="form-label">Invoice</label><select id="invoice" class="form-select"></select></div>
           </div>
           <div>
-            <div class="form-group"><label class="form-label">Amount</label><input id="amount" class="form-input" type="number" step="0.01" value="{{ payment.amount }}" /></div>
+            <div class="form-group">
+              <label class="form-label">Amount<span class="form-required">*</span></label>
+              <input id="amount" class="form-input" type="number" step="0.01" value="{{ payment.amount }}" required />
+              <p id="amountError" class="form-error" style="display: none;"></p>
+            </div>
             <div class="form-group"><label class="form-label">Date</label><input id="date" class="form-input" type="date" value="{{ payment.date|date:'Y-m-d' }}" /></div>
             <div class="form-group"><label class="form-label">Payment Type</label><select id="payment_type" class="form-select"><option value="cash" {% if payment.payment_type == 'cash' %}selected{% endif %}>Cash</option><option value="bank_transfer" {% if payment.payment_type == 'bank_transfer' %}selected{% endif %}>Bank Transfer</option><option value="cheque" {% if payment.payment_type == 'cheque' %}selected{% endif %}>Cheque</option><option value="neft" {% if payment.payment_type == 'neft' %}selected{% endif %}>NEFT</option></select></div>
             <div class="form-group"><label class="form-label">Tax Deducted</label><select id="tax_deducted" class="form-select"><option value="no" {% if payment.tax_deducted == 'no' %}selected{% endif %}>No Tax deducted</option><option value="yes_tds" {% if payment.tax_deducted == 'yes_tds' %}selected{% endif %}>Yes, TDS (Income Tax)</option></select></div>
@@ -25,6 +33,9 @@
       </div>
     </div>
   </div>
+  
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
 </div>
 <script>
 function getCsrfToken(){var t=document.querySelector('[name=csrfmiddlewaretoken]');return t?t.value:''}
@@ -33,8 +44,60 @@ document.addEventListener('DOMContentLoaded',function(){
   loadSelect('customer','/payments/api/payments/customers/',null,{% if payment.customer %}{{ payment.customer.id }}{% else %}null{% endif %});
   loadSelect('invoice','/payments/api/payments/invoices/',i=>i.number,{% if payment.invoice %}{{ payment.invoice.id }}{% else %}null{% endif %});
   document.getElementById('submitBtn').addEventListener('click',function(){
+    // Validate before submitting
+    if (!validateCustomer() || !validateAmount()) {
+      return;
+    }
+    
     const payload={customer:document.getElementById('customer').value,invoice:document.getElementById('invoice').value,amount:document.getElementById('amount').value,date:document.getElementById('date').value,payment_type:document.getElementById('payment_type').value,tax_deducted:document.getElementById('tax_deducted').value};
-    fetch('{% url "update_payment_received" payment.payment_number %}',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':getCsrfToken()},body:JSON.stringify(payload)}).then(r=>r.json()).then(res=>{if(res.success){window.location.href='{% url "wagtailadmin_home" %}'}else{alert(res.error||'Failed')}});
+    fetch('{% url "update_payment_received" payment.payment_number %}',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':getCsrfToken()},body:JSON.stringify(payload)}).then(r=>r.json()).then(res=>{
+      if(res.success){
+        showMessage('success', res.message || 'Payment updated successfully');
+        setTimeout(() => {
+          window.location.href='{% url "wagtailadmin_home" %}';
+        }, 2000);
+      }else{
+        // Display error message
+        const errorMsg = res.error || 'Failed to update payment';
+        showMessage('error', errorMsg);
+        
+        // Show field-specific errors if available
+        if (errorMsg.includes('Customer')) {
+          const customerError = document.getElementById('customerError');
+          if (customerError) {
+            customerError.textContent = errorMsg;
+            customerError.style.display = 'block';
+          }
+        }
+        if (errorMsg.includes('Amount')) {
+          const amountError = document.getElementById('amountError');
+          if (amountError) {
+            amountError.textContent = errorMsg;
+            amountError.style.display = 'block';
+          }
+        }
+      }
+    }).catch(error => {
+      showMessage('error', 'An error occurred while updating the payment');
+      console.error('Error:', error);
+    });
+  });
+  
+  // Add validation on amount input
+  document.getElementById('amount').addEventListener('blur', validateAmount);
+  document.getElementById('amount').addEventListener('input', function() {
+    const amountError = document.getElementById('amountError');
+    if (amountError && amountError.style.display === 'block') {
+      validateAmount();
+    }
+  });
+  
+  // Add validation on customer select
+  document.getElementById('customer').addEventListener('change', function() {
+    const customerError = document.getElementById('customerError');
+    if (customerError) {
+      customerError.style.display = 'none';
+    }
   });
 });
 </script>

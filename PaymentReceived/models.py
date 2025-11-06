@@ -3,6 +3,7 @@ from django.db import models
 # Create your models here.
 from django.db import models
 from django.forms.widgets import RadioSelect
+from django.core.exceptions import ValidationError
 from wagtail.admin.panels import FieldPanel, MultiFieldPanel
 from wagtail.snippets.models import register_snippet
 from wagtail.snippets.views.snippets import SnippetViewSet, SnippetViewSetGroup
@@ -19,7 +20,7 @@ class PaymentReceived(models.Model):
     REFERENCE_PREFIX = 'PAY'
 
     payment_number = models.CharField(max_length=10, unique=True, editable=False)
-    customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True, blank=True)
+    customer = models.ForeignKey(Customer, on_delete=models.PROTECT, null=False, blank=False)
     invoice = models.ForeignKey(
         Invoice,
         on_delete=models.SET_NULL,
@@ -27,7 +28,7 @@ class PaymentReceived(models.Model):
         blank=True,
         help_text="Linked to a specific invoice for deposit consideration"
     )
-    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    amount = models.DecimalField(max_digits=12, decimal_places=2, null=False, blank=False)
     date = models.DateField()
     payment_type = models.CharField(
         max_length=20,
@@ -73,7 +74,23 @@ class PaymentReceived(models.Model):
         ], heading="Supporting Documents"),
     ]
 
+    def clean(self):
+        """Validate that customer and amount are required"""
+        super().clean()
+        
+        if not self.customer:
+            raise ValidationError({
+                'customer': 'Customer is required. Please select a customer.'
+            })
+        
+        if self.amount is None or self.amount <= 0:
+            raise ValidationError({
+                'amount': 'Amount is required and must be greater than 0.'
+            })
+    
     def save(self, *args, **kwargs):
+        """Call clean before saving"""
+        self.full_clean()
         if not self.payment_number:
             last_payment = PaymentReceived.objects.all().order_by('id').last()
             if last_payment:

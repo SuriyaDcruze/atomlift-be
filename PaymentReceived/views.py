@@ -2,6 +2,7 @@ from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
+from django.core.exceptions import ValidationError
 from .models import PaymentReceived
 from customer.models import Customer
 from invoice.models import Invoice
@@ -70,15 +71,41 @@ def create_payment_received(request):
         except Exception:
             data = {}
     try:
+        # Validate required fields
+        if not data.get('customer'):
+            return JsonResponse({
+                'success': False,
+                'error': 'Customer is required. Please select a customer.'
+            }, status=400)
+        
+        amount = data.get('amount')
+        if not amount or float(amount) <= 0:
+            return JsonResponse({
+                'success': False,
+                'error': 'Amount is required and must be greater than 0.'
+            }, status=400)
+        
         payment = PaymentReceived.objects.create(
-            customer=Customer.objects.get(id=data['customer']) if data.get('customer') else None,
+            customer=Customer.objects.get(id=data['customer']),
             invoice=Invoice.objects.get(id=data['invoice']) if data.get('invoice') else None,
-            amount=data.get('amount') or 0,
+            amount=float(amount),
             date=data.get('date') or None,
             payment_type=data.get('payment_type') or 'cash',
             tax_deducted=data.get('tax_deducted') or 'no',
         )
         return JsonResponse({'success': True, 'message': f'Payment {payment.payment_number} created successfully'})
+    except ValidationError as e:
+        # Handle validation errors
+        if e.message_dict:
+            error_fields = ['customer', 'amount']
+            for field in error_fields:
+                if field in e.message_dict:
+                    error_message = e.message_dict[field][0]
+                    return JsonResponse({'success': False, 'error': error_message}, status=400)
+            error_message = list(e.message_dict.values())[0][0]
+        else:
+            error_message = str(e)
+        return JsonResponse({'success': False, 'error': error_message}, status=400)
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
@@ -95,12 +122,24 @@ def update_payment_received(request, payment_number):
         except Exception:
             data = {}
     try:
-        if data.get('customer'):
-            payment.customer = Customer.objects.get(id=data['customer'])
+        # Validate required fields
+        if not data.get('customer'):
+            return JsonResponse({
+                'success': False,
+                'error': 'Customer is required. Please select a customer.'
+            }, status=400)
+        
+        amount = data.get('amount')
+        if not amount or float(amount) <= 0:
+            return JsonResponse({
+                'success': False,
+                'error': 'Amount is required and must be greater than 0.'
+            }, status=400)
+        
+        payment.customer = Customer.objects.get(id=data['customer'])
         if data.get('invoice'):
             payment.invoice = Invoice.objects.get(id=data['invoice'])
-        if data.get('amount') is not None:
-            payment.amount = data.get('amount')
+        payment.amount = float(amount)
         if data.get('date'):
             payment.date = data.get('date')
         if data.get('payment_type'):
@@ -109,6 +148,18 @@ def update_payment_received(request, payment_number):
             payment.tax_deducted = data.get('tax_deducted')
         payment.save()
         return JsonResponse({'success': True, 'message': f'Payment {payment.payment_number} updated successfully'})
+    except ValidationError as e:
+        # Handle validation errors
+        if e.message_dict:
+            error_fields = ['customer', 'amount']
+            for field in error_fields:
+                if field in e.message_dict:
+                    error_message = e.message_dict[field][0]
+                    return JsonResponse({'success': False, 'error': error_message}, status=400)
+            error_message = list(e.message_dict.values())[0][0]
+        else:
+            error_message = str(e)
+        return JsonResponse({'success': False, 'error': error_message}, status=400)
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
