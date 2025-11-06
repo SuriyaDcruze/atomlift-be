@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
+from django.core.exceptions import ValidationError
 from wagtail import hooks
 from wagtail.admin.menu import MenuItem, SubmenuMenuItem, Menu
 from wagtail.snippets.widgets import SnippetListingButton
@@ -189,6 +190,20 @@ def add_amc_custom(request):
                 }
             })
             
+        except ValidationError as e:
+            # Handle validation errors for multiple fields
+            if e.message_dict:
+                # Prioritize showing field-specific errors
+                error_fields = ['amcname']
+                for field in error_fields:
+                    if field in e.message_dict:
+                        error_message = e.message_dict[field][0]
+                        return JsonResponse({'success': False, 'error': error_message})
+                # Fallback to first error if none of the prioritized fields have errors
+                error_message = list(e.message_dict.values())[0][0]
+            else:
+                error_message = str(e)
+            return JsonResponse({'success': False, 'error': error_message})
         except Exception as e:
             return JsonResponse({
                 'success': False,
@@ -298,6 +313,20 @@ def edit_amc_custom(request, pk):
                 'message': 'AMC updated successfully'
             })
             
+        except ValidationError as e:
+            # Handle validation errors for multiple fields
+            if e.message_dict:
+                # Prioritize showing field-specific errors
+                error_fields = ['amcname']
+                for field in error_fields:
+                    if field in e.message_dict:
+                        error_message = e.message_dict[field][0]
+                        return JsonResponse({'success': False, 'error': error_message})
+                # Fallback to first error if none of the prioritized fields have errors
+                error_message = list(e.message_dict.values())[0][0]
+            else:
+                error_message = str(e)
+            return JsonResponse({'success': False, 'error': error_message})
         except Exception as e:
             return JsonResponse({
                 'success': False,

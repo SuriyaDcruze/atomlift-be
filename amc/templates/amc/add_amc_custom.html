@@ -189,6 +189,12 @@ body {
   margin-top: 0.25rem;
 }
 
+.form-error {
+  font-size: 0.75rem;
+  color: #EF4444;
+  margin-top: 0.25rem;
+}
+
 .w-modal-footer {
   padding: 1rem 1.5rem;
   background: #F9FAFB;
@@ -509,6 +515,7 @@ body {
                   value="{% if is_edit %}{{ amc.amcname|default:'' }}{% endif %}"
                   class="form-input"
                 />
+                <p id="amcnameError" class="form-error" style="display: none;"></p>
               </div>
 
               <div class="form-group">
@@ -865,21 +872,33 @@ function fetchCustomerDetails() {
     
     var filled = false;
     
-    // Auto-fill Equipment No with Job No (only if empty)
-    if (jobNo && equipmentNoInput && equipmentNoInput.value === '') {
+    // Auto-fill Equipment No with Job No (always update when customer changes)
+    if (jobNo && equipmentNoInput) {
       equipmentNoInput.value = jobNo;
       filled = true;
+    } else if (equipmentNoInput && !jobNo) {
+      // Clear if no job_no for selected customer
+      equipmentNoInput.value = '';
     }
 
-    // Auto-fill Latitude with Site Address
+    // Auto-fill Latitude with Site Address (always update when customer changes)
     if (siteAddress && siteAddress.trim() !== '' && latitudeInput) {
       latitudeInput.value = siteAddress;
       filled = true;
+    } else if (latitudeInput && (!siteAddress || siteAddress.trim() === '')) {
+      // Clear if no site_address for selected customer
+      latitudeInput.value = '';
     }
     
     if (filled) {
       showMessage('success', 'Customer details auto-filled successfully!');
     }
+  } else {
+    // If no customer selected, clear the fields
+    const equipmentNoInput = document.getElementById('equipment_no');
+    const latitudeInput = document.getElementById('latitude');
+    if (equipmentNoInput) equipmentNoInput.value = '';
+    if (latitudeInput) latitudeInput.value = '';
   }
 }
 
@@ -1093,8 +1112,46 @@ function showMessage(type, message) {
   }, type === 'success' ? 3000 : 5000);
 }
 
+function setupAmcnameValidation() {
+  const amcnameInput = document.getElementById('amcname');
+  const amcnameError = document.getElementById('amcnameError');
+  
+  amcnameInput.addEventListener('blur', () => {
+    validateAmcname();
+  });
+  
+  amcnameInput.addEventListener('input', () => {
+    // Clear error on input if validation passes
+    if (amcnameError.style.display === 'block') {
+      const amcname = amcnameInput.value.trim();
+      if (!amcname || /^[a-zA-Z0-9\s\-]+$/.test(amcname)) {
+        amcnameError.style.display = 'none';
+      }
+    }
+  });
+}
+
+function validateAmcname() {
+  const amcname = document.getElementById('amcname').value.trim();
+  const amcnameError = document.getElementById('amcnameError');
+  
+  if (amcname) {
+    // Check for special characters (only allow letters, numbers, spaces, and hyphens)
+    const specialCharPattern = /[^a-zA-Z0-9\s\-]/;
+    if (specialCharPattern.test(amcname)) {
+      amcnameError.textContent = 'AMC Pack Name must not contain special characters. Only letters, numbers, spaces, and hyphens are allowed.';
+      amcnameError.style.display = 'block';
+      return false;
+    }
+  }
+  
+  amcnameError.style.display = 'none';
+  return true;
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   toggleContractFields();
+  setupAmcnameValidation();
 
   // Get customer ID from URL parameter
   var urlCustomerId = '{{ customer_id }}';
@@ -1323,6 +1380,12 @@ function loadAMCTypesDropdown() {
 
 function handleAMCFormSubmit(event) {
   event.preventDefault();
+
+  // Validate AMC Pack Name before submitting
+  if (!validateAmcname()) {
+    showMessage('error', 'Please fix the validation errors before submitting');
+    return;
+  }
 
   const form = document.getElementById('amcForm');
   const formData = new FormData(form);

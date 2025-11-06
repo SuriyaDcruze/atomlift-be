@@ -3,9 +3,11 @@ from django.utils import timezone
 from datetime import timedelta
 from datetime import date
 from decimal import Decimal
+from django.core.exceptions import ValidationError
 from wagtail.snippets.models import register_snippet
 from wagtail.snippets.views.snippets import SnippetViewSet, SnippetViewSetGroup
 from wagtail.admin.panels import FieldPanel, MultiFieldPanel, TabbedInterface, ObjectList
+import re
 
 from customer.models import Customer
 from items.models import Item
@@ -73,7 +75,20 @@ class AMC(models.Model):
     )
     created = models.DateTimeField(auto_now_add=True)
 
+    def clean(self):
+        """Validate that amcname does not contain special characters"""
+        super().clean()
+        
+        if self.amcname:
+            # Allow letters, numbers, spaces, and hyphens
+            if not re.match(r'^[a-zA-Z0-9\s\-]+$', self.amcname):
+                raise ValidationError({
+                    'amcname': 'AMC Pack Name must not contain special characters. Only letters, numbers, spaces, and hyphens are allowed.'
+                })
+
     def save(self, *args, **kwargs):
+        """Call clean before saving"""
+        self.full_clean()
         # Ensure date fields are date objects
         if isinstance(self.start_date, str):
             self.start_date = date.fromisoformat(self.start_date)
