@@ -95,6 +95,12 @@ class Item(models.Model):
         """Validate that name does not contain special characters"""
         super().clean()
         
+        # Validate make is required
+        if not self.make:
+            raise ValidationError({
+                'make': 'Make is required. Please select a make.'
+            })
+        
         if self.name:
             # Allow letters, numbers, spaces, and hyphens
             if not re.match(r'^[a-zA-Z0-9\s\-]+$', self.name):

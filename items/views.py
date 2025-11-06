@@ -17,10 +17,15 @@ def add_item_custom(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
+            # Validate make is provided
+            make_id = data.get('make')
+            if not make_id:
+                return JsonResponse({'success': False, 'error': 'Make is required. Please select a make.'})
+            
             # Create new item
             item = Item(
                 name=data.get('name'),
-                make_id=data.get('make') if data.get('make') else None,
+                make_id=make_id,
                 model=data.get('model'),
                 type_id=data.get('type') if data.get('type') else None,
                 capacity=data.get('capacity'),
@@ -42,7 +47,7 @@ def add_item_custom(request):
             # Handle validation errors for multiple fields
             if e.message_dict:
                 # Prioritize showing field-specific errors
-                error_fields = ['name', 'capacity', 'sale_price']
+                error_fields = ['name', 'make', 'capacity', 'sale_price']
                 for field in error_fields:
                     if field in e.message_dict:
                         error_message = e.message_dict[field][0]
@@ -83,9 +88,14 @@ def edit_item_custom(request, item_number):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
+            # Validate make is provided
+            make_id = data.get('make')
+            if not make_id:
+                return JsonResponse({'success': False, 'error': 'Make is required. Please select a make.'})
+            
             # Update item
             item.name = data.get('name')
-            item.make_id = data.get('make') if data.get('make') else None
+            item.make_id = make_id
             item.model = data.get('model')
             item.type_id = data.get('type') if data.get('type') else None
             item.capacity = data.get('capacity')
@@ -107,7 +117,7 @@ def edit_item_custom(request, item_number):
             # Handle validation errors for multiple fields
             if e.message_dict:
                 # Prioritize showing field-specific errors
-                error_fields = ['name', 'capacity', 'sale_price']
+                error_fields = ['name', 'make', 'capacity', 'sale_price']
                 for field in error_fields:
                     if field in e.message_dict:
                         error_message = e.message_dict[field][0]
