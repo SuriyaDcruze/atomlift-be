@@ -29,6 +29,9 @@ def hide_explorer_menu_item_from_frank(request, menu_items):
         # Hide individual sales groups that are now part of Sales group
         if item.name in ['customer', 'quotation', 'payment', 'invoicing', 'recurring_billing', 'delivery_challan']:
             continue
+        # Hide monthly load
+        if item.name == 'monthly_load':
+            continue
         new_menu_items.append(item)
     menu_items[:] = new_menu_items
 

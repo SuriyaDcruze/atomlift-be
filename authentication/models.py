@@ -3,9 +3,11 @@ from django.db import models
 from django.utils import timezone
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.core.exceptions import ValidationError
 import random
 import string
 from datetime import timedelta
+import re
 
 
 class CustomUserManager(BaseUserManager):
@@ -84,6 +86,27 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
             return self.profile.phone_number or self.phone_number or '-'
         return self.phone_number or '-'
     get_profile_phone.short_description = 'Phone Number'
+
+    def clean(self):
+        """Validate that first_name and last_name contain only letters"""
+        super().clean()
+        
+        if self.first_name:
+            if not re.match(r'^[a-zA-Z]+$', self.first_name):
+                raise ValidationError({
+                    'first_name': 'First name must contain only letters (a-z, A-Z).'
+                })
+        
+        if self.last_name:
+            if not re.match(r'^[a-zA-Z]+$', self.last_name):
+                raise ValidationError({
+                    'last_name': 'Last name must contain only letters (a-z, A-Z).'
+                })
+
+    def save(self, *args, **kwargs):
+        """Call clean before saving"""
+        self.full_clean()
+        super().save(*args, **kwargs)
 
 
 class UserProfile(models.Model):

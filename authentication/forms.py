@@ -1,5 +1,7 @@
 from django import forms
 from wagtail.users.forms import UserCreationForm, UserEditForm
+from django.core.exceptions import ValidationError
+import re
 
 from .models import CustomUser, UserProfile
 
@@ -14,6 +16,22 @@ class CustomUserCreationForm(UserCreationForm):
     class Meta(UserCreationForm.Meta):
         model = CustomUser
         fields = ("email", "first_name", "last_name", "phone_number")
+
+    def clean_first_name(self):
+        """Validate that first_name contains only letters"""
+        first_name = self.cleaned_data.get('first_name', '').strip()
+        if first_name:
+            if not re.match(r'^[a-zA-Z]+$', first_name):
+                raise ValidationError('First name must contain only letters (a-z, A-Z).')
+        return first_name
+
+    def clean_last_name(self):
+        """Validate that last_name contains only letters"""
+        last_name = self.cleaned_data.get('last_name', '').strip()
+        if last_name:
+            if not re.match(r'^[a-zA-Z]+$', last_name):
+                raise ValidationError('Last name must contain only letters (a-z, A-Z).')
+        return last_name
 
     def save(self, commit=True):
         user = super().save(commit=False)
@@ -42,6 +60,22 @@ class CustomUserEditForm(UserEditForm):
     class Meta(UserEditForm.Meta):
         model = CustomUser
         fields = ("email", "first_name", "last_name", "phone_number", "is_active", "is_staff", "is_superuser", "groups", "user_permissions")
+
+    def clean_first_name(self):
+        """Validate that first_name contains only letters"""
+        first_name = self.cleaned_data.get('first_name', '').strip()
+        if first_name:
+            if not re.match(r'^[a-zA-Z]+$', first_name):
+                raise ValidationError('First name must contain only letters (a-z, A-Z).')
+        return first_name
+
+    def clean_last_name(self):
+        """Validate that last_name contains only letters"""
+        last_name = self.cleaned_data.get('last_name', '').strip()
+        if last_name:
+            if not re.match(r'^[a-zA-Z]+$', last_name):
+                raise ValidationError('Last name must contain only letters (a-z, A-Z).')
+        return last_name
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
