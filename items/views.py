@@ -4,6 +4,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
 from django.urls import reverse
+from django.core.exceptions import ValidationError
 from .models import Item, Type, Make, Unit
 import json
 
@@ -17,7 +18,7 @@ def add_item_custom(request):
         try:
             data = json.loads(request.body)
             # Create new item
-            item = Item.objects.create(
+            item = Item(
                 name=data.get('name'),
                 make_id=data.get('make') if data.get('make') else None,
                 model=data.get('model'),
@@ -34,7 +35,12 @@ def add_item_custom(request):
                 gst=data.get('gst', 0),
                 description=data.get('description', '')
             )
+            item.full_clean()
+            item.save()
             return JsonResponse({'success': True, 'message': 'Item created successfully'})
+        except ValidationError as e:
+            error_message = e.message_dict.get('name', ['Validation error'])[0] if e.message_dict else str(e)
+            return JsonResponse({'success': False, 'error': error_message})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
 
@@ -82,9 +88,13 @@ def edit_item_custom(request, item_number):
             item.igst = data.get('igst', 0)
             item.gst = data.get('gst', 0)
             item.description = data.get('description', '')
+            item.full_clean()
             item.save()
 
             return JsonResponse({'success': True, 'message': 'Item updated successfully'})
+        except ValidationError as e:
+            error_message = e.message_dict.get('name', ['Validation error'])[0] if e.message_dict else str(e)
+            return JsonResponse({'success': False, 'error': error_message})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
 

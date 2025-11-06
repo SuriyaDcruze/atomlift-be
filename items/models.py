@@ -7,6 +7,8 @@ from wagtail.snippets.views.snippets import SnippetViewSet, SnippetViewSetGroup
 from django.forms.widgets import RadioSelect
 from django.urls import reverse
 from django.shortcuts import redirect
+from django.core.exceptions import ValidationError
+import re
 
 
 
@@ -89,7 +91,20 @@ class Item(models.Model):
         ], heading="Tax & Additional Details"),
     ]
 
+    def clean(self):
+        """Validate that name does not contain special characters"""
+        super().clean()
+        
+        if self.name:
+            # Allow letters, numbers, spaces, and hyphens
+            if not re.match(r'^[a-zA-Z0-9\s\-]+$', self.name):
+                raise ValidationError({
+                    'name': 'Name must not contain special characters. Only letters, numbers, spaces, and hyphens are allowed.'
+                })
+    
     def save(self, *args, **kwargs):
+        """Call clean before saving"""
+        self.full_clean()
         if not self.item_number:
             last_item = Item.objects.all().order_by('id').last()
             next_number = 1001 if not last_item else last_item.id + 1001

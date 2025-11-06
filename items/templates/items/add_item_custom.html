@@ -1006,7 +1006,16 @@ function validateForm() {
   const name = document.getElementById('name').value.trim();
   const salePrice = parseFloat(document.getElementById('sale_price').value);
 
-  if (!name) errors.name = 'Name is required';
+  if (!name) {
+    errors.name = 'Name is required';
+  } else {
+    // Check for special characters (only allow letters, numbers, spaces, and hyphens)
+    const specialCharPattern = /[^a-zA-Z0-9\s\-]/;
+    if (specialCharPattern.test(name)) {
+      errors.name = 'Name must not contain special characters. Only letters, numbers, spaces, and hyphens are allowed.';
+    }
+  }
+  
   if (isNaN(salePrice) || salePrice < 0) errors.salePrice = 'Sale Price cannot be negative';
 
   document.getElementById('nameError').textContent = errors.name || '';
