@@ -35,7 +35,7 @@ def add_item_custom(request):
                 service_type=data.get('service_type', 'Goods'),
                 tax_preference=data.get('tax_preference', 'Non-Taxable'),
                 unit_id=data.get('unit') if data.get('unit') else None,
-                sac_code=data.get('sac_code'),
+                sac_code=data.get('sac_code', '').strip() if data.get('sac_code') else None,
                 igst=data.get('igst', 0),
                 gst=data.get('gst', 0),
                 description=data.get('description', '')
@@ -47,7 +47,7 @@ def add_item_custom(request):
             # Handle validation errors for multiple fields
             if e.message_dict:
                 # Prioritize showing field-specific errors
-                error_fields = ['name', 'make', 'capacity', 'sale_price']
+                error_fields = ['name', 'make', 'capacity', 'sale_price', 'sac_code']
                 for field in error_fields:
                     if field in e.message_dict:
                         error_message = e.message_dict[field][0]
@@ -105,7 +105,7 @@ def edit_item_custom(request, item_number):
             item.service_type = data.get('service_type', 'Goods')
             item.tax_preference = data.get('tax_preference', 'Non-Taxable')
             item.unit_id = data.get('unit') if data.get('unit') else None
-            item.sac_code = data.get('sac_code')
+            item.sac_code = data.get('sac_code', '').strip() if data.get('sac_code') else None
             item.igst = data.get('igst', 0)
             item.gst = data.get('gst', 0)
             item.description = data.get('description', '')
@@ -117,7 +117,7 @@ def edit_item_custom(request, item_number):
             # Handle validation errors for multiple fields
             if e.message_dict:
                 # Prioritize showing field-specific errors
-                error_fields = ['name', 'make', 'capacity', 'sale_price']
+                error_fields = ['name', 'make', 'capacity', 'sale_price', 'sac_code']
                 for field in error_fields:
                     if field in e.message_dict:
                         error_message = e.message_dict[field][0]

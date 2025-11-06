@@ -127,6 +127,15 @@ class Item(models.Model):
                 raise ValidationError({
                     'capacity': 'Capacity must not contain special characters. Only letters, numbers, spaces, hyphens, and forward slashes are allowed.'
                 })
+        
+        # Validate SAC code if provided
+        if self.sac_code:
+            sac_code = self.sac_code.strip()
+            # SAC code must be exactly 6 digits (numeric only)
+            if not re.match(r'^\d{6}$', sac_code):
+                raise ValidationError({
+                    'sac_code': 'SAC Code must be exactly 6 digits (numbers only).'
+                })
     
     def save(self, *args, **kwargs):
         """Call clean before saving"""

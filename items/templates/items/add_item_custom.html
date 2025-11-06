@@ -690,7 +690,10 @@ body {
                   name="sac_code"
                   value="{% if is_edit %}{{ item.sac_code }}{% endif %}"
                   class="form-input"
+                  maxlength="6"
                 />
+                <p id="sacCodeError" class="form-error" style="display: none;"></p>
+                <p class="form-help">Enter a 6-digit numeric SAC code</p>
               </div>
 
               <div class="form-group" id="igst_group" style="display: none;">
@@ -819,6 +822,7 @@ document.addEventListener('DOMContentLoaded', () => {
   updateFieldVisibility();
   setupCapacityValidation();
   setupMakeValidation();
+  setupSacCodeValidation();
 });
 
 function setupCapacityValidation() {
@@ -851,6 +855,27 @@ function setupMakeValidation() {
   
   makeSelect.addEventListener('change', () => {
     validateMake();
+  });
+}
+
+function setupSacCodeValidation() {
+  const sacCodeInput = document.getElementById('sac_code');
+  const sacCodeError = document.getElementById('sacCodeError');
+  
+  sacCodeInput.addEventListener('blur', () => {
+    validateSacCode();
+  });
+  
+  sacCodeInput.addEventListener('input', () => {
+    // Only allow numeric input
+    sacCodeInput.value = sacCodeInput.value.replace(/[^0-9]/g, '');
+    // Clear error on input if validation passes
+    if (sacCodeError.style.display === 'block') {
+      const sacCode = sacCodeInput.value.trim();
+      if (!sacCode || (sacCode.length === 6 && /^\d{6}$/.test(sacCode))) {
+        sacCodeError.style.display = 'none';
+      }
+    }
   });
 }
 
@@ -903,7 +928,16 @@ function updateFieldVisibility() {
   const serviceType = document.querySelector('input[name="service_type"]:checked')?.value;
   const taxPref = document.querySelector('input[name="tax_preference"]:checked')?.value;
 
-  document.getElementById('sac_code_group').style.display = taxPref === 'Taxable' || serviceType === 'Services' ? 'block' : 'none';
+  const sacCodeGroup = document.getElementById('sac_code_group');
+  const wasVisible = sacCodeGroup.style.display !== 'none';
+  sacCodeGroup.style.display = taxPref === 'Taxable' || serviceType === 'Services' ? 'block' : 'none';
+  const isVisible = sacCodeGroup.style.display !== 'none';
+  
+  // Validate SAC code when field becomes visible
+  if (isVisible && !wasVisible) {
+    validateSacCode();
+  }
+  
   document.getElementById('igst_group').style.display = taxPref === 'Taxable' ? 'block' : 'none';
   document.getElementById('gst_group').style.display = serviceType === 'Goods' && taxPref === 'Taxable' ? 'block' : 'none';
 
@@ -1079,12 +1113,38 @@ function showMessage(type, message, description = '') {
   }, type === 'success' ? 3000 : 5000);
 }
 
+function validateSacCode() {
+  const sacCode = document.getElementById('sac_code').value.trim();
+  const sacCodeError = document.getElementById('sacCodeError');
+  const sacCodeGroup = document.getElementById('sac_code_group');
+  
+  // Only validate if SAC code field is visible
+  if (sacCodeGroup.style.display === 'none') {
+    sacCodeError.style.display = 'none';
+    return true;
+  }
+  
+  if (sacCode) {
+    // SAC code must be exactly 6 digits
+    if (!/^\d{6}$/.test(sacCode)) {
+      sacCodeError.textContent = 'SAC Code must be exactly 6 digits (numbers only).';
+      sacCodeError.style.display = 'block';
+      return false;
+    }
+  }
+  
+  sacCodeError.style.display = 'none';
+  return true;
+}
+
 function validateForm() {
   const errors = {};
   const name = document.getElementById('name').value.trim();
   const salePrice = parseFloat(document.getElementById('sale_price').value);
   const capacity = document.getElementById('capacity').value.trim();
   const make = document.getElementById('make').value;
+  const sacCode = document.getElementById('sac_code').value.trim();
+  const sacCodeGroup = document.getElementById('sac_code_group');
 
   if (!name) {
     errors.name = 'Name is required';
@@ -1113,6 +1173,16 @@ function validateForm() {
     }
   }
 
+  // Validate SAC code if field is visible
+  if (sacCodeGroup.style.display !== 'none') {
+    if (sacCode) {
+      // SAC code must be exactly 6 digits
+      if (!/^\d{6}$/.test(sacCode)) {
+        errors.sacCode = 'SAC Code must be exactly 6 digits (numbers only).';
+      }
+    }
+  }
+
   document.getElementById('nameError').textContent = errors.name || '';
   document.getElementById('nameError').style.display = errors.name ? 'block' : 'none';
   document.getElementById('makeError').textContent = errors.make || '';
@@ -1121,6 +1191,8 @@ function validateForm() {
   document.getElementById('salePriceError').style.display = errors.salePrice ? 'block' : 'none';
   document.getElementById('capacityError').textContent = errors.capacity || '';
   document.getElementById('capacityError').style.display = errors.capacity ? 'block' : 'none';
+  document.getElementById('sacCodeError').textContent = errors.sacCode || '';
+  document.getElementById('sacCodeError').style.display = errors.sacCode ? 'block' : 'none';
 
   return Object.keys(errors).length === 0;
 }
@@ -1187,6 +1259,7 @@ function handleCancel() {
   document.getElementById('makeError').style.display = 'none';
   document.getElementById('salePriceError').style.display = 'none';
   document.getElementById('capacityError').style.display = 'none';
+  document.getElementById('sacCodeError').style.display = 'none';
   window.history.back();
 }
 
