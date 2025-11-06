@@ -5,6 +5,7 @@ from django.contrib import messages
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum, Q
+from django.views.decorators.http import require_http_methods
 from .models import Requisition, StockRegister
 from items.models import Item
 from customer.models import Customer
@@ -23,25 +24,29 @@ def add_requisition_custom(request):
         try:
             data = json.loads(request.body)
             
+            # Validate required fields
+            if not data.get('site'):
+                return JsonResponse({'success': False, 'error': 'Customer is required'})
+            if not data.get('date'):
+                return JsonResponse({'success': False, 'error': 'Date is required'})
+            if not data.get('item'):
+                return JsonResponse({'success': False, 'error': 'Item is required'})
+            if not data.get('qty') or int(data.get('qty', 0)) < 1:
+                return JsonResponse({'success': False, 'error': 'Quantity must be at least 1'})
+            if not data.get('amc_id'):
+                return JsonResponse({'success': False, 'error': 'AMC is required'})
+            if not data.get('employee'):
+                return JsonResponse({'success': False, 'error': 'Employee is required'})
+            
             # Get foreign key objects
-            item = None
-            if data.get('item'):
-                item = get_object_or_404(Item, id=data['item'])
-            
-            site = None
-            if data.get('site'):
-                site = get_object_or_404(Customer, id=data['site'])
-            
-            amc = None
-            if data.get('amc_id'):
-                amc = get_object_or_404(AMC, id=data['amc_id'])
-            
-            employee = None
-            if data.get('employee'):
-                employee = get_object_or_404(CustomUser, id=data['employee'])
+            item = get_object_or_404(Item, id=data['item'])
+            site = get_object_or_404(Customer, id=data['site'])
+            amc = get_object_or_404(AMC, id=data['amc_id'])
+            employee = get_object_or_404(CustomUser, id=data['employee'])
             
             # Create new requisition
             requisition = Requisition.objects.create(
+                reference_id=data.get('reference_id'),  # Set reference_id from form
                 date=data.get('date'),
                 item=item,
                 qty=data.get('qty', 0),
@@ -81,22 +86,25 @@ def edit_requisition_custom(request, reference_id):
         try:
             data = json.loads(request.body)
             
+            # Validate required fields
+            if not data.get('site'):
+                return JsonResponse({'success': False, 'error': 'Customer is required'})
+            if not data.get('date'):
+                return JsonResponse({'success': False, 'error': 'Date is required'})
+            if not data.get('item'):
+                return JsonResponse({'success': False, 'error': 'Item is required'})
+            if not data.get('qty') or int(data.get('qty', 0)) < 1:
+                return JsonResponse({'success': False, 'error': 'Quantity must be at least 1'})
+            if not data.get('amc_id'):
+                return JsonResponse({'success': False, 'error': 'AMC is required'})
+            if not data.get('employee'):
+                return JsonResponse({'success': False, 'error': 'Employee is required'})
+            
             # Get foreign key objects
-            item = None
-            if data.get('item'):
-                item = get_object_or_404(Item, id=data['item'])
-            
-            site = None
-            if data.get('site'):
-                site = get_object_or_404(Customer, id=data['site'])
-            
-            amc = None
-            if data.get('amc_id'):
-                amc = get_object_or_404(AMC, id=data['amc_id'])
-            
-            employee = None
-            if data.get('employee'):
-                employee = get_object_or_404(CustomUser, id=data['employee'])
+            item = get_object_or_404(Item, id=data['item'])
+            site = get_object_or_404(Customer, id=data['site'])
+            amc = get_object_or_404(AMC, id=data['amc_id'])
+            employee = get_object_or_404(CustomUser, id=data['employee'])
             
             # Update requisition
             requisition.date = data.get('date')
@@ -122,6 +130,45 @@ def edit_requisition_custom(request, reference_id):
         'employees': employees,
         'is_edit': True
     })
+
+
+@require_http_methods(["GET"])
+def get_next_requisition_reference(request):
+    """Return the next Requisition reference ID e.g., REQ001, REQ002"""
+    try:
+        last_requisition = Requisition.objects.order_by("id").last()
+        last_id = 0
+        if last_requisition and last_requisition.reference_id and last_requisition.reference_id.startswith("REQ"):
+            try:
+                last_id = int(last_requisition.reference_id.replace("REQ", ""))
+            except ValueError:
+                last_id = 0
+        next_ref = f"REQ{str(last_id + 1).zfill(3)}"
+        return JsonResponse({"reference_id": next_ref})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@require_http_methods(["GET"])
+def get_customers(request):
+    """Get all customers for requisition"""
+    try:
+        customers = Customer.objects.all().order_by('site_name')
+        data = [
+            {
+                "id": customer.id, 
+                "site_name": customer.site_name or "",
+                "job_no": customer.job_no or "",
+                "site_id": customer.site_id or "",
+                "reference_id": customer.reference_id or "",
+                "email": customer.email or "",
+                "phone": customer.phone or ""
+            }
+            for customer in customers
+        ]
+        return JsonResponse(data, safe=False)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
 
 
 @login_required

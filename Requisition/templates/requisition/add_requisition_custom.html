@@ -192,23 +192,86 @@ body {
   cursor: not-allowed;
 }
 
-.w-message {
-  padding: 1rem;
+/* Toast notification styles */
+.toast-container {
+  position: fixed;
+  top: 1.25rem;
+  right: 1.25rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.toast {
+  background: white;
   border-radius: 0.375rem;
-  margin-bottom: 1rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  min-width: 20rem;
+  max-width: 31.25rem;
+  border-left: 4px solid;
+  animation: slideInRight 0.3s ease-out;
+}
+
+.toast--success {
+  border-left-color: #10B981;
+}
+
+.toast--error {
+  border-left-color: #EF4444;
+}
+
+.toast-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+}
+
+.toast-message {
+  flex: 1;
+  margin-right: 1rem;
   font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: #374151;
 }
 
-.w-message-success {
-  background-color: #d1fae5;
-  color: #065f46;
-  border: 1px solid #a7f3d0;
+.toast-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6B7280;
+  padding: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+  font-size: 1.25rem;
+  line-height: 1;
 }
 
-.w-message-error {
-  background-color: #fee2e2;
-  color: #991b1b;
-  border: 1px solid #fca5a5;
+.toast-close:hover {
+  color: #374151;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 640px) {
+  .toast {
+    min-width: 17.5rem;
+    max-width: 90vw;
+  }
 }
 
 .w-section {
@@ -226,6 +289,71 @@ body {
 
 .w-required {
   color: #dc2626;
+}
+
+/* Customer search dropdown styles */
+.w-form-group > div[style*="position: relative"] {
+  position: relative;
+}
+
+.customer-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-top: none;
+  border-radius: 0 0 0.375rem 0.375rem;
+  max-height: 300px;
+  overflow-y: auto;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  margin-top: -1px;
+}
+
+.customer-item {
+  padding: 0.75rem;
+  cursor: pointer;
+  border-bottom: 1px solid #f3f4f6;
+  transition: background-color 0.2s;
+}
+
+.customer-item:hover {
+  background-color: #f9fafb;
+}
+
+.customer-item:last-child {
+  border-bottom: none;
+}
+
+.customer-item-name {
+  font-weight: 500;
+  color: #374151;
+  font-size: 0.875rem;
+}
+
+.customer-item-details {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
+}
+
+.customer-item.selected {
+  background-color: #ebf4ff;
+  border-left: 3px solid #3b82f6;
+}
+
+.no-results {
+  padding: 1rem;
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+#customerSearch:focus {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
 }
 
 @media (max-width: 768px) {
@@ -256,8 +384,6 @@ body {
       </div>
       
       <div class="w-modal-body">
-        <div id="messageContainer"></div>
-        
         <form id="requisitionForm" class="w-form">
           {% csrf_token %}
           <!-- Requisition Details Section -->
@@ -281,8 +407,8 @@ body {
             
             <div class="w-form-row">
               <div class="w-form-group">
-                <label for="item" class="w-form-label">Item</label>
-                <select id="item" name="item" class="w-form-select">
+                <label for="item" class="w-form-label">Item <span class="w-required">*</span></label>
+                <select id="item" name="item" class="w-form-select" required>
                   <option value="">Select an item</option>
                   {% for item in items %}
                     <option value="{{ item.id }}" 
@@ -291,6 +417,7 @@ body {
                     </option>
                   {% endfor %}
                 </select>
+                <div id="itemError" class="w-error-message"></div>
               </div>
               
               <div class="w-form-group">
@@ -303,21 +430,36 @@ body {
             
             <div class="w-form-row">
               <div class="w-form-group">
-                <label for="site" class="w-form-label">Site/Customer</label>
-                <select id="site" name="site" class="w-form-select">
-                  <option value="">Select a site</option>
-                  {% for customer in customers %}
-                    <option value="{{ customer.id }}" 
-                            {% if is_edit and requisition.site and requisition.site.id == customer.id %}selected{% endif %}>
-                      {{ customer.site_name }}
-                    </option>
-                  {% endfor %}
-                </select>
+                <label for="customerSearch" class="w-form-label">Site/Customer <span class="w-required">*</span></label>
+                <div style="position: relative;">
+                  <input 
+                    type="text" 
+                    id="customerSearch" 
+                    class="w-form-input" 
+                    placeholder="Search customer..."
+                    autocomplete="off"
+                    value="{% if is_edit and requisition.site %}{{ requisition.site.site_name }}{% endif %}"
+                    required
+                  />
+                  <select id="site" name="site" class="w-form-select" style="display: none;" required>
+                    <option value="">Select a site</option>
+                    {% for customer in customers %}
+                      <option value="{{ customer.id }}" 
+                              {% if is_edit and requisition.site and requisition.site.id == customer.id %}selected{% endif %}>
+                        {{ customer.site_name }}
+                      </option>
+                    {% endfor %}
+                  </select>
+                  <div id="customerDropdown" class="customer-dropdown" style="display: none;">
+                    <div id="customerList"></div>
+                  </div>
+                </div>
+                <div id="siteError" class="w-error-message"></div>
               </div>
               
               <div class="w-form-group">
-                <label for="amc_id" class="w-form-label">AMC</label>
-                <select id="amc_id" name="amc_id" class="w-form-select">
+                <label for="amc_id" class="w-form-label">AMC <span class="w-required">*</span></label>
+                <select id="amc_id" name="amc_id" class="w-form-select" required>
                   <option value="">Select an AMC</option>
                   {% for amc in amcs %}
                     <option value="{{ amc.id }}" 
@@ -326,6 +468,7 @@ body {
                     </option>
                   {% endfor %}
                 </select>
+                <div id="amcError" class="w-error-message"></div>
               </div>
             </div>
             
@@ -336,8 +479,8 @@ body {
             </div>
             
             <div class="w-form-group">
-              <label for="employee" class="w-form-label">Employee</label>
-              <select id="employee" name="employee" class="w-form-select">
+              <label for="employee" class="w-form-label">Employee <span class="w-required">*</span></label>
+              <select id="employee" name="employee" class="w-form-select" required>
                 <option value="">Select an employee</option>
                 {% for employee in employees %}
                   <option value="{{ employee.id }}" 
@@ -346,6 +489,7 @@ body {
                   </option>
                 {% endfor %}
               </select>
+              <div id="employeeError" class="w-error-message"></div>
             </div>
           </div>
           
@@ -417,16 +561,29 @@ function getCsrfToken() {
 }
 
 function showMessage(type, message) {
-  const container = document.getElementById('messageContainer');
-  const messageDiv = document.createElement('div');
-  messageDiv.className = `w-message w-message-${type}`;
-  messageDiv.textContent = message;
-  container.innerHTML = '';
-  container.appendChild(messageDiv);
-  
+  const toast = document.createElement('div');
+  toast.className = `toast toast--${type}`;
+  toast.innerHTML = `
+    <div class="toast-content">
+      <div class="toast-message">${message}</div>
+      <button class="toast-close" onclick="this.parentElement.parentElement.remove()">×</button>
+    </div>
+  `;
+
+  let toastContainer = document.querySelector('.toast-container');
+  if (!toastContainer) {
+    toastContainer = document.createElement('div');
+    toastContainer.className = 'toast-container';
+    document.querySelector('.w-content-wrapper').appendChild(toastContainer);
+  }
+
+  toastContainer.appendChild(toast);
+
   setTimeout(() => {
-    messageDiv.remove();
-  }, 5000);
+    if (toast.parentElement) {
+      toast.remove();
+    }
+  }, type === 'success' ? 3000 : 5000);
 }
 
 function validateForm() {
@@ -434,14 +591,30 @@ function validateForm() {
   
   const date = document.getElementById('date').value;
   const qty = parseInt(document.getElementById('qty').value);
+  const site = document.getElementById('site').value;
+  const item = document.getElementById('item').value;
+  const amc_id = document.getElementById('amc_id').value;
+  const employee = document.getElementById('employee').value;
   
   if (!date) errors.date = 'Date is required';
+  if (!item) errors.item = 'Item is required';
   if (!qty || qty < 1) errors.qty = 'Quantity must be at least 1';
+  if (!site) errors.site = 'Customer is required';
+  if (!amc_id) errors.amc_id = 'AMC is required';
+  if (!employee) errors.employee = 'Employee is required';
 
   document.getElementById('dateError').textContent = errors.date || '';
   document.getElementById('dateError').style.display = errors.date ? 'block' : 'none';
+  document.getElementById('itemError').textContent = errors.item || '';
+  document.getElementById('itemError').style.display = errors.item ? 'block' : 'none';
   document.getElementById('qtyError').textContent = errors.qty || '';
   document.getElementById('qtyError').style.display = errors.qty ? 'block' : 'none';
+  document.getElementById('siteError').textContent = errors.site || '';
+  document.getElementById('siteError').style.display = errors.site ? 'block' : 'none';
+  document.getElementById('amcError').textContent = errors.amc_id || '';
+  document.getElementById('amcError').style.display = errors.amc_id ? 'block' : 'none';
+  document.getElementById('employeeError').textContent = errors.employee || '';
+  document.getElementById('employeeError').style.display = errors.employee ? 'block' : 'none';
 
   return Object.keys(errors).length === 0;
 }
@@ -500,8 +673,150 @@ async function handleFormSubmit() {
 function handleCancel() {
   document.getElementById('requisitionForm').reset();
   document.getElementById('dateError').style.display = 'none';
+  document.getElementById('itemError').style.display = 'none';
   document.getElementById('qtyError').style.display = 'none';
+  document.getElementById('siteError').style.display = 'none';
+  document.getElementById('amcError').style.display = 'none';
+  document.getElementById('employeeError').style.display = 'none';
   window.history.back();
 }
+
+function fetchNextReferenceId() {
+  fetch('/requisition/api/requisition/next-reference/')
+    .then(response => response.json())
+    .then(data => {
+      if (data && data.reference_id) {
+        document.getElementById('reference_id').value = data.reference_id;
+      }
+    })
+    .catch(error => {
+      console.error('Error fetching next reference ID:', error);
+      showMessage('error', 'Failed to generate reference ID');
+    });
+}
+
+// Customer search functionality
+let allCustomers = [];
+let selectedCustomerId = null;
+
+function loadCustomers() {
+  fetch('/requisition/api/requisition/customers/')
+    .then(response => response.json())
+    .then(data => {
+      allCustomers = data;
+      const select = document.getElementById('site');
+      select.innerHTML = '<option value="">Select a site</option>';
+      data.forEach(customer => {
+        const option = document.createElement('option');
+        option.value = customer.id;
+        option.textContent = customer.site_name;
+        select.appendChild(option);
+      });
+      
+      // Auto-select customer if in edit mode
+      {% if is_edit and requisition.site %}
+      const customerId = {{ requisition.site.id }};
+      const customer = allCustomers.find(c => c.id == customerId);
+      if (customer) {
+        selectCustomer(customer);
+      }
+      {% endif %}
+    })
+    .catch(error => {
+      console.error('Error loading customers:', error);
+      showMessage('error', 'Failed to load customers');
+    });
+}
+
+function setupCustomerSearch() {
+  const searchInput = document.getElementById('customerSearch');
+  const dropdown = document.getElementById('customerDropdown');
+  
+  searchInput.addEventListener('focus', () => {
+    if (allCustomers.length > 0) {
+      filterCustomers(searchInput.value);
+      dropdown.style.display = 'block';
+    }
+  });
+  
+  searchInput.addEventListener('input', (e) => {
+    filterCustomers(e.target.value);
+  });
+  
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.w-form-group')) {
+      dropdown.style.display = 'none';
+    }
+  });
+}
+
+function filterCustomers(searchTerm) {
+  const dropdown = document.getElementById('customerDropdown');
+  
+  if (!searchTerm.trim()) {
+    displayCustomers(allCustomers);
+  } else {
+    const term = searchTerm.toLowerCase();
+    const filtered = allCustomers.filter(customer => {
+      return (
+        (customer.site_name && customer.site_name.toLowerCase().includes(term)) ||
+        (customer.job_no && customer.job_no.toLowerCase().includes(term)) ||
+        (customer.site_id && customer.site_id.toLowerCase().includes(term)) ||
+        (customer.reference_id && customer.reference_id.toLowerCase().includes(term)) ||
+        (customer.email && customer.email.toLowerCase().includes(term)) ||
+        (customer.phone && customer.phone.toLowerCase().includes(term))
+      );
+    });
+    displayCustomers(filtered);
+  }
+  
+  dropdown.style.display = 'block';
+}
+
+function displayCustomers(customers) {
+  const customerList = document.getElementById('customerList');
+  
+  if (customers.length === 0) {
+    customerList.innerHTML = '<div class="no-results">No customers found</div>';
+    return;
+  }
+  
+  customerList.innerHTML = customers.map(customer => `
+    <div class="customer-item ${selectedCustomerId === customer.id ? 'selected' : ''}" 
+         onclick="selectCustomer(${JSON.stringify(customer).replace(/"/g, '&quot;')})">
+      <div class="customer-item-name">${customer.reference_id || ''} ${customer.site_name || 'N/A'}</div>
+      <div class="customer-item-details">
+        ${customer.job_no ? 'Job No: ' + customer.job_no : ''} 
+        ${customer.site_id ? '| Site ID: ' + customer.site_id : ''}
+        ${customer.email ? '| ' + customer.email : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function selectCustomer(customer) {
+  selectedCustomerId = customer.id;
+  const searchInput = document.getElementById('customerSearch');
+  const dropdown = document.getElementById('customerDropdown');
+  const hiddenSelect = document.getElementById('site');
+  
+  searchInput.value = customer.site_name || '';
+  hiddenSelect.value = customer.id;
+  dropdown.style.display = 'none';
+  
+  // Clear any error message
+  document.getElementById('siteError').style.display = 'none';
+}
+
+// Load reference ID on page load if not in edit mode
+document.addEventListener('DOMContentLoaded', function() {
+  if (!isEditMode) {
+    fetchNextReferenceId();
+  }
+  
+  // Load customers and setup search
+  loadCustomers();
+  setupCustomerSearch();
+});
 </script>
 {% endblock %}
