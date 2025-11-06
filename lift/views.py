@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 from django.shortcuts import get_object_or_404, render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -1368,6 +1369,25 @@ def add_lift_custom(request, job_no=None):
             if data.get('cabin'):
                 cabin = get_object_or_404(Cabin, id=data['cabin'])
             
+            # Validate license dates
+            license_start_date = data.get('license_start_date') if data.get('license_start_date') else None
+            license_end_date = data.get('license_end_date') if data.get('license_end_date') else None
+            
+            if license_start_date and license_end_date:
+                try:
+                    start_date = datetime.strptime(license_start_date, '%Y-%m-%d').date()
+                    end_date = datetime.strptime(license_end_date, '%Y-%m-%d').date()
+                    if start_date >= end_date:
+                        return JsonResponse({
+                            'success': False, 
+                            'error': 'License start date must be before license end date.'
+                        })
+                except ValueError:
+                    return JsonResponse({
+                        'success': False, 
+                        'error': 'Invalid date format. Please use YYYY-MM-DD format.'
+                    })
+            
             # Create new lift
             lift = Lift.objects.create(
                 lift_code=data.get('lift_code', ''),
@@ -1388,8 +1408,8 @@ def add_lift_custom(request, job_no=None):
                 cabin=cabin,
                 block=data.get('block', ''),
                 license_no=data.get('license_no', ''),
-                license_start_date=data.get('license_start_date') if data.get('license_start_date') else None,
-                license_end_date=data.get('license_end_date') if data.get('license_end_date') else None,
+                license_start_date=license_start_date,
+                license_end_date=license_end_date,
             )
             return JsonResponse({'success': True, 'message': 'Lift created successfully'})
         except Exception as e:
@@ -1476,6 +1496,25 @@ def edit_lift_custom(request, identifier):
             if data.get('cabin'):
                 cabin = get_object_or_404(Cabin, id=data['cabin'])
             
+            # Validate license dates
+            license_start_date = data.get('license_start_date') if data.get('license_start_date') else None
+            license_end_date = data.get('license_end_date') if data.get('license_end_date') else None
+            
+            if license_start_date and license_end_date:
+                try:
+                    start_date = datetime.strptime(license_start_date, '%Y-%m-%d').date()
+                    end_date = datetime.strptime(license_end_date, '%Y-%m-%d').date()
+                    if start_date >= end_date:
+                        return JsonResponse({
+                            'success': False, 
+                            'error': 'License start date must be before license end date.'
+                        })
+                except ValueError:
+                    return JsonResponse({
+                        'success': False, 
+                        'error': 'Invalid date format. Please use YYYY-MM-DD format.'
+                    })
+            
             # Update lift
             lift.lift_code = data.get('lift_code', '')
             lift.name = data.get('name', '')
@@ -1495,8 +1534,8 @@ def edit_lift_custom(request, identifier):
             lift.cabin = cabin
             lift.block = data.get('block', '')
             lift.license_no = data.get('license_no', '')
-            lift.license_start_date = data.get('license_start_date') if data.get('license_start_date') else None
-            lift.license_end_date = data.get('license_end_date') if data.get('license_end_date') else None
+            lift.license_start_date = license_start_date
+            lift.license_end_date = license_end_date
             lift.save()
 
             return JsonResponse({'success': True, 'message': 'Lift updated successfully'})
