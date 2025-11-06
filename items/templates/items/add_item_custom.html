@@ -571,7 +571,10 @@ body {
                   name="capacity"
                   value="{% if is_edit %}{{ item.capacity }}{% endif %}"
                   class="form-input"
+                  maxlength="50"
                 />
+                <p id="capacityError" class="form-error" style="display: none;"></p>
+                <p class="form-help">Enter capacity value (e.g., "1000kg", "5 tons"). Max 50 characters.</p>
               </div>
 
               <div class="form-group">
@@ -811,7 +814,55 @@ document.addEventListener('DOMContentLoaded', () => {
   loadUnits();
   setupRadioButtonInteractions();
   updateFieldVisibility();
+  setupCapacityValidation();
 });
+
+function setupCapacityValidation() {
+  const capacityInput = document.getElementById('capacity');
+  const capacityError = document.getElementById('capacityError');
+  
+  capacityInput.addEventListener('blur', () => {
+    validateCapacity();
+  });
+  
+  capacityInput.addEventListener('input', () => {
+    // Clear error on input if validation passes
+    if (capacityError.style.display === 'block') {
+      const capacity = capacityInput.value.trim();
+      if (capacity) {
+        const capacityPattern = /^[a-zA-Z0-9\s\-/]+$/;
+        if (capacityPattern.test(capacity) && capacity.length <= 50) {
+          capacityError.style.display = 'none';
+        }
+      } else {
+        capacityError.style.display = 'none';
+      }
+    }
+  });
+}
+
+function validateCapacity() {
+  const capacity = document.getElementById('capacity').value.trim();
+  const capacityError = document.getElementById('capacityError');
+  
+  if (capacity) {
+    if (capacity.length > 50) {
+      capacityError.textContent = 'Capacity must not exceed 50 characters.';
+      capacityError.style.display = 'block';
+      return false;
+    }
+    
+    const capacityPattern = /^[a-zA-Z0-9\s\-/]+$/;
+    if (!capacityPattern.test(capacity)) {
+      capacityError.textContent = 'Capacity must not contain special characters. Only letters, numbers, spaces, hyphens, and forward slashes are allowed.';
+      capacityError.style.display = 'block';
+      return false;
+    }
+  }
+  
+  capacityError.style.display = 'none';
+  return true;
+}
 
 function setupRadioButtonInteractions() {
   const serviceTypeRadios = document.querySelectorAll('input[name="service_type"]');
@@ -1005,6 +1056,7 @@ function validateForm() {
   const errors = {};
   const name = document.getElementById('name').value.trim();
   const salePrice = parseFloat(document.getElementById('sale_price').value);
+  const capacity = document.getElementById('capacity').value.trim();
 
   if (!name) {
     errors.name = 'Name is required';
@@ -1018,10 +1070,23 @@ function validateForm() {
   
   if (isNaN(salePrice) || salePrice < 0) errors.salePrice = 'Sale Price cannot be negative';
 
+  // Validate capacity field
+  if (capacity) {
+    // Check for invalid special characters (allow letters, numbers, spaces, hyphens, and forward slashes)
+    const capacityPattern = /^[a-zA-Z0-9\s\-/]+$/;
+    if (capacity.length > 50) {
+      errors.capacity = 'Capacity must not exceed 50 characters.';
+    } else if (!capacityPattern.test(capacity)) {
+      errors.capacity = 'Capacity must not contain special characters. Only letters, numbers, spaces, hyphens, and forward slashes are allowed.';
+    }
+  }
+
   document.getElementById('nameError').textContent = errors.name || '';
   document.getElementById('nameError').style.display = errors.name ? 'block' : 'none';
   document.getElementById('salePriceError').textContent = errors.salePrice || '';
   document.getElementById('salePriceError').style.display = errors.salePrice ? 'block' : 'none';
+  document.getElementById('capacityError').textContent = errors.capacity || '';
+  document.getElementById('capacityError').style.display = errors.capacity ? 'block' : 'none';
 
   return Object.keys(errors).length === 0;
 }
@@ -1086,6 +1151,7 @@ function handleCancel() {
   document.getElementById('itemForm').reset();
   document.getElementById('nameError').style.display = 'none';
   document.getElementById('salePriceError').style.display = 'none';
+  document.getElementById('capacityError').style.display = 'none';
   window.history.back();
 }
 

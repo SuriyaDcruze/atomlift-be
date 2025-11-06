@@ -101,6 +101,26 @@ class Item(models.Model):
                 raise ValidationError({
                     'name': 'Name must not contain special characters. Only letters, numbers, spaces, and hyphens are allowed.'
                 })
+        
+        if self.capacity:
+            # Ensure capacity is not just whitespace
+            if self.capacity.strip() == '':
+                raise ValidationError({
+                    'capacity': 'Capacity cannot be empty or contain only whitespace.'
+                })
+            
+            # Validate length (max 50 characters)
+            if len(self.capacity) > 50:
+                raise ValidationError({
+                    'capacity': 'Capacity must not exceed 50 characters.'
+                })
+            
+            # Allow letters, numbers, spaces, hyphens, and common capacity unit symbols (kg, lbs, tons, etc.)
+            # Pattern allows: alphanumeric, spaces, hyphens, forward slashes, and common capacity indicators
+            if not re.match(r'^[a-zA-Z0-9\s\-/]+$', self.capacity):
+                raise ValidationError({
+                    'capacity': 'Capacity must not contain special characters. Only letters, numbers, spaces, hyphens, and forward slashes are allowed.'
+                })
     
     def save(self, *args, **kwargs):
         """Call clean before saving"""

@@ -39,7 +39,18 @@ def add_item_custom(request):
             item.save()
             return JsonResponse({'success': True, 'message': 'Item created successfully'})
         except ValidationError as e:
-            error_message = e.message_dict.get('name', ['Validation error'])[0] if e.message_dict else str(e)
+            # Handle validation errors for multiple fields
+            if e.message_dict:
+                # Prioritize showing field-specific errors
+                error_fields = ['name', 'capacity', 'sale_price']
+                for field in error_fields:
+                    if field in e.message_dict:
+                        error_message = e.message_dict[field][0]
+                        return JsonResponse({'success': False, 'error': error_message})
+                # Fallback to first error if none of the prioritized fields have errors
+                error_message = list(e.message_dict.values())[0][0]
+            else:
+                error_message = str(e)
             return JsonResponse({'success': False, 'error': error_message})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
@@ -93,7 +104,18 @@ def edit_item_custom(request, item_number):
 
             return JsonResponse({'success': True, 'message': 'Item updated successfully'})
         except ValidationError as e:
-            error_message = e.message_dict.get('name', ['Validation error'])[0] if e.message_dict else str(e)
+            # Handle validation errors for multiple fields
+            if e.message_dict:
+                # Prioritize showing field-specific errors
+                error_fields = ['name', 'capacity', 'sale_price']
+                for field in error_fields:
+                    if field in e.message_dict:
+                        error_message = e.message_dict[field][0]
+                        return JsonResponse({'success': False, 'error': error_message})
+                # Fallback to first error if none of the prioritized fields have errors
+                error_message = list(e.message_dict.values())[0][0]
+            else:
+                error_message = str(e)
             return JsonResponse({'success': False, 'error': error_message})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
