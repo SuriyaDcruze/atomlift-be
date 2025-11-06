@@ -7,7 +7,7 @@ class MaterialRequest(models.Model):
     description = models.TextField()
     item = models.ForeignKey(Item, on_delete=models.CASCADE)
     brand = models.CharField(max_length=200, blank=True)
-    file = models.CharField(max_length=200)
+    file = models.CharField(max_length=200, blank=True)
     added_by = models.CharField(max_length=200)
     requested_by = models.CharField(max_length=200)
 
