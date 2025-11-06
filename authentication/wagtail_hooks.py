@@ -7,7 +7,9 @@ from django.utils.html import format_html
 from django.contrib import messages
 from django.contrib.auth.signals import user_logged_in
 from django.dispatch import receiver
+from django.core.exceptions import ValidationError
 import json
+import re
 
 from .models import CustomUser, UserProfile
 from wagtail.admin.menu import MenuItem
@@ -105,11 +107,26 @@ class UserProfileForm(forms.ModelForm):
         if self.instance and self.instance.pk:
             self.fields['user'].disabled = True
             self.fields['user'].required = False
+    
+    def clean_phone_number(self):
+        """Validate mobile number - must be exactly 10 digits"""
+        phone_number = self.cleaned_data.get('phone_number', '').strip()
+        if phone_number:
+            # Remove any spaces, dashes, or other characters
+            phone_number = re.sub(r'[\s\-\(\)]', '', phone_number)
+            # Check if it contains only digits
+            if not phone_number.isdigit():
+                raise ValidationError('Mobile number must contain only digits.')
+            # Check if it's exactly 10 digits
+            if len(phone_number) != 10:
+                raise ValidationError('Mobile number must be exactly 10 digits.')
+        return phone_number
 
 
 # Register UserProfile in Wagtail Admin
 class UserProfileAdmin(ModelAdmin):
     model = UserProfile
+    form = UserProfileForm
     menu_label = "User Profiles"
     menu_icon = "user"
     menu_order = 201

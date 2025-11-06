@@ -125,12 +125,30 @@ class UserProfile(models.Model):
         return f"{self.user.get_full_name()} - Profile"
     
     def clean(self):
-        """Validate that we're not creating a duplicate profile"""
+        """Validate that we're not creating a duplicate profile and validate phone number"""
         from django.core.exceptions import ValidationError
         if not self.pk and UserProfile.objects.filter(user=self.user).exists():
             raise ValidationError({
                 'user': 'A profile for this user already exists. Please edit the existing profile instead of creating a new one.'
             })
+        
+        # Validate phone number - must be exactly 10 digits
+        if self.phone_number:
+            phone_number = self.phone_number.strip()
+            # Remove any spaces, dashes, or other characters
+            phone_number = re.sub(r'[\s\-\(\)]', '', phone_number)
+            # Check if it contains only digits
+            if not phone_number.isdigit():
+                raise ValidationError({
+                    'phone_number': 'Mobile number must contain only digits.'
+                })
+            # Check if it's exactly 10 digits
+            if len(phone_number) != 10:
+                raise ValidationError({
+                    'phone_number': 'Mobile number must be exactly 10 digits.'
+                })
+            # Update the phone_number with cleaned value
+            self.phone_number = phone_number
     
     def save(self, *args, **kwargs):
         """Call clean before saving"""

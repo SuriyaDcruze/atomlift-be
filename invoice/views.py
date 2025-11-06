@@ -135,9 +135,13 @@ def add_invoice_custom(request):
         try:
             data = json.loads(request.body)
 
+            # Validate required fields
+            if not data.get('amc_type'):
+                return JsonResponse({'success': False, 'error': 'AMC Type is required'}, status=400)
+
             invoice = Invoice.objects.create(
                 customer_id=data.get('customer') or None,
-                amc_type_id=data.get('amc_type') or None,
+                amc_type_id=data.get('amc_type'),
                 start_date=data.get('start_date'),
                 due_date=data.get('due_date'),
                 discount=data.get('discount', 0),
@@ -229,9 +233,13 @@ def edit_invoice_custom(request, reference_id):
         try:
             data = json.loads(request.body)
 
+            # Validate required fields
+            if not data.get('amc_type'):
+                return JsonResponse({'success': False, 'error': 'AMC Type is required'}, status=400)
+
             # Update invoice fields
             invoice.customer_id = data.get('customer') if data.get('customer') else None
-            invoice.amc_type_id = data.get('amc_type') if data.get('amc_type') else None
+            invoice.amc_type_id = data.get('amc_type')
             invoice.start_date = data.get('start_date')
             invoice.due_date = data.get('due_date')
             invoice.discount = data.get('discount', 0)

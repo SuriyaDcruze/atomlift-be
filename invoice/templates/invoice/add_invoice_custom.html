@@ -707,10 +707,13 @@ body {
               </div>
 
               <div class="form-group">
-                <label class="form-label">AMC Type</label>
-                <select id="amc_type" name="amc_type" class="form-input form-select">
+                <label class="form-label">
+                  AMC Type<span class="form-required">*</span>
+                </label>
+                <select id="amc_type" name="amc_type" class="form-input form-select" required>
                   <option value="">Loading AMC types...</option>
                 </select>
+                <p id="amcTypeError" class="form-error" style="display: none;"></p>
               </div>
 
               <div class="form-group">
@@ -1353,15 +1356,19 @@ function showMessage(type, message, description = '') {
 function validateForm() {
   const errors = {};
   const customer = document.getElementById('customer').value;
+  const amcType = document.getElementById('amc_type').value;
   const startDate = document.getElementById('start_date').value;
   const dueDate = document.getElementById('due_date').value;
 
   if (!customer) errors.customer = 'Customer is required';
+  if (!amcType) errors.amcType = 'AMC Type is required';
   if (!startDate) errors.startDate = 'Start date is required';
   if (!dueDate) errors.dueDate = 'Due date is required';
 
   document.getElementById('customerError').textContent = errors.customer || '';
   document.getElementById('customerError').style.display = errors.customer ? 'block' : 'none';
+  document.getElementById('amcTypeError').textContent = errors.amcType || '';
+  document.getElementById('amcTypeError').style.display = errors.amcType ? 'block' : 'none';
   document.getElementById('startDateError').textContent = errors.startDate || '';
   document.getElementById('startDateError').style.display = errors.startDate ? 'block' : 'none';
   document.getElementById('dueDateError').textContent = errors.dueDate || '';
