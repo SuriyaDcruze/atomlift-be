@@ -465,6 +465,7 @@ body {
                 value="{{ recurring_invoice.profile_name }}"
                 required
               />
+              <p id="profile_name-error" class="form-error-message" style="display: none;"></p>
             </div>
 
             <div class="form-group">
@@ -988,6 +989,19 @@ function handleFormSubmit(event) {
   if (!customer || !profileName || !repeatEvery || !startDate || !status) {
     showMessage('error', 'Please fill in all required fields (Customer, Profile Name, Repeat Every, Start Date, Status)');
     return;
+  }
+  
+  // Validate profile name - no special characters allowed (only letters, numbers, spaces, hyphens, underscores)
+  var profileNamePattern = /^[a-zA-Z0-9\s\-_]+$/;
+  if (!profileNamePattern.test(profileName)) {
+    document.getElementById('profile_name').classList.add('form-error');
+    document.getElementById('profile_name-error').textContent = 'Profile name cannot contain special characters. Only letters, numbers, spaces, hyphens, and underscores are allowed.';
+    document.getElementById('profile_name-error').style.display = 'block';
+    showMessage('error', 'Profile name cannot contain special characters. Only letters, numbers, spaces, hyphens, and underscores are allowed.');
+    return;
+  } else {
+    document.getElementById('profile_name').classList.remove('form-error');
+    document.getElementById('profile_name-error').style.display = 'none';
   }
 
   var submitButton = document.getElementById('submitBtn');

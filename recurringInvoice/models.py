@@ -3,6 +3,8 @@
 from django.db import models
 from django.urls import reverse, path
 from django.shortcuts import redirect
+from django.core.exceptions import ValidationError
+from django.utils.translation import gettext_lazy as _
 from wagtail.admin.panels import FieldPanel, MultiFieldPanel, InlinePanel
 from wagtail.snippets.models import register_snippet
 from modelcluster.fields import ParentalKey
@@ -10,6 +12,7 @@ from modelcluster.models import ClusterableModel
 from datetime import timedelta
 from dateutil.relativedelta import relativedelta
 from authentication.models import CustomUser  # Corrected import
+import re
 
 
 class RecurringInvoice(ClusterableModel):
@@ -21,6 +24,15 @@ class RecurringInvoice(ClusterableModel):
     )
     profile_name = models.CharField(max_length=100)
     order_number = models.CharField(max_length=50, blank=True)
+    
+    def clean(self):
+        super().clean()
+        if self.profile_name:
+            # Check for special characters (allow only letters, numbers, spaces, hyphens, and underscores)
+            if not re.match(r'^[a-zA-Z0-9\s\-_]+$', self.profile_name):
+                raise ValidationError({
+                    'profile_name': _('Profile name cannot contain special characters. Only letters, numbers, spaces, hyphens, and underscores are allowed.')
+                })
 
     REPEAT_CHOICES = [
         ('week', 'Week'), ('2week', '2 Weeks'), ('month', 'Month'), ('2month', '2 Months'),

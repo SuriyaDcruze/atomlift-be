@@ -904,8 +904,18 @@ function validateForm() {
     document.getElementById('profile_name-error').style.display = 'block';
     isValid = false;
   } else {
-    document.getElementById('profile_name').classList.remove('form-error');
-    document.getElementById('profile_name-error').style.display = 'none';
+    // Validate profile name - no special characters allowed (only letters, numbers, spaces, hyphens, underscores)
+    const profileNamePattern = /^[a-zA-Z0-9\s\-_]+$/;
+    if (!profileNamePattern.test(profileName)) {
+      errors.profile_name = 'Profile name cannot contain special characters. Only letters, numbers, spaces, hyphens, and underscores are allowed.';
+      document.getElementById('profile_name').classList.add('form-error');
+      document.getElementById('profile_name-error').textContent = errors.profile_name;
+      document.getElementById('profile_name-error').style.display = 'block';
+      isValid = false;
+    } else {
+      document.getElementById('profile_name').classList.remove('form-error');
+      document.getElementById('profile_name-error').style.display = 'none';
+    }
   }
 
   if (!repeatEvery) {

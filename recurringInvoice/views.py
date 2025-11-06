@@ -1,4 +1,5 @@
 import json
+import re
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -52,10 +53,19 @@ def create_recurring_invoice(request):
         if data.get('sales_person'):
             sales_person = get_object_or_404(CustomUser, id=data.get('sales_person'))
         
+        # Validate profile_name - no special characters allowed
+        profile_name = data.get('profile_name', '').strip()
+        if profile_name:
+            if not re.match(r'^[a-zA-Z0-9\s\-_]+$', profile_name):
+                return JsonResponse({
+                    "success": False, 
+                    "error": "Profile name cannot contain special characters. Only letters, numbers, spaces, hyphens, and underscores are allowed."
+                }, status=400)
+        
         # Create recurring invoice
         recurring_invoice = RecurringInvoice.objects.create(
             customer=customer,
-            profile_name=data.get('profile_name', ''),
+            profile_name=profile_name,
             order_number=data.get('order_number', ''),
             repeat_every=data.get('repeat_every', 'month'),
             auto_repeat='auto_repeat' in data and (data.get('auto_repeat') == 'on' or data.get('auto_repeat') == 'true' or data.get('auto_repeat') == True),
@@ -140,8 +150,18 @@ def update_recurring_invoice(request, reference_id):
         else:
             recurring_invoice.sales_person = None
         
+        # Validate profile_name - no special characters allowed
+        profile_name = data.get('profile_name', recurring_invoice.profile_name)
+        if profile_name:
+            profile_name = profile_name.strip()
+            if not re.match(r'^[a-zA-Z0-9\s\-_]+$', profile_name):
+                return JsonResponse({
+                    "success": False, 
+                    "error": "Profile name cannot contain special characters. Only letters, numbers, spaces, hyphens, and underscores are allowed."
+                }, status=400)
+        
         # Update other fields
-        recurring_invoice.profile_name = data.get('profile_name', recurring_invoice.profile_name)
+        recurring_invoice.profile_name = profile_name
         recurring_invoice.order_number = data.get('order_number', recurring_invoice.order_number)
         recurring_invoice.repeat_every = data.get('repeat_every', recurring_invoice.repeat_every)
         recurring_invoice.auto_repeat = 'auto_repeat' in data and (data.get('auto_repeat') == 'on' or data.get('auto_repeat') == 'true' or data.get('auto_repeat') == True)
