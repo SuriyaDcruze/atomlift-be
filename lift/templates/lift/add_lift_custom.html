@@ -513,6 +513,9 @@ body {
                 value="{% if is_edit %}{{ lift.price }}{% endif %}"
                 required
                 class="form-input"
+                onkeypress="return isNumericPrice(event)"
+                onpaste="handlePricePaste(event)"
+                ondrop="return false"
               />
             </div>
 
@@ -539,7 +542,10 @@ body {
                 value="{% if is_edit %}{{ lift.no_of_passengers }}{% endif %}"
                 required
                 class="form-input"
-                oninput="calculateLoadKg()"
+                onkeypress="return isNumericInteger(event)"
+                oninput="calculateLoadKg(); validateNumericInput(this)"
+                onpaste="handleIntegerPaste(event)"
+                ondrop="return false"
               />
             </div>
 
@@ -551,9 +557,12 @@ body {
                 name="load_kg"
                 value="{% if is_edit %}{{ lift.load_kg }}{% endif %}"
                 class="form-input"
-                readonly
+                onkeypress="return isNumericInteger(event)"
+                oninput="validateNumericInput(this)"
+                onpaste="handleIntegerPaste(event)"
+                ondrop="return false"
               />
-              <p class="form-help">Auto-calculated as 68 kg per passenger</p>
+              <p class="form-help">Auto-calculated as 68 kg per passenger (can be edited)</p>
             </div>
 
             <div class="form-group">
@@ -822,6 +831,87 @@ var currentDoorTypeId = {% if is_edit and lift.door_type %}{{ lift.door_type.id 
 var currentDoorBrandId = {% if is_edit and lift.door_brand %}{{ lift.door_brand.id }}{% else %}null{% endif %};
 var currentControllerBrandId = {% if is_edit and lift.controller_brand %}{{ lift.controller_brand.id }}{% else %}null{% endif %};
 var currentCabinId = {% if is_edit and lift.cabin %}{{ lift.cabin.id }}{% else %}null{% endif %};
+
+// Validation functions to prevent letters and special characters
+function isNumericPrice(event) {
+  // Allow special keys: backspace, delete, tab, escape, enter, arrow keys
+  if ([8, 9, 27, 13, 46, 35, 36, 37, 38, 39, 40].indexOf(event.keyCode) !== -1 ||
+      // Allow Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+      (event.keyCode === 65 && event.ctrlKey === true) ||
+      (event.keyCode === 67 && event.ctrlKey === true) ||
+      (event.keyCode === 86 && event.ctrlKey === true) ||
+      (event.keyCode === 88 && event.ctrlKey === true)) {
+    return true;
+  }
+  // Ensure that it is a number and stop the keypress
+  var char = String.fromCharCode(event.which);
+  if (!/[0-9.]/.test(char)) {
+    event.preventDefault();
+    return false;
+  }
+  // Only allow one decimal point
+  var input = event.target;
+  if (char === '.' && input.value.indexOf('.') !== -1) {
+    event.preventDefault();
+    return false;
+  }
+  return true;
+}
+
+function isNumericInteger(event) {
+  // Allow special keys: backspace, delete, tab, escape, enter, arrow keys
+  if ([8, 9, 27, 13, 46, 35, 36, 37, 38, 39, 40].indexOf(event.keyCode) !== -1 ||
+      // Allow Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+      (event.keyCode === 65 && event.ctrlKey === true) ||
+      (event.keyCode === 67 && event.ctrlKey === true) ||
+      (event.keyCode === 86 && event.ctrlKey === true) ||
+      (event.keyCode === 88 && event.ctrlKey === true)) {
+    return true;
+  }
+  // Ensure that it is a number and stop the keypress
+  var char = String.fromCharCode(event.which);
+  if (!/[0-9]/.test(char)) {
+    event.preventDefault();
+    return false;
+  }
+  return true;
+}
+
+function validateNumericInput(input) {
+  // Remove any non-numeric characters that might have been pasted
+  input.value = input.value.replace(/[^0-9]/g, '');
+}
+
+function handlePricePaste(event) {
+  event.preventDefault();
+  var paste = (event.clipboardData || window.clipboardData).getData('text');
+  // Remove all non-numeric characters except decimal point
+  var sanitized = paste.replace(/[^0-9.]/g, '');
+  // Only allow one decimal point
+  var parts = sanitized.split('.');
+  if (parts.length > 2) {
+    sanitized = parts[0] + '.' + parts.slice(1).join('');
+  }
+  var input = event.target;
+  var start = input.selectionStart;
+  var end = input.selectionEnd;
+  input.value = input.value.substring(0, start) + sanitized + input.value.substring(end);
+  input.setSelectionRange(start + sanitized.length, start + sanitized.length);
+}
+
+function handleIntegerPaste(event) {
+  event.preventDefault();
+  var paste = (event.clipboardData || window.clipboardData).getData('text');
+  // Remove all non-numeric characters
+  var sanitized = paste.replace(/[^0-9]/g, '');
+  var input = event.target;
+  var start = input.selectionStart;
+  var end = input.selectionEnd;
+  input.value = input.value.substring(0, start) + sanitized + input.value.substring(end);
+  input.setSelectionRange(start + sanitized.length, start + sanitized.length);
+  // Trigger load calculation
+  calculateLoadKg();
+}
 
 function calculateLoadKg() {
   var passengers = document.getElementById('no_of_passengers').value;

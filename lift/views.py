@@ -1388,16 +1388,58 @@ def add_lift_custom(request, job_no=None):
                         'error': 'Invalid date format. Please use YYYY-MM-DD format.'
                     })
             
+            # Validate numeric fields
+            try:
+                price = float(data.get('price', 0))
+                if price < 0:
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'Price must be a positive number.'
+                    })
+            except (ValueError, TypeError):
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Price must be a valid number.'
+                })
+            
+            try:
+                no_of_passengers = int(data.get('no_of_passengers', 0))
+                if no_of_passengers < 0:
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'Number of passengers must be a positive integer.'
+                    })
+            except (ValueError, TypeError):
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Number of passengers must be a valid integer.'
+                })
+            
+            load_kg = None
+            if data.get('load_kg'):
+                try:
+                    load_kg = int(data.get('load_kg'))
+                    if load_kg < 0:
+                        return JsonResponse({
+                            'success': False,
+                            'error': 'Load (kg) must be a positive integer.'
+                        })
+                except (ValueError, TypeError):
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'Load (kg) must be a valid integer.'
+                    })
+            
             # Create new lift
             lift = Lift.objects.create(
                 lift_code=data.get('lift_code', ''),
                 name=data.get('name', ''),
-                price=data.get('price', 0),
+                price=price,
                 floor_id=floor_id,
                 brand=brand,
                 model=data.get('model', ''),
-                no_of_passengers=data.get('no_of_passengers', 0),
-                load_kg=data.get('load_kg'),
+                no_of_passengers=no_of_passengers,
+                load_kg=load_kg,
                 speed=data.get('speed', ''),
                 lift_type=lift_type,
                 machine_type=machine_type,
@@ -1515,15 +1557,57 @@ def edit_lift_custom(request, identifier):
                         'error': 'Invalid date format. Please use YYYY-MM-DD format.'
                     })
             
+            # Validate numeric fields
+            try:
+                price = float(data.get('price', 0))
+                if price < 0:
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'Price must be a positive number.'
+                    })
+            except (ValueError, TypeError):
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Price must be a valid number.'
+                })
+            
+            try:
+                no_of_passengers = int(data.get('no_of_passengers', 0))
+                if no_of_passengers < 0:
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'Number of passengers must be a positive integer.'
+                    })
+            except (ValueError, TypeError):
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Number of passengers must be a valid integer.'
+                })
+            
+            load_kg = None
+            if data.get('load_kg'):
+                try:
+                    load_kg = int(data.get('load_kg'))
+                    if load_kg < 0:
+                        return JsonResponse({
+                            'success': False,
+                            'error': 'Load (kg) must be a positive integer.'
+                        })
+                except (ValueError, TypeError):
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'Load (kg) must be a valid integer.'
+                    })
+            
             # Update lift
             lift.lift_code = data.get('lift_code', '')
             lift.name = data.get('name', '')
-            lift.price = data.get('price', 0)
+            lift.price = price
             lift.floor_id = floor_id
             lift.brand = brand
             lift.model = data.get('model', '')
-            lift.no_of_passengers = data.get('no_of_passengers', 0)
-            lift.load_kg = data.get('load_kg')
+            lift.no_of_passengers = no_of_passengers
+            lift.load_kg = load_kg
             lift.speed = data.get('speed', '')
             lift.lift_type = lift_type
             lift.machine_type = machine_type
