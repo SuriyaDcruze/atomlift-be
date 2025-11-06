@@ -605,6 +605,7 @@ body {
                 class="form-input"
                 placeholder="Enter GST treatment"
               />
+              <p id="gst_treatment-error" class="form-error-message" style="display: none;"></p>
             </div>
 
             <div class="form-group">
@@ -949,6 +950,25 @@ function validateForm() {
   } else {
     document.getElementById('status').classList.remove('form-error');
     document.getElementById('status-error').style.display = 'none';
+  }
+
+  // Validate gst_treatment - no special characters allowed (only if provided)
+  const gstTreatment = document.getElementById('gst_treatment').value.trim();
+  if (gstTreatment) {
+    const gstTreatmentPattern = /^[a-zA-Z0-9\s\-_]+$/;
+    if (!gstTreatmentPattern.test(gstTreatment)) {
+      errors.gst_treatment = 'GST Treatment cannot contain special characters. Only letters, numbers, spaces, hyphens, and underscores are allowed.';
+      document.getElementById('gst_treatment').classList.add('form-error');
+      document.getElementById('gst_treatment-error').textContent = errors.gst_treatment;
+      document.getElementById('gst_treatment-error').style.display = 'block';
+      isValid = false;
+    } else {
+      document.getElementById('gst_treatment').classList.remove('form-error');
+      document.getElementById('gst_treatment-error').style.display = 'none';
+    }
+  } else {
+    document.getElementById('gst_treatment').classList.remove('form-error');
+    document.getElementById('gst_treatment-error').style.display = 'none';
   }
 
   return isValid;

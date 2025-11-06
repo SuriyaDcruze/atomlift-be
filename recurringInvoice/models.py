@@ -33,6 +33,12 @@ class RecurringInvoice(ClusterableModel):
                 raise ValidationError({
                     'profile_name': _('Profile name cannot contain special characters. Only letters, numbers, spaces, hyphens, and underscores are allowed.')
                 })
+        if self.gst_treatment:
+            # Check for special characters (allow only letters, numbers, spaces, hyphens, and underscores)
+            if not re.match(r'^[a-zA-Z0-9\s\-_]+$', self.gst_treatment):
+                raise ValidationError({
+                    'gst_treatment': _('GST Treatment cannot contain special characters. Only letters, numbers, spaces, hyphens, and underscores are allowed.')
+                })
 
     REPEAT_CHOICES = [
         ('week', 'Week'), ('2week', '2 Weeks'), ('month', 'Month'), ('2month', '2 Months'),

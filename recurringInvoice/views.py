@@ -62,6 +62,15 @@ def create_recurring_invoice(request):
                     "error": "Profile name cannot contain special characters. Only letters, numbers, spaces, hyphens, and underscores are allowed."
                 }, status=400)
         
+        # Validate gst_treatment - no special characters allowed (only if provided)
+        gst_treatment = data.get('gst_treatment', '').strip()
+        if gst_treatment:
+            if not re.match(r'^[a-zA-Z0-9\s\-_]+$', gst_treatment):
+                return JsonResponse({
+                    "success": False, 
+                    "error": "GST Treatment cannot contain special characters. Only letters, numbers, spaces, hyphens, and underscores are allowed."
+                }, status=400)
+        
         # Create recurring invoice
         recurring_invoice = RecurringInvoice.objects.create(
             customer=customer,
@@ -73,7 +82,7 @@ def create_recurring_invoice(request):
             end_date=data.get('end_date') if data.get('end_date') else None,
             sales_person=sales_person,
             billing_address=data.get('billing_address', ''),
-            gst_treatment=data.get('gst_treatment', ''),
+            gst_treatment=gst_treatment,
             status=data.get('status', 'active'),
         )
         
@@ -158,6 +167,16 @@ def update_recurring_invoice(request, reference_id):
                 return JsonResponse({
                     "success": False, 
                     "error": "Profile name cannot contain special characters. Only letters, numbers, spaces, hyphens, and underscores are allowed."
+                }, status=400)
+        
+        # Validate gst_treatment - no special characters allowed (only if provided)
+        gst_treatment = data.get('gst_treatment', recurring_invoice.gst_treatment)
+        if gst_treatment:
+            gst_treatment = gst_treatment.strip()
+            if not re.match(r'^[a-zA-Z0-9\s\-_]+$', gst_treatment):
+                return JsonResponse({
+                    "success": False, 
+                    "error": "GST Treatment cannot contain special characters. Only letters, numbers, spaces, hyphens, and underscores are allowed."
                 }, status=400)
         
         # Update other fields

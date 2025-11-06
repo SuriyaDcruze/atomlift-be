@@ -586,6 +586,7 @@ body {
                 placeholder="Enter GST treatment"
                 value="{{ recurring_invoice.gst_treatment }}"
               />
+              <p id="gst_treatment-error" class="form-error-message" style="display: none;"></p>
             </div>
 
             <div class="form-group">
@@ -1002,6 +1003,25 @@ function handleFormSubmit(event) {
   } else {
     document.getElementById('profile_name').classList.remove('form-error');
     document.getElementById('profile_name-error').style.display = 'none';
+  }
+  
+  // Validate gst_treatment - no special characters allowed (only if provided)
+  var gstTreatment = document.getElementById('gst_treatment').value.trim();
+  if (gstTreatment) {
+    var gstTreatmentPattern = /^[a-zA-Z0-9\s\-_]+$/;
+    if (!gstTreatmentPattern.test(gstTreatment)) {
+      document.getElementById('gst_treatment').classList.add('form-error');
+      document.getElementById('gst_treatment-error').textContent = 'GST Treatment cannot contain special characters. Only letters, numbers, spaces, hyphens, and underscores are allowed.';
+      document.getElementById('gst_treatment-error').style.display = 'block';
+      showMessage('error', 'GST Treatment cannot contain special characters. Only letters, numbers, spaces, hyphens, and underscores are allowed.');
+      return;
+    } else {
+      document.getElementById('gst_treatment').classList.remove('form-error');
+      document.getElementById('gst_treatment-error').style.display = 'none';
+    }
+  } else {
+    document.getElementById('gst_treatment').classList.remove('form-error');
+    document.getElementById('gst_treatment-error').style.display = 'none';
   }
 
   var submitButton = document.getElementById('submitBtn');
