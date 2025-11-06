@@ -4,6 +4,7 @@ from django.shortcuts import get_object_or_404, render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+from django.core.exceptions import ValidationError
 from .models import FloorID, Brand, LiftType, MachineType, MachineBrand, DoorType, DoorBrand, ControllerBrand, Cabin, Lift
 
 
@@ -1369,10 +1370,11 @@ def add_lift_custom(request, job_no=None):
             if data.get('cabin'):
                 cabin = get_object_or_404(Cabin, id=data['cabin'])
             
-            # Validate license dates
-            license_start_date = data.get('license_start_date') if data.get('license_start_date') else None
-            license_end_date = data.get('license_end_date') if data.get('license_end_date') else None
+            # Validate license dates (optional fields)
+            license_start_date = (data.get('license_start_date') or '').strip() or None
+            license_end_date = (data.get('license_end_date') or '').strip() or None
             
+            # Only validate date order if both dates are provided
             if license_start_date and license_end_date:
                 try:
                     start_date = datetime.strptime(license_start_date, '%Y-%m-%d').date()
@@ -1430,9 +1432,34 @@ def add_lift_custom(request, job_no=None):
                         'error': 'Load (kg) must be a valid integer.'
                     })
             
+            # Validate lift_code is provided
+            lift_code = data.get('lift_code', '').strip()
+            if not lift_code:
+                return JsonResponse({'success': False, 'error': 'Lift Code is required. Please enter a lift code.'})
+            
+            # Validate floor_id is provided
+            if not floor_id:
+                return JsonResponse({'success': False, 'error': 'Floor ID is required. Please select a floor ID.'})
+            
+            # Validate brand is provided
+            if not brand:
+                return JsonResponse({'success': False, 'error': 'Brand is required. Please select a brand.'})
+            
+            # Validate lift_type is provided
+            if not lift_type:
+                return JsonResponse({'success': False, 'error': 'Lift Type is required. Please select a lift type.'})
+            
+            # Validate machine_type is provided
+            if not machine_type:
+                return JsonResponse({'success': False, 'error': 'Machine Type is required. Please select a machine type.'})
+            
+            # Validate door_type is provided
+            if not door_type:
+                return JsonResponse({'success': False, 'error': 'Door Type is required. Please select a door type.'})
+            
             # Create new lift
-            lift = Lift.objects.create(
-                lift_code=data.get('lift_code', ''),
+            lift = Lift(
+                lift_code=lift_code,
                 name=data.get('name', ''),
                 price=price,
                 floor_id=floor_id,
@@ -1453,7 +1480,23 @@ def add_lift_custom(request, job_no=None):
                 license_start_date=license_start_date,
                 license_end_date=license_end_date,
             )
+            lift.full_clean()
+            lift.save()
             return JsonResponse({'success': True, 'message': 'Lift created successfully'})
+        except ValidationError as e:
+            # Handle validation errors for multiple fields
+            if e.message_dict:
+                # Prioritize showing field-specific errors
+                error_fields = ['lift_code', 'floor_id', 'name', 'model', 'speed', 'brand', 'lift_type', 'machine_type', 'door_type']
+                for field in error_fields:
+                    if field in e.message_dict:
+                        error_message = e.message_dict[field][0]
+                        return JsonResponse({'success': False, 'error': error_message})
+                # Fallback to first error if none of the prioritized fields have errors
+                error_message = list(e.message_dict.values())[0][0]
+            else:
+                error_message = str(e)
+            return JsonResponse({'success': False, 'error': error_message})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
 
@@ -1538,10 +1581,11 @@ def edit_lift_custom(request, identifier):
             if data.get('cabin'):
                 cabin = get_object_or_404(Cabin, id=data['cabin'])
             
-            # Validate license dates
-            license_start_date = data.get('license_start_date') if data.get('license_start_date') else None
-            license_end_date = data.get('license_end_date') if data.get('license_end_date') else None
+            # Validate license dates (optional fields)
+            license_start_date = (data.get('license_start_date') or '').strip() or None
+            license_end_date = (data.get('license_end_date') or '').strip() or None
             
+            # Only validate date order if both dates are provided
             if license_start_date and license_end_date:
                 try:
                     start_date = datetime.strptime(license_start_date, '%Y-%m-%d').date()
@@ -1599,8 +1643,33 @@ def edit_lift_custom(request, identifier):
                         'error': 'Load (kg) must be a valid integer.'
                     })
             
+            # Validate lift_code is provided
+            lift_code = data.get('lift_code', '').strip()
+            if not lift_code:
+                return JsonResponse({'success': False, 'error': 'Lift Code is required. Please enter a lift code.'})
+            
+            # Validate floor_id is provided
+            if not floor_id:
+                return JsonResponse({'success': False, 'error': 'Floor ID is required. Please select a floor ID.'})
+            
+            # Validate brand is provided
+            if not brand:
+                return JsonResponse({'success': False, 'error': 'Brand is required. Please select a brand.'})
+            
+            # Validate lift_type is provided
+            if not lift_type:
+                return JsonResponse({'success': False, 'error': 'Lift Type is required. Please select a lift type.'})
+            
+            # Validate machine_type is provided
+            if not machine_type:
+                return JsonResponse({'success': False, 'error': 'Machine Type is required. Please select a machine type.'})
+            
+            # Validate door_type is provided
+            if not door_type:
+                return JsonResponse({'success': False, 'error': 'Door Type is required. Please select a door type.'})
+            
             # Update lift
-            lift.lift_code = data.get('lift_code', '')
+            lift.lift_code = lift_code
             lift.name = data.get('name', '')
             lift.price = price
             lift.floor_id = floor_id
@@ -1620,9 +1689,24 @@ def edit_lift_custom(request, identifier):
             lift.license_no = data.get('license_no', '')
             lift.license_start_date = license_start_date
             lift.license_end_date = license_end_date
+            lift.full_clean()
             lift.save()
 
             return JsonResponse({'success': True, 'message': 'Lift updated successfully'})
+        except ValidationError as e:
+            # Handle validation errors for multiple fields
+            if e.message_dict:
+                # Prioritize showing field-specific errors
+                error_fields = ['lift_code', 'floor_id', 'name', 'model', 'speed', 'brand', 'lift_type', 'machine_type', 'door_type']
+                for field in error_fields:
+                    if field in e.message_dict:
+                        error_message = e.message_dict[field][0]
+                        return JsonResponse({'success': False, 'error': error_message})
+                # Fallback to first error if none of the prioritized fields have errors
+                error_message = list(e.message_dict.values())[0][0]
+            else:
+                error_message = str(e)
+            return JsonResponse({'success': False, 'error': error_message})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
 

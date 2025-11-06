@@ -194,6 +194,12 @@ body {
   margin-top: 0.25rem;
 }
 
+.form-error {
+  font-size: 0.75rem;
+  color: #EF4444;
+  margin-top: 0.25rem;
+}
+
   .w-modal-footer {
     padding: 1rem 1.5rem;
     background: #F9FAFB;
@@ -485,7 +491,9 @@ body {
                 class="form-input"
                 placeholder="Enter lift code"
                 required
+                maxlength="10"
               />
+              <p id="liftCodeError" class="form-error" style="display: none;"></p>
               <p class="form-help">{% if job_no %}Pre-filled with customer job number{% else %}Custom code for the lift{% endif %}</p>
             </div>
 
@@ -501,6 +509,7 @@ body {
                 required
                 class="form-input"
               />
+              <p id="nameError" class="form-error" style="display: none;"></p>
             </div>
 
             <div class="form-group">
@@ -529,6 +538,7 @@ body {
                 required
                 class="form-input"
               />
+              <p id="modelError" class="form-error" style="display: none;"></p>
             </div>
 
             <div class="form-group">
@@ -574,7 +584,10 @@ body {
                 value="{% if is_edit %}{{ lift.speed }}{% endif %}"
                 required
                 class="form-input"
+                maxlength="50"
               />
+              <p id="speedError" class="form-error" style="display: none;"></p>
+              <p class="form-help">Enter speed value (e.g., "1.5 m/s", "2.0 m/s"). Max 50 characters.</p>
             </div>
 
             <!-- License Details -->
@@ -623,43 +636,49 @@ body {
             <h3 class="form-section-title">Lift Specifications</h3>
 
             <div class="form-group">
-              <label class="form-label">Floor ID</label>
+              <label class="form-label">
+                Floor ID<span class="form-required">*</span>
+              </label>
               <div class="form-select-addon">
-                <select id="floor_id" name="floor_id" class="form-input form-select">
-                  <option value="">Loading floor IDs...</option>
+                <select id="floor_id" name="floor_id" class="form-input form-select" required>
+                  <option value="">Select Floor ID</option>
                 </select>
                 <button type="button" onclick="openModal('floorid')">+</button>
               </div>
+              <p id="floorIdError" class="form-error" style="display: none;"></p>
             </div>
 
             <div class="form-group">
               <label class="form-label">Brand<span class="form-required">*</span></label>
               <div class="form-select-addon">
                 <select id="brand" name="brand" class="form-input form-select" required>
-                  <option value="">Loading brands...</option>
+                  <option value="">Select Brand</option>
                 </select>
                 <button type="button" onclick="openModal('brand')">+</button>
               </div>
+              <p id="brandError" class="form-error" style="display: none;"></p>
             </div>
 
             <div class="form-group">
               <label class="form-label">Lift Type<span class="form-required">*</span></label>
               <div class="form-select-addon">
                 <select id="lift_type" name="lift_type" class="form-input form-select" required>
-                  <option value="">Loading lift types...</option>
+                  <option value="">Select Lift Type</option>
                 </select>
                 <button type="button" onclick="openModal('lifttype')">+</button>
               </div>
+              <p id="liftTypeError" class="form-error" style="display: none;"></p>
             </div>
 
             <div class="form-group">
               <label class="form-label">Machine Type<span class="form-required">*</span></label>
               <div class="form-select-addon">
                 <select id="machine_type" name="machine_type" class="form-input form-select" required>
-                  <option value="">Loading machine types...</option>
+                  <option value="">Select Machine Type</option>
                 </select>
                 <button type="button" onclick="openModal('machinetype')">+</button>
               </div>
+              <p id="machineTypeError" class="form-error" style="display: none;"></p>
             </div>
 
             <div class="form-group">
@@ -676,10 +695,11 @@ body {
               <label class="form-label">Door Type<span class="form-required">*</span></label>
               <div class="form-select-addon">
                 <select id="door_type" name="door_type" class="form-input form-select" required>
-                  <option value="">Loading door types...</option>
+                  <option value="">Select Door Type</option>
                 </select>
                 <button type="button" onclick="openModal('doortype')">+</button>
               </div>
+              <p id="doorTypeError" class="form-error" style="display: none;"></p>
             </div>
 
             <div class="form-group">
@@ -921,6 +941,343 @@ function calculateLoadKg() {
   }
 }
 
+function setupValidation() {
+  // Lift Code validation
+  var liftCodeInput = document.getElementById('lift_code');
+  if (liftCodeInput) {
+    liftCodeInput.addEventListener('blur', validateLiftCode);
+    liftCodeInput.addEventListener('input', function() {
+      if (document.getElementById('liftCodeError').style.display === 'block') {
+        validateLiftCode();
+      }
+    });
+  }
+  
+  // Name validation
+  var nameInput = document.getElementById('name');
+  if (nameInput) {
+    nameInput.addEventListener('blur', validateName);
+    nameInput.addEventListener('input', function() {
+      if (document.getElementById('nameError').style.display === 'block') {
+        validateName();
+      }
+    });
+  }
+  
+  // Model validation
+  var modelInput = document.getElementById('model');
+  if (modelInput) {
+    modelInput.addEventListener('blur', validateModel);
+    modelInput.addEventListener('input', function() {
+      if (document.getElementById('modelError').style.display === 'block') {
+        validateModel();
+      }
+    });
+  }
+  
+  // Speed validation
+  var speedInput = document.getElementById('speed');
+  if (speedInput) {
+    speedInput.addEventListener('blur', validateSpeed);
+    speedInput.addEventListener('input', function() {
+      if (document.getElementById('speedError').style.display === 'block') {
+        validateSpeed();
+      }
+    });
+  }
+  
+  // Floor ID validation
+  var floorIdSelect = document.getElementById('floor_id');
+  if (floorIdSelect) {
+    floorIdSelect.addEventListener('change', validateFloorId);
+  }
+  
+  // Brand validation
+  var brandSelect = document.getElementById('brand');
+  if (brandSelect) {
+    brandSelect.addEventListener('change', validateBrand);
+  }
+  
+  // Lift Type validation
+  var liftTypeSelect = document.getElementById('lift_type');
+  if (liftTypeSelect) {
+    liftTypeSelect.addEventListener('change', validateLiftType);
+  }
+  
+  // Machine Type validation
+  var machineTypeSelect = document.getElementById('machine_type');
+  if (machineTypeSelect) {
+    machineTypeSelect.addEventListener('change', validateMachineType);
+  }
+  
+  // Door Type validation
+  var doorTypeSelect = document.getElementById('door_type');
+  if (doorTypeSelect) {
+    doorTypeSelect.addEventListener('change', validateDoorType);
+  }
+}
+
+function validateLiftCode() {
+  var liftCode = document.getElementById('lift_code').value.trim();
+  var liftCodeError = document.getElementById('liftCodeError');
+  
+  if (!liftCode) {
+    liftCodeError.textContent = 'Lift Code is required. Please enter a lift code.';
+    liftCodeError.style.display = 'block';
+    return false;
+  }
+  
+  if (liftCode.length > 10) {
+    liftCodeError.textContent = 'Lift Code must not exceed 10 characters.';
+    liftCodeError.style.display = 'block';
+    return false;
+  }
+  
+  liftCodeError.style.display = 'none';
+  return true;
+}
+
+function validateName() {
+  var name = document.getElementById('name').value.trim();
+  var nameError = document.getElementById('nameError');
+  
+  if (!name) {
+    nameError.textContent = 'Name is required';
+    nameError.style.display = 'block';
+    return false;
+  }
+  
+  var specialCharPattern = /[^a-zA-Z0-9\s\-]/;
+  if (specialCharPattern.test(name)) {
+    nameError.textContent = 'Name must not contain special characters. Only letters, numbers, spaces, and hyphens are allowed.';
+    nameError.style.display = 'block';
+    return false;
+  }
+  
+  nameError.style.display = 'none';
+  return true;
+}
+
+function validateModel() {
+  var model = document.getElementById('model').value.trim();
+  var modelError = document.getElementById('modelError');
+  
+  if (!model) {
+    modelError.textContent = 'Model is required';
+    modelError.style.display = 'block';
+    return false;
+  }
+  
+  var specialCharPattern = /[^a-zA-Z0-9\s\-]/;
+  if (specialCharPattern.test(model)) {
+    modelError.textContent = 'Model must not contain special characters. Only letters, numbers, spaces, and hyphens are allowed.';
+    modelError.style.display = 'block';
+    return false;
+  }
+  
+  modelError.style.display = 'none';
+  return true;
+}
+
+function validateSpeed() {
+  var speed = document.getElementById('speed').value.trim();
+  var speedError = document.getElementById('speedError');
+  
+  if (!speed) {
+    speedError.textContent = 'Speed is required';
+    speedError.style.display = 'block';
+    return false;
+  }
+  
+  if (speed.length > 50) {
+    speedError.textContent = 'Speed must not exceed 50 characters.';
+    speedError.style.display = 'block';
+    return false;
+  }
+  
+  var speedPattern = /^[a-zA-Z0-9\s\-/]+$/;
+  if (!speedPattern.test(speed)) {
+    speedError.textContent = 'Speed must not contain special characters. Only letters, numbers, spaces, hyphens, and forward slashes are allowed.';
+    speedError.style.display = 'block';
+    return false;
+  }
+  
+  speedError.style.display = 'none';
+  return true;
+}
+
+function validateFloorId() {
+  var floorId = document.getElementById('floor_id').value;
+  var floorIdError = document.getElementById('floorIdError');
+  
+  if (!floorId) {
+    floorIdError.textContent = 'Floor ID is required. Please select a floor ID.';
+    floorIdError.style.display = 'block';
+    return false;
+  }
+  
+  floorIdError.style.display = 'none';
+  return true;
+}
+
+function validateBrand() {
+  var brand = document.getElementById('brand').value;
+  var brandError = document.getElementById('brandError');
+  
+  if (!brand) {
+    brandError.textContent = 'Brand is required. Please select a brand.';
+    brandError.style.display = 'block';
+    return false;
+  }
+  
+  brandError.style.display = 'none';
+  return true;
+}
+
+function validateLiftType() {
+  var liftType = document.getElementById('lift_type').value;
+  var liftTypeError = document.getElementById('liftTypeError');
+  
+  if (!liftType) {
+    liftTypeError.textContent = 'Lift Type is required. Please select a lift type.';
+    liftTypeError.style.display = 'block';
+    return false;
+  }
+  
+  liftTypeError.style.display = 'none';
+  return true;
+}
+
+function validateMachineType() {
+  var machineType = document.getElementById('machine_type').value;
+  var machineTypeError = document.getElementById('machineTypeError');
+  
+  if (!machineType) {
+    machineTypeError.textContent = 'Machine Type is required. Please select a machine type.';
+    machineTypeError.style.display = 'block';
+    return false;
+  }
+  
+  machineTypeError.style.display = 'none';
+  return true;
+}
+
+function validateDoorType() {
+  var doorType = document.getElementById('door_type').value;
+  var doorTypeError = document.getElementById('doorTypeError');
+  
+  if (!doorType) {
+    doorTypeError.textContent = 'Door Type is required. Please select a door type.';
+    doorTypeError.style.display = 'block';
+    return false;
+  }
+  
+  doorTypeError.style.display = 'none';
+  return true;
+}
+
+function validateForm() {
+  var errors = {};
+  var liftCode = document.getElementById('lift_code').value.trim();
+  var name = document.getElementById('name').value.trim();
+  var model = document.getElementById('model').value.trim();
+  var speed = document.getElementById('speed').value.trim();
+  var floorId = document.getElementById('floor_id').value;
+  var brand = document.getElementById('brand').value;
+  var liftType = document.getElementById('lift_type').value;
+  var machineType = document.getElementById('machine_type').value;
+  var doorType = document.getElementById('door_type').value;
+  var price = parseFloat(document.getElementById('price').value);
+  var noOfPassengers = parseInt(document.getElementById('no_of_passengers').value);
+  
+  if (!liftCode) {
+    errors.liftCode = 'Lift Code is required. Please enter a lift code.';
+  } else if (liftCode.length > 10) {
+    errors.liftCode = 'Lift Code must not exceed 10 characters.';
+  }
+  
+  if (!floorId) {
+    errors.floorId = 'Floor ID is required. Please select a floor ID.';
+  }
+  
+  if (!name) {
+    errors.name = 'Name is required';
+  } else {
+    var specialCharPattern = /[^a-zA-Z0-9\s\-]/;
+    if (specialCharPattern.test(name)) {
+      errors.name = 'Name must not contain special characters. Only letters, numbers, spaces, and hyphens are allowed.';
+    }
+  }
+  
+  if (!model) {
+    errors.model = 'Model is required';
+  } else {
+    var specialCharPattern = /[^a-zA-Z0-9\s\-]/;
+    if (specialCharPattern.test(model)) {
+      errors.model = 'Model must not contain special characters. Only letters, numbers, spaces, and hyphens are allowed.';
+    }
+  }
+  
+  if (!speed) {
+    errors.speed = 'Speed is required';
+  } else {
+    if (speed.length > 50) {
+      errors.speed = 'Speed must not exceed 50 characters.';
+    } else {
+      var speedPattern = /^[a-zA-Z0-9\s\-/]+$/;
+      if (!speedPattern.test(speed)) {
+        errors.speed = 'Speed must not contain special characters. Only letters, numbers, spaces, hyphens, and forward slashes are allowed.';
+      }
+    }
+  }
+  
+  if (!brand) {
+    errors.brand = 'Brand is required. Please select a brand.';
+  }
+  
+  if (!liftType) {
+    errors.liftType = 'Lift Type is required. Please select a lift type.';
+  }
+  
+  if (!machineType) {
+    errors.machineType = 'Machine Type is required. Please select a machine type.';
+  }
+  
+  if (!doorType) {
+    errors.doorType = 'Door Type is required. Please select a door type.';
+  }
+  
+  if (isNaN(price) || price < 0) {
+    errors.price = 'Price must be a positive number.';
+  }
+  
+  if (isNaN(noOfPassengers) || noOfPassengers < 0) {
+    errors.noOfPassengers = 'Number of passengers must be a positive integer.';
+  }
+  
+  // Display errors
+  document.getElementById('liftCodeError').textContent = errors.liftCode || '';
+  document.getElementById('liftCodeError').style.display = errors.liftCode ? 'block' : 'none';
+  document.getElementById('nameError').textContent = errors.name || '';
+  document.getElementById('nameError').style.display = errors.name ? 'block' : 'none';
+  document.getElementById('modelError').textContent = errors.model || '';
+  document.getElementById('modelError').style.display = errors.model ? 'block' : 'none';
+  document.getElementById('speedError').textContent = errors.speed || '';
+  document.getElementById('speedError').style.display = errors.speed ? 'block' : 'none';
+  document.getElementById('floorIdError').textContent = errors.floorId || '';
+  document.getElementById('floorIdError').style.display = errors.floorId ? 'block' : 'none';
+  document.getElementById('brandError').textContent = errors.brand || '';
+  document.getElementById('brandError').style.display = errors.brand ? 'block' : 'none';
+  document.getElementById('liftTypeError').textContent = errors.liftType || '';
+  document.getElementById('liftTypeError').style.display = errors.liftType ? 'block' : 'none';
+  document.getElementById('machineTypeError').textContent = errors.machineType || '';
+  document.getElementById('machineTypeError').style.display = errors.machineType ? 'block' : 'none';
+  document.getElementById('doorTypeError').textContent = errors.doorType || '';
+  document.getElementById('doorTypeError').style.display = errors.doorType ? 'block' : 'none';
+  
+  return Object.keys(errors).length === 0;
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   // Load various dropdowns dynamically on page load
   if (!isEditMode) {
@@ -942,6 +1299,7 @@ document.addEventListener('DOMContentLoaded', function() {
   loadDoorBrands();
   loadControllerBrands();
   loadCabins();
+  setupValidation();
 });
 
 function loadFloorIDs() {
@@ -1239,6 +1597,19 @@ function saveOption() {
       select.appendChild(option);
       select.value = data.id;
 
+      // Trigger validation for required fields
+      if (selectId === 'floor_id') {
+        validateFloorId();
+      } else if (selectId === 'brand') {
+        validateBrand();
+      } else if (selectId === 'lift_type') {
+        validateLiftType();
+      } else if (selectId === 'machine_type') {
+        validateMachineType();
+      } else if (selectId === 'door_type') {
+        validateDoorType();
+      }
+
       closeModal();
       showMessage('success', titleCaseFromType(currentModalType) + ' added successfully');
     } else {
@@ -1346,12 +1717,11 @@ function createFormData() {
 function handleFormSubmit(event) {
   if (event) event.preventDefault();
 
-  var data = createFormData();
-
-  if (!data.lift_code || !data.name || !data.price || !data.model || !data.no_of_passengers || !data.speed || !data.brand || !data.lift_type || !data.machine_type || !data.door_type) {
-    showMessage('error', 'Please fill in all required fields (Lift Code, Name, Price, Model, No. of Passengers, Speed, Brand, Lift Type, Machine Type, Door Type)');
+  if (!validateForm()) {
     return;
   }
+
+  var data = createFormData();
 
   var submitButton = document.getElementById('submitBtn');
   var originalText = submitButton.textContent;

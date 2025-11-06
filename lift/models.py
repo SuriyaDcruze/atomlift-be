@@ -4,6 +4,8 @@ from wagtail.snippets.models import register_snippet
 from wagtail.snippets.views.snippets import SnippetViewSet, SnippetViewSetGroup
 from django.urls import reverse
 from django.shortcuts import redirect
+from django.core.exceptions import ValidationError
+import re
 
 
 # ======================================================
@@ -124,7 +126,82 @@ class Lift(models.Model):
         FieldPanel("license_end_date"),
     ]
 
+    def clean(self):
+        """Validate lift fields"""
+        super().clean()
+        
+        # Validate lift_code is required
+        if not self.lift_code or self.lift_code.strip() == '':
+            raise ValidationError({
+                'lift_code': 'Lift Code is required. Please enter a lift code.'
+            })
+        
+        # Validate floor_id is required
+        if not self.floor_id:
+            raise ValidationError({
+                'floor_id': 'Floor ID is required. Please select a floor ID.'
+            })
+        
+        # Validate brand is required
+        if not self.brand:
+            raise ValidationError({
+                'brand': 'Brand is required. Please select a brand.'
+            })
+        
+        # Validate lift_type is required
+        if not self.lift_type:
+            raise ValidationError({
+                'lift_type': 'Lift Type is required. Please select a lift type.'
+            })
+        
+        # Validate machine_type is required
+        if not self.machine_type:
+            raise ValidationError({
+                'machine_type': 'Machine Type is required. Please select a machine type.'
+            })
+        
+        # Validate door_type is required
+        if not self.door_type:
+            raise ValidationError({
+                'door_type': 'Door Type is required. Please select a door type.'
+            })
+        
+        if self.name:
+            # Allow letters, numbers, spaces, and hyphens
+            if not re.match(r'^[a-zA-Z0-9\s\-]+$', self.name):
+                raise ValidationError({
+                    'name': 'Name must not contain special characters. Only letters, numbers, spaces, and hyphens are allowed.'
+                })
+        
+        if self.model:
+            # Allow letters, numbers, spaces, and hyphens
+            if not re.match(r'^[a-zA-Z0-9\s\-]+$', self.model):
+                raise ValidationError({
+                    'model': 'Model must not contain special characters. Only letters, numbers, spaces, and hyphens are allowed.'
+                })
+        
+        if self.speed:
+            # Ensure speed is not just whitespace
+            if self.speed.strip() == '':
+                raise ValidationError({
+                    'speed': 'Speed cannot be empty or contain only whitespace.'
+                })
+            
+            # Validate length (max 50 characters)
+            if len(self.speed) > 50:
+                raise ValidationError({
+                    'speed': 'Speed must not exceed 50 characters.'
+                })
+            
+            # Allow letters, numbers, spaces, hyphens, and forward slashes
+            if not re.match(r'^[a-zA-Z0-9\s\-/]+$', self.speed):
+                raise ValidationError({
+                    'speed': 'Speed must not contain special characters. Only letters, numbers, spaces, hyphens, and forward slashes are allowed.'
+                })
+    
     def save(self, *args, **kwargs):
+        """Call clean before saving"""
+        self.full_clean()
         if not self.reference_id:
             # Generate reference ID in format: LIFT-YYYY-NNNN
             import datetime
