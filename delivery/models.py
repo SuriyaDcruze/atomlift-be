@@ -1,6 +1,7 @@
 from django.db import models
 from django.urls import reverse
 from django.shortcuts import redirect
+from django.core.exceptions import ValidationError
 from wagtail.admin.panels import FieldPanel, MultiFieldPanel, InlinePanel
 from wagtail.snippets.models import register_snippet
 from wagtail.snippets.views.snippets import SnippetViewSet, SnippetViewSetGroup
@@ -29,7 +30,7 @@ class DeliveryChallan(ClusterableModel):
     reference_id = models.CharField(max_length=20, unique=True, editable=False)
     
     # Customer Information
-    customer = models.ForeignKey('customer.Customer', on_delete=models.SET_NULL, null=True, blank=True)
+    customer = models.ForeignKey('customer.Customer', on_delete=models.PROTECT, null=False, blank=False)
     place_of_supply = models.ForeignKey(PlaceOfSupply, on_delete=models.SET_NULL, null=True, blank=True)
     
     # Challan Details
@@ -90,7 +91,18 @@ class DeliveryChallan(ClusterableModel):
         verbose_name_plural = "Delivery Challans"
         ordering = ['-date', '-id']
     
+    def clean(self):
+        """Validate that customer is required"""
+        super().clean()
+        
+        if not self.customer:
+            raise ValidationError({
+                'customer': 'Customer is required. Please select a customer.'
+            })
+    
     def save(self, *args, **kwargs):
+        """Call clean before saving"""
+        self.full_clean()
         if not self.reference_id:
             last_challan = DeliveryChallan.objects.all().order_by('id').last()
             if last_challan and last_challan.reference_id.startswith(self.REFERENCE_PREFIX):

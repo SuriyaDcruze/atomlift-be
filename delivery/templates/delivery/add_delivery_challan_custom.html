@@ -95,6 +95,12 @@ body {
   margin-left: 0.25rem;
 }
 
+.form-error {
+  font-size: 0.75rem;
+  color: #EF4444;
+  margin-top: 0.25rem;
+}
+
 .form-input {
   width: 100%;
   padding: 0.625rem 0.75rem;
@@ -455,6 +461,7 @@ body {
                   <div id="customerDropdown" class="customer-dropdown" style="display: none;">
                     <div id="customerList"></div>
                   </div>
+                  <p id="customerError" class="form-error" style="display: none;"></p>
                 </div>
               </div>
 
@@ -868,17 +875,30 @@ function selectCustomer(customer) {
   const searchInput = document.getElementById('customerSearch');
   const dropdown = document.getElementById('customerDropdown');
   const hiddenSelect = document.getElementById('customer');
+  const customerError = document.getElementById('customerError');
   
   searchInput.value = customer.site_name || '';
   hiddenSelect.value = customer.id;
   dropdown.style.display = 'none';
+  
+  // Clear error when customer is selected
+  if (customerError) {
+    customerError.style.display = 'none';
+  }
   
   // Update billing address
   updateBillingAddress(customer.id);
 }
 
 function setupCustomerChange() {
-  document.getElementById('customer').addEventListener('change', function() {
+  const customerSelect = document.getElementById('customer');
+  const customerError = document.getElementById('customerError');
+  
+  customerSelect.addEventListener('change', function() {
+    // Clear error when customer changes
+    if (customerError) {
+      customerError.style.display = 'none';
+    }
     updateBillingAddress(this.value);
   });
 }
@@ -1023,7 +1043,27 @@ function handleCancel() {
   window.location.href = adminHomeUrl;
 }
 
+function validateCustomer() {
+  const customerSelect = document.getElementById('customer');
+  const customerError = document.getElementById('customerError');
+  
+  if (!customerSelect || !customerSelect.value) {
+    customerError.textContent = 'Customer is required. Please select a customer.';
+    customerError.style.display = 'block';
+    return false;
+  }
+  
+  customerError.style.display = 'none';
+  return true;
+}
+
 async function handleFormSubmit() {
+  // Validate customer before submitting
+  if (!validateCustomer()) {
+    showMessage('error', 'Please select a customer before submitting');
+    return;
+  }
+  
   const form = document.getElementById('deliveryChallanForm');
   const formData = new FormData(form);
   

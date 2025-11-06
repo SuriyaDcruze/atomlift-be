@@ -3,6 +3,7 @@ from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
+from django.core.exceptions import ValidationError
 from .models import DeliveryChallan, DeliveryChallanItem, PlaceOfSupply
 
 
@@ -20,9 +21,16 @@ def add_delivery_challan_custom(request):
             else:
                 data = json.loads(request.body)
             
+            # Validate required fields
+            if not data.get('customer'):
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Customer is required. Please select a customer.'
+                }, status=400)
+            
             # Create delivery challan
             challan = DeliveryChallan.objects.create(
-                customer_id=data.get('customer') or None,
+                customer_id=data.get('customer'),
                 place_of_supply_id=data.get('place_of_supply') or None,
                 date=data.get('date'),
                 challan_type=data.get('challan_type', 'Supply of Liquid Gas'),
@@ -57,6 +65,18 @@ def add_delivery_challan_custom(request):
                 'challan_id': challan.reference_id
             })
             
+        except ValidationError as e:
+            # Handle validation errors
+            if e.message_dict:
+                error_fields = ['customer']
+                for field in error_fields:
+                    if field in e.message_dict:
+                        error_message = e.message_dict[field][0]
+                        return JsonResponse({'success': False, 'error': error_message}, status=400)
+                error_message = list(e.message_dict.values())[0][0]
+            else:
+                error_message = str(e)
+            return JsonResponse({'success': False, 'error': error_message}, status=400)
         except Exception as e:
             return JsonResponse({
                 'success': False,
@@ -99,8 +119,15 @@ def edit_delivery_challan_custom(request, reference_id):
             else:
                 data = json.loads(request.body)
             
+            # Validate required fields
+            if not data.get('customer'):
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Customer is required. Please select a customer.'
+                }, status=400)
+            
             # Update challan fields
-            challan.customer_id = data.get('customer') if data.get('customer') else None
+            challan.customer_id = data.get('customer')
             challan.place_of_supply_id = data.get('place_of_supply') if data.get('place_of_supply') else None
             challan.date = data.get('date')
             challan.challan_type = data.get('challan_type', 'Supply of Liquid Gas')
@@ -135,6 +162,18 @@ def edit_delivery_challan_custom(request, reference_id):
                 'message': 'Delivery challan updated successfully'
             })
             
+        except ValidationError as e:
+            # Handle validation errors
+            if e.message_dict:
+                error_fields = ['customer']
+                for field in error_fields:
+                    if field in e.message_dict:
+                        error_message = e.message_dict[field][0]
+                        return JsonResponse({'success': False, 'error': error_message}, status=400)
+                error_message = list(e.message_dict.values())[0][0]
+            else:
+                error_message = str(e)
+            return JsonResponse({'success': False, 'error': error_message}, status=400)
         except Exception as e:
             return JsonResponse({
                 'success': False,
