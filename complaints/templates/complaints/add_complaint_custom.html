@@ -79,6 +79,153 @@
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
 }
+
+.form-select-addon {
+  display: flex;
+  align-items: stretch;
+  position: relative;
+}
+
+.form-select-addon .form-select {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right: 0;
+}
+
+.form-select-addon button {
+  background: linear-gradient(to right, #3B82F6, #1D4ED8);
+  color: white;
+  border: 1px solid #D1D5DB;
+  border-left: 0;
+  border-top-right-radius: 0.5rem;
+  border-bottom-right-radius: 0.5rem;
+  padding: 0 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.form-select-addon button:hover {
+  background: linear-gradient(to right, #2563EB, #1E40AF);
+}
+
+.option-modal {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 1rem;
+}
+
+.option-modal.active {
+  display: flex;
+}
+
+.option-modal-dialog {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  width: 100%;
+  max-width: 48rem;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.option-modal-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.option-modal-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.option-modal-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+.option-modal-footer {
+  padding: 1rem 1.5rem;
+  background: #F9FAFB;
+  border-top: 1px solid #E5E7EB;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.option-list {
+  max-height: 20rem;
+  overflow-y: auto;
+  border: 1px solid #D1D5DB;
+  border-radius: 0.375rem;
+  margin-top: 1rem;
+}
+
+.option-table {
+  width: 100%;
+  font-size: 0.875rem;
+}
+
+.option-table thead {
+  background: #F3F4F6;
+}
+
+.option-table th {
+  padding: 0.75rem;
+  text-align: left;
+  font-weight: 500;
+  color: #374151;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.option-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.option-table .text-right {
+  text-align: right;
+}
+
+.option-table .text-center {
+  text-align: center;
+}
+
+.option-table .btn-danger {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  background: #EF4444;
+  color: white;
+  border: none;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  margin-left: 0.25rem;
+}
+
+.option-table .btn-danger:hover {
+  background: #DC2626;
+}
+
+.form-error {
+  font-size: 0.75rem;
+  color: #EF4444;
+  margin-top: 0.25rem;
+  display: none;
+}
 </style>
 {% endblock %}
 
@@ -100,11 +247,17 @@
             </div>
             <div class="form-group">
               <label class="form-label">Type</label>
-              <select id="complaint_type" class="form-select"></select>
+              <div class="form-select-addon">
+                <select id="complaint_type" class="form-select"></select>
+                <button type="button" onclick="openModal('complaint_type')">+</button>
+              </div>
             </div>
             <div class="form-group">
               <label class="form-label">Priority</label>
-              <select id="priority" class="form-select"></select>
+              <div class="form-select-addon">
+                <select id="priority" class="form-select"></select>
+                <button type="button" onclick="openModal('priority')">+</button>
+              </div>
             </div>
             <div class="form-group">
               <label class="form-label">Date</label>
@@ -158,11 +311,56 @@
       </div>
     </div>
   </div>
+
+  <!-- Option Modal -->
+  <div id="optionModal" class="option-modal">
+    <div class="option-modal-dialog">
+      <div class="option-modal-header">
+        <h3 class="option-modal-title" id="modalTitle">Add New Option</h3>
+      </div>
+      <div class="option-modal-body">
+        <div class="form-group">
+          <label class="form-label">Name</label>
+          <input
+            type="text"
+            id="modalInput"
+            class="form-input"
+            placeholder="Enter value"
+          />
+          <p id="modalError" class="form-error"></p>
+        </div>
+        <div class="option-list" id="existingOptions">
+          <table class="option-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th class="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="optionTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="option-modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        <button
+          type="button"
+          id="saveOptionBtn"
+          class="btn btn-primary"
+          onclick="saveOption()"
+        >
+          Save
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
 let allCustomers = [];
 let selectedCustomerId = null;
+let currentModalType = '';
+let currentEditId = null;
 
 function getCsrfToken(){
   var t=document.querySelector('[name=csrfmiddlewaretoken]');
@@ -217,6 +415,16 @@ document.addEventListener('DOMContentLoaded',function(){
   document.getElementById('customer').addEventListener('change',function(){
     const opt=this.options[this.selectedIndex];
   });
+  
+  // Close modal when clicking outside
+  const modal = document.getElementById('optionModal');
+  if (modal) {
+    modal.addEventListener('click', function(e) {
+      if (e.target === modal) {
+        closeModal();
+      }
+    });
+  }
   
   document.getElementById('submitBtn').addEventListener('click',function(){
     const payload={
@@ -334,6 +542,154 @@ function selectCustomer(customer) {
     document.getElementById('contact_person_mobile').value = customer.phone;
   }
   // Block/Wing field is left empty for manual entry
+}
+
+// Modal functions for Type and Priority
+function openModal(type, editId = null, editValue = '') {
+  currentModalType = type;
+  currentEditId = editId;
+  const modal = document.getElementById('optionModal');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalInput = document.getElementById('modalInput');
+  const saveBtn = document.getElementById('saveOptionBtn');
+  const modalError = document.getElementById('modalError');
+
+  const typeLabel = type === 'complaint_type' ? 'Complaint Type' : 'Priority';
+  modalTitle.textContent = editId ? `Edit ${typeLabel}` : `Add New ${typeLabel}`;
+  modalInput.value = editValue;
+  saveBtn.textContent = editId ? `Update ${typeLabel}` : `Add ${typeLabel}`;
+  saveBtn.disabled = editId ? !editValue.trim() : false;
+  modalError.style.display = 'none';
+  modal.classList.add('active');
+  loadExistingOptions(type);
+  
+  // Enable/disable save button based on input (remove old listener first)
+  const oldHandler = modalInput._inputHandler;
+  if (oldHandler) {
+    modalInput.removeEventListener('input', oldHandler);
+  }
+  const inputHandler = function() {
+    saveBtn.disabled = !this.value.trim();
+  };
+  modalInput._inputHandler = inputHandler;
+  modalInput.addEventListener('input', inputHandler);
+}
+
+function closeModal() {
+  document.getElementById('optionModal').classList.remove('active');
+  document.getElementById('modalInput').value = '';
+  document.getElementById('modalError').style.display = 'none';
+  currentEditId = null;
+  currentModalType = '';
+}
+
+
+async function loadExistingOptions(type) {
+  try {
+    const endpoint = type === 'complaint_type' ? 'types' : 'priorities';
+    const response = await fetch(`/complaints/api/complaints/${endpoint}/`, {
+      headers: { 'X-CSRFToken': getCsrfToken() }
+    });
+    if (!response.ok) throw new Error(`Failed to load ${endpoint}`);
+    const data = await response.json();
+    const tbody = document.getElementById('optionTableBody');
+    tbody.innerHTML = data.length ? data.map(item => `
+      <tr>
+        <td>${item.name || item.value}</td>
+        <td class="text-right">
+          <button type="button" class="btn btn-secondary" style="margin-right: 0.25rem; padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="openModal('${type}', ${item.id}, '${(item.name || item.value).replace(/'/g, "\\'")}')">Edit</button>
+          <button type="button" class="btn-danger" onclick="deleteOption('${type}', ${item.id})">Delete</button>
+        </td>
+      </tr>
+    `).join('') : `<tr><td colspan="2" class="text-center" style="color: #6B7280; padding: 1rem;">No ${endpoint} found</td></tr>`;
+  } catch (error) {
+    console.error(`Error loading ${type}s:`, error);
+    document.getElementById('optionTableBody').innerHTML = `<tr><td colspan="2" class="text-center" style="color: #6B7280; padding: 1rem;">Error loading ${type}s</td></tr>`;
+  }
+}
+
+async function saveOption() {
+  const value = document.getElementById('modalInput').value.trim();
+  const modalError = document.getElementById('modalError');
+  if (!value) {
+    modalError.textContent = `Please enter a ${currentModalType === 'complaint_type' ? 'complaint type' : 'priority'}`;
+    modalError.style.display = 'block';
+    return;
+  }
+
+  try {
+    const endpoint = currentModalType === 'complaint_type' ? 'types' : 'priorities';
+    const method = currentEditId ? 'PUT' : 'POST';
+    const url = currentEditId 
+      ? `/complaints/api/complaints/${endpoint}/${currentEditId}/update/`
+      : `/complaints/api/complaints/${endpoint}/create/`;
+    
+    const response = await fetch(url, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: JSON.stringify({ value: value, name: value })
+    });
+    const data = await response.json();
+    if (data.success) {
+      const select = document.getElementById(currentModalType);
+      const displayValue = data.value || data.name || value;
+      if (!currentEditId) {
+        const option = new Option(displayValue, data.id);
+        select.appendChild(option);
+        select.value = data.id;
+      } else {
+        const option = select.querySelector(`option[value="${currentEditId}"]`);
+        if (option) {
+          option.textContent = displayValue;
+          option.value = data.id; // Update value in case ID changed
+        }
+      }
+      closeModal();
+      alert(`${currentModalType === 'complaint_type' ? 'Complaint Type' : 'Priority'} ${currentEditId ? 'updated' : 'added'} successfully`);
+      loadExistingOptions(currentModalType);
+      // Reload the select options to ensure consistency
+      const selectUrl = `/complaints/api/complaints/${endpoint}/`;
+      loadSelect(currentModalType, selectUrl);
+    } else {
+      modalError.textContent = data.error || `Failed to ${currentEditId ? 'update' : 'add'} ${currentModalType}`;
+      modalError.style.display = 'block';
+    }
+  } catch (error) {
+    console.error(`Error ${currentEditId ? 'updating' : 'adding'} ${currentModalType}:`, error);
+    modalError.textContent = `Failed to ${currentEditId ? 'update' : 'add'} ${currentModalType}`;
+    modalError.style.display = 'block';
+  }
+}
+
+async function deleteOption(type, id) {
+  if (!confirm(`Are you sure you want to delete this ${type === 'complaint_type' ? 'complaint type' : 'priority'}?`)) return;
+
+  try {
+    const endpoint = type === 'complaint_type' ? 'types' : 'priorities';
+    const response = await fetch(`/complaints/api/complaints/${endpoint}/${id}/delete/`, {
+      method: 'DELETE',
+      headers: { 'X-CSRFToken': getCsrfToken() }
+    });
+    const data = await response.json();
+    if (data.success) {
+      const select = document.getElementById(type);
+      const option = select.querySelector(`option[value="${id}"]`);
+      if (option) option.remove();
+      alert(`${type === 'complaint_type' ? 'Complaint Type' : 'Priority'} deleted successfully`);
+      loadExistingOptions(type);
+      // Reload the select options
+      const selectUrl = `/complaints/api/complaints/${endpoint}/`;
+      loadSelect(type, selectUrl);
+    } else {
+      alert(data.error || `Failed to delete ${type}`);
+    }
+  } catch (error) {
+    console.error(`Error deleting ${type}:`, error);
+    alert(`Failed to delete ${type}`);
+  }
 }
 </script>
 {% endblock %}
