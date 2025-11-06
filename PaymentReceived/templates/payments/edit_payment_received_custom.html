@@ -40,6 +40,65 @@
 <script>
 function getCsrfToken(){var t=document.querySelector('[name=csrfmiddlewaretoken]');return t?t.value:''}
 function loadSelect(id,url,map,current){fetch(url).then(r=>r.json()).then(d=>{const s=document.getElementById(id);s.innerHTML='<option value="">Select</option>';d.forEach(i=>{const o=document.createElement('option');o.value=i.id;o.textContent=map?map(i):(i.site_name||i.number);if(current&&i.id==current){o.selected=true}s.appendChild(o);});});}
+
+function validateCustomer() {
+  const customerSelect = document.getElementById('customer');
+  const customerError = document.getElementById('customerError');
+  
+  if (!customerSelect || !customerSelect.value) {
+    if (customerError) {
+      customerError.textContent = 'Customer is required. Please select a customer.';
+      customerError.style.display = 'block';
+    }
+    return false;
+  }
+  
+  if (customerError) {
+    customerError.style.display = 'none';
+  }
+  return true;
+}
+
+function validateAmount() {
+  const amountInput = document.getElementById('amount');
+  const amountError = document.getElementById('amountError');
+  const amount = parseFloat(amountInput.value);
+  
+  if (!amountInput.value || isNaN(amount) || amount <= 0) {
+    if (amountError) {
+      amountError.textContent = 'Amount is required and must be greater than 0.';
+      amountError.style.display = 'block';
+    }
+    return false;
+  }
+  
+  if (amountError) {
+    amountError.style.display = 'none';
+  }
+  return true;
+}
+
+function showMessage(type, message, description = '') {
+  const toast = document.createElement('div');
+  toast.className = `toast toast--${type}`;
+  toast.innerHTML = `
+    <div class="toast-content">
+      <div class="toast-message">
+        <strong>${type.charAt(0).toUpperCase() + type.slice(1)}:</strong> ${message}
+        ${description ? `<div>${description}</div>` : ''}
+      </div>
+      <button class="toast-close" onclick="this.parentElement.parentElement.remove()">×</button>
+    </div>
+  `;
+  const toastContainer = document.getElementById('toastContainer');
+  if (toastContainer) {
+    toastContainer.appendChild(toast);
+    setTimeout(() => {
+      if (toast.parentElement) toast.remove();
+    }, type === 'success' ? 3000 : 5000);
+  }
+}
+
 document.addEventListener('DOMContentLoaded',function(){
   loadSelect('customer','/payments/api/payments/customers/',null,{% if payment.customer %}{{ payment.customer.id }}{% else %}null{% endif %});
   loadSelect('invoice','/payments/api/payments/invoices/',i=>i.number,{% if payment.invoice %}{{ payment.invoice.id }}{% else %}null{% endif %});
@@ -54,7 +113,7 @@ document.addEventListener('DOMContentLoaded',function(){
       if(res.success){
         showMessage('success', res.message || 'Payment updated successfully');
         setTimeout(() => {
-          window.location.href='{% url "wagtailadmin_home" %}';
+          window.location.href='/admin/snippets/PaymentReceived/paymentreceived/';
         }, 2000);
       }else{
         // Display error message
