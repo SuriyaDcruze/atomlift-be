@@ -81,6 +81,8 @@ body {
 
 .form-group {
   margin-bottom: 1rem;
+  position: relative;
+  overflow: visible;
 }
 
 .form-label {
@@ -116,6 +118,20 @@ body {
 .form-input:disabled {
   background-color: #F9FAFB;
   color: #6B7280;
+}
+
+/* Fix date input overflow issue - ensure enough space for month names */
+.form-input[type="date"] {
+  padding-right: 2.5rem;
+  min-width: 0;
+  overflow: visible;
+  box-sizing: border-box;
+}
+
+/* Ensure date picker dropdown is not clipped */
+.form-input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 1;
 }
 
 .form-textarea {
