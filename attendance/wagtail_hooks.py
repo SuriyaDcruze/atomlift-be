@@ -1,11 +1,12 @@
 from wagtail.snippets.models import register_snippet
 from wagtail.snippets.views.snippets import SnippetViewSet, SnippetViewSetGroup
+from wagtail.snippets.widgets import SnippetListingButton
 from wagtail import hooks
 from wagtail.admin.menu import MenuItem
 from wagtail.permissions import ModelPermissionPolicy
-from django.urls import reverse
+from django.urls import path, reverse
 from django.contrib import messages
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render, get_object_or_404
 from .models import AttendanceRecord
 
 
@@ -115,14 +116,41 @@ class AttendanceRecordGroup(SnippetViewSetGroup):
 # Register the Attendance Record ViewSet (will appear in Settings menu due to add_to_settings_menu = True)
 register_snippet(AttendanceRecordViewSet)
 
-# Hook to remove any add buttons that might appear
+# Hook to customize listing buttons and add View button
 @hooks.register('construct_snippet_listing_buttons')
-def remove_attendance_record_add_buttons(buttons, snippet, user, context=None):
-    """Remove any add buttons for AttendanceRecord"""
+def customize_attendance_record_listing_buttons(buttons, snippet, user, context=None):
+    """Customize AttendanceRecord listing buttons - remove add buttons, add View button"""
     if isinstance(snippet, AttendanceRecord):
         # Remove any add/create buttons
         buttons[:] = [btn for btn in buttons if not (
             hasattr(btn, 'label') and ('Add' in str(btn.label) or 'Create' in str(btn.label))
         )]
+        
+        # Add custom view button
+        view_url = f"/admin/attendance/view-custom/{snippet.pk}/"
+        buttons.append(SnippetListingButton(
+            label='View',
+            url=view_url,
+            priority=90,
+            icon_name='view',
+        ))
     return buttons
+
+
+@hooks.register('register_admin_urls')
+def register_attendance_view_url():
+    """Register custom URL for viewing attendance records"""
+    return [
+        path('attendance/view-custom/<int:pk>/', view_attendance_custom, name='view_attendance_custom'),
+    ]
+
+
+def view_attendance_custom(request, pk):
+    """Custom view for viewing attendance record details in read-only mode"""
+    attendance_record = get_object_or_404(AttendanceRecord, pk=pk)
+    
+    context = {
+        'attendance_record': attendance_record,
+    }
+    return render(request, 'attendance/view_attendance_custom.html', context)
 

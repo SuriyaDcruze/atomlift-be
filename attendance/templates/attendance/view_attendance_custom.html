@@ -1,0 +1,443 @@
+{% extends "wagtailadmin/base.html" %}
+{% load static wagtailcore_tags %}
+
+{% block extra_css %}
+<style>
+/* Existing styles (unchanged) */
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+.w-content-wrapper {
+  background: #f5f5f5;
+  min-height: calc(100vh - 4rem);
+  padding: 2rem;
+}
+
+.w-modal-overlay {
+  position: static;
+  inset: auto;
+  background-color: transparent;
+  display: block;
+  padding: 0;
+}
+
+.w-modal-content {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.15);
+  width: 100%;
+  max-width: 72rem;
+  margin: 2rem auto;
+  max-height: none;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+}
+
+.w-modal-header {
+  background: linear-gradient(to right, #2D3A6B, #243158);
+  padding: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.w-modal-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: white;
+}
+
+.w-modal-subtitle {
+  margin: 0;
+  color: white;
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
+
+.w-modal-body {
+  padding: 1.5rem;
+  max-height: none;
+  overflow: visible;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.form-section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 2px solid #E5E7EB;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.form-value {
+  display: block;
+  font-size: 0.875rem;
+  color: #6B7280;
+  background: #F9FAFB;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  border: 1px solid #E5E7EB;
+  min-height: 2.5rem;
+  word-wrap: break-word;
+}
+
+.form-value.empty {
+  color: #9CA3AF;
+  font-style: italic;
+}
+
+.w-modal-footer {
+  padding: 1rem 1.5rem;
+  background: #F9FAFB;
+  border-top: 1px solid #E5E7EB;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+}
+
+.btn {
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.btn-secondary {
+  background: #F3F4F6;
+  color: #374151;
+  border: 1px solid #D1D5DB;
+}
+
+.btn-secondary:hover {
+  background: #E5E7EB;
+}
+
+.btn-primary {
+  background: linear-gradient(to right, #2D3A6B, #243158);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(to right, #213066, #182755);
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-checked-in {
+  background: #10B981;
+  color: white;
+}
+
+.status-checked-out {
+  background: #3B82F6;
+  color: white;
+}
+
+.status-pending {
+  background: #F59E0B;
+  color: white;
+}
+
+.selfie-image {
+  max-width: 200px;
+  max-height: 200px;
+  border-radius: 0.5rem;
+  border: 1px solid #E5E7EB;
+  object-fit: cover;
+}
+
+.flex {
+  display: flex;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.gap-2 {
+  gap: 0.5rem;
+}
+
+.mb-4 {
+  margin-bottom: 1rem;
+}
+
+.mt-8 {
+  margin-top: 2rem;
+}
+
+.text-sm {
+  font-size: 0.875rem;
+}
+
+.duration-badge {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background: linear-gradient(to right, #06B6D4, #0891B2);
+  color: white;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .w-modal-content {
+    margin: 1rem auto;
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="w-content-wrapper">
+  <div class="w-modal-overlay">
+    <div class="w-modal-content">
+      <!-- Modal Header -->
+      <div class="w-modal-header">
+        <div>
+          <h2 class="w-modal-title">Attendance Record Details</h2>
+          <p class="w-modal-subtitle">
+            {{ attendance_record.user.get_full_name|default:attendance_record.user.username }} - 
+            {% if attendance_record.check_in_date %}
+              {{ attendance_record.check_in_date|date:"M d, Y" }}
+            {% else %}
+              Record #{{ attendance_record.id }}
+            {% endif %}
+          </p>
+        </div>
+        <div class="flex gap-2">
+          <a href="/admin/snippets/attendance/attendancerecord/{{ attendance_record.id }}/edit/" class="btn btn-primary">Edit Attendance</a>
+        </div>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="w-modal-body">
+        <!-- User Information -->
+        <div class="form-grid">
+          <!-- Left Column -->
+          <div class="form-column">
+            <h3 class="form-section-title">User Information</h3>
+            <div class="form-group">
+              <label class="form-label">Employee Name</label>
+              <div class="form-value">{{ attendance_record.user.get_full_name|default:attendance_record.user.username }}</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Username</label>
+              <div class="form-value">{{ attendance_record.user.username|default:"Not provided" }}</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <div class="form-value">{{ attendance_record.user.email|default:"Not provided" }}</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Record ID</label>
+              <div class="form-value">#{{ attendance_record.id }}</div>
+            </div>
+
+            <h3 class="form-section-title">Check-In Details</h3>
+            <div class="form-group">
+              <label class="form-label">Check-In Status</label>
+              <div class="form-value">
+                {% if attendance_record.is_checked_in %}
+                  <span class="status-badge status-checked-in">Checked In</span>
+                {% else %}
+                  <span class="status-badge status-pending">Not Checked In</span>
+                {% endif %}
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Check-In Date</label>
+              <div class="form-value">
+                {% if attendance_record.check_in_date %}
+                  {{ attendance_record.check_in_date|date:"M d, Y" }}
+                {% else %}
+                  <span class="empty">Not provided</span>
+                {% endif %}
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Check-In Time</label>
+              <div class="form-value">
+                {% if attendance_record.check_in_time %}
+                  {{ attendance_record.check_in_time|date:"h:i A" }}
+                {% else %}
+                  <span class="empty">Not provided</span>
+                {% endif %}
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Check-In Date & Time</label>
+              <div class="form-value">
+                {% if attendance_record.check_in_time %}
+                  {{ attendance_record.check_in_time|date:"M d, Y h:i A" }}
+                {% else %}
+                  <span class="empty">Not provided</span>
+                {% endif %}
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Check-In Location</label>
+              <div class="form-value">{{ attendance_record.check_in_location|default:"Not provided" }}</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Check-In Note</label>
+              <div class="form-value">
+                {% if attendance_record.check_in_note %}
+                  {{ attendance_record.check_in_note|linebreaks }}
+                {% else %}
+                  <span class="empty">No notes provided</span>
+                {% endif %}
+              </div>
+            </div>
+            {% if attendance_record.check_in_selfie %}
+            <div class="form-group">
+              <label class="form-label">Check-In Selfie</label>
+              <div class="form-value">
+                <img src="{{ attendance_record.check_in_selfie.url }}" alt="Check-in selfie" class="selfie-image">
+              </div>
+            </div>
+            {% endif %}
+          </div>
+
+          <!-- Right Column -->
+          <div class="form-column">
+            <h3 class="form-section-title">Check-Out Details</h3>
+            <div class="form-group">
+              <label class="form-label">Check-Out Status</label>
+              <div class="form-value">
+                {% if attendance_record.is_checked_out %}
+                  <span class="status-badge status-checked-out">Checked Out</span>
+                {% else %}
+                  <span class="status-badge status-pending">Not Checked Out</span>
+                {% endif %}
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Check-Out Date</label>
+              <div class="form-value">
+                {% if attendance_record.check_out_date %}
+                  {{ attendance_record.check_out_date|date:"M d, Y" }}
+                {% else %}
+                  <span class="empty">Not provided</span>
+                {% endif %}
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Check-Out Time</label>
+              <div class="form-value">
+                {% if attendance_record.check_out_time %}
+                  {{ attendance_record.check_out_time|date:"h:i A" }}
+                {% else %}
+                  <span class="empty">Not provided</span>
+                {% endif %}
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Check-Out Date & Time</label>
+              <div class="form-value">
+                {% if attendance_record.check_out_time %}
+                  {{ attendance_record.check_out_time|date:"M d, Y h:i A" }}
+                {% else %}
+                  <span class="empty">Not provided</span>
+                {% endif %}
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Check-Out Location</label>
+              <div class="form-value">{{ attendance_record.check_out_location|default:"Not provided" }}</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Check-Out Note</label>
+              <div class="form-value">
+                {% if attendance_record.check_out_note %}
+                  {{ attendance_record.check_out_note|linebreaks }}
+                {% else %}
+                  <span class="empty">No notes provided</span>
+                {% endif %}
+              </div>
+            </div>
+
+            <h3 class="form-section-title">Work Duration</h3>
+            <div class="form-group">
+              <label class="form-label">Total Work Duration</label>
+              <div class="form-value">
+                {% if attendance_record.check_in_time and attendance_record.check_out_time %}
+                  <span class="duration-badge">{{ attendance_record.get_work_duration_display }}</span>
+                {% else %}
+                  <span class="empty">Cannot calculate - missing check-in or check-out time</span>
+                {% endif %}
+              </div>
+            </div>
+
+            <h3 class="form-section-title">Record Timestamps</h3>
+            <div class="form-group">
+              <label class="form-label">Created At</label>
+              <div class="form-value">{{ attendance_record.created_at|date:"M d, Y h:i A" }}</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Last Updated</label>
+              <div class="form-value">{{ attendance_record.updated_at|date:"M d, Y h:i A" }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="w-modal-footer">
+        <a href="/admin/snippets/attendance/attendancerecord/" class="btn btn-secondary">Back to List</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
