@@ -207,7 +207,7 @@
                 </svg>
                 Graph View
             </a>
-            <div class="export-dropdown">
+            <div class="export-dropdown" id="exportDropdown">
             <button class="btn-export" onclick="toggleExportMenu()">
                 <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
@@ -246,6 +246,17 @@
 </div>
 
 <script>
+// Hide export dropdown in graph view
+document.addEventListener('DOMContentLoaded', function() {
+    var url = new URL(window.location.href);
+    if (url.searchParams.get('view') === 'graph') {
+        var exportDropdown = document.getElementById('exportDropdown');
+        if (exportDropdown) {
+            exportDropdown.style.display = 'none';
+        }
+    }
+});
+
 function toggleExportMenu() {
     document.getElementById('exportMenu').classList.toggle('show');
 }
