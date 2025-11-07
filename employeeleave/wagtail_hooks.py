@@ -46,10 +46,14 @@ class LeaveRequestViewSet(SnippetViewSet):
     )
     
     search_fields = (
+        "id",
         "user__username",
         "user__email",
         "user__first_name",
         "user__last_name",
+        "email",
+        "leave_type",
+        "status",
         "reason",
         "admin_remarks"
     )
