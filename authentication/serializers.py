@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
+import re
 from .models import CustomUser, UserProfile, OTP
 
 User = get_user_model()
@@ -9,6 +10,20 @@ class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
         fields = ['phone_number', 'branch', 'route', 'code', 'designation']
+    
+    def validate_phone_number(self, value):
+        """Validate mobile number - must be exactly 10 digits"""
+        if value:
+            # Remove any spaces, dashes, or other characters
+            phone_number = re.sub(r'[\s\-\(\)]', '', value.strip())
+            # Check if it contains only digits
+            if not phone_number.isdigit():
+                raise serializers.ValidationError('Mobile number must contain only digits.')
+            # Check if it's exactly 10 digits
+            if len(phone_number) != 10:
+                raise serializers.ValidationError('Mobile number must be exactly 10 digits.')
+            return phone_number
+        return value
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -21,6 +36,20 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'email', 'first_name', 'last_name', 'full_name', 'phone_number', 
                  'is_active', 'date_joined', 'last_login', 'profile', 'groups']
         read_only_fields = ['id', 'date_joined', 'last_login']
+    
+    def validate_phone_number(self, value):
+        """Validate mobile number - must be exactly 10 digits"""
+        if value:
+            # Remove any spaces, dashes, or other characters
+            phone_number = re.sub(r'[\s\-\(\)]', '', value.strip())
+            # Check if it contains only digits
+            if not phone_number.isdigit():
+                raise serializers.ValidationError('Mobile number must contain only digits.')
+            # Check if it's exactly 10 digits
+            if len(phone_number) != 10:
+                raise serializers.ValidationError('Mobile number must be exactly 10 digits.')
+            return phone_number
+        return value
     
     def get_full_name(self, obj):
         """Return the user's full name"""
@@ -37,6 +66,20 @@ class OTPSerializer(serializers.ModelSerializer):
 class GenerateOTPRequestSerializer(serializers.Serializer):
     email = serializers.EmailField(required=False)
     phone_number = serializers.CharField(max_length=15, required=False)
+    
+    def validate_phone_number(self, value):
+        """Validate mobile number - must be exactly 10 digits"""
+        if value:
+            # Remove any spaces, dashes, or other characters
+            phone_number = re.sub(r'[\s\-\(\)]', '', value.strip())
+            # Check if it contains only digits
+            if not phone_number.isdigit():
+                raise serializers.ValidationError('Mobile number must contain only digits.')
+            # Check if it's exactly 10 digits
+            if len(phone_number) != 10:
+                raise serializers.ValidationError('Mobile number must be exactly 10 digits.')
+            return phone_number
+        return value
     
     def validate(self, data):
         email = data.get('email')
@@ -55,6 +98,20 @@ class VerifyOTPRequestSerializer(serializers.Serializer):
     email = serializers.EmailField(required=False)
     phone_number = serializers.CharField(max_length=15, required=False)
     otp_code = serializers.CharField(max_length=6, min_length=6)
+    
+    def validate_phone_number(self, value):
+        """Validate mobile number - must be exactly 10 digits"""
+        if value:
+            # Remove any spaces, dashes, or other characters
+            phone_number = re.sub(r'[\s\-\(\)]', '', value.strip())
+            # Check if it contains only digits
+            if not phone_number.isdigit():
+                raise serializers.ValidationError('Mobile number must contain only digits.')
+            # Check if it's exactly 10 digits
+            if len(phone_number) != 10:
+                raise serializers.ValidationError('Mobile number must be exactly 10 digits.')
+            return phone_number
+        return value
     
     def validate(self, data):
         email = data.get('email')

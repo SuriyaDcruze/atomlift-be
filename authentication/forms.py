@@ -33,6 +33,20 @@ class CustomUserCreationForm(UserCreationForm):
                 raise ValidationError('Last name must contain only letters (a-z, A-Z).')
         return last_name
 
+    def clean_phone_number(self):
+        """Validate mobile number - must be exactly 10 digits"""
+        phone_number = self.cleaned_data.get('phone_number', '').strip()
+        if phone_number:
+            # Remove any spaces, dashes, or other characters
+            phone_number = re.sub(r'[\s\-\(\)]', '', phone_number)
+            # Check if it contains only digits
+            if not phone_number.isdigit():
+                raise ValidationError('Mobile number must contain only digits.')
+            # Check if it's exactly 10 digits
+            if len(phone_number) != 10:
+                raise ValidationError('Mobile number must be exactly 10 digits.')
+        return phone_number
+
     def save(self, commit=True):
         user = super().save(commit=False)
         user.phone_number = self.cleaned_data.get("phone_number", "")
@@ -76,6 +90,20 @@ class CustomUserEditForm(UserEditForm):
             if not re.match(r'^[a-zA-Z]+$', last_name):
                 raise ValidationError('Last name must contain only letters (a-z, A-Z).')
         return last_name
+
+    def clean_phone_number(self):
+        """Validate mobile number - must be exactly 10 digits"""
+        phone_number = self.cleaned_data.get('phone_number', '').strip()
+        if phone_number:
+            # Remove any spaces, dashes, or other characters
+            phone_number = re.sub(r'[\s\-\(\)]', '', phone_number)
+            # Check if it contains only digits
+            if not phone_number.isdigit():
+                raise ValidationError('Mobile number must contain only digits.')
+            # Check if it's exactly 10 digits
+            if len(phone_number) != 10:
+                raise ValidationError('Mobile number must be exactly 10 digits.')
+        return phone_number
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

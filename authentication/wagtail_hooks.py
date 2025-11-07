@@ -8,6 +8,7 @@ from django.contrib import messages
 from django.contrib.auth.signals import user_logged_in
 from django.dispatch import receiver
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 import json
 import re
 
@@ -64,6 +65,17 @@ def add_user_custom(request):
             if not email or not password:
                 return JsonResponse({'success': False, 'error': 'Email and password are required.'}, status=400)
 
+            # Validate phone number if provided
+            if phone_number:
+                # Remove any spaces, dashes, or other characters
+                phone_number = re.sub(r'[\s\-\(\)]', '', phone_number)
+                # Check if it contains only digits
+                if not phone_number.isdigit():
+                    return JsonResponse({'success': False, 'error': 'Mobile number must contain only digits.'}, status=400)
+                # Check if it's exactly 10 digits
+                if len(phone_number) != 10:
+                    return JsonResponse({'success': False, 'error': 'Mobile number must be exactly 10 digits.'}, status=400)
+
             # Create user
             user = CustomUser.objects.create_user(
                 email=email,
@@ -90,6 +102,27 @@ def inject_phone_into_user_create(form_class, request):
 def inject_phone_into_user_edit(form_class, request):
     # Removed phone number field from user edit form
     return form_class
+
+
+@hooks.register('construct_user_listing_queryset')
+def enhance_user_listing_search(queryset, request):
+    """Enhance user listing search to include profile fields"""
+    search_query = request.GET.get('q', '').strip()
+    if search_query:
+        # Search in user fields and profile fields
+        queryset = queryset.filter(
+            Q(email__icontains=search_query) |
+            Q(username__icontains=search_query) |
+            Q(first_name__icontains=search_query) |
+            Q(last_name__icontains=search_query) |
+            Q(phone_number__icontains=search_query) |
+            Q(profile__phone_number__icontains=search_query) |
+            Q(profile__branch__icontains=search_query) |
+            Q(profile__route__icontains=search_query) |
+            Q(profile__code__icontains=search_query) |
+            Q(profile__designation__icontains=search_query)
+        ).distinct()
+    return queryset
 
 
 # Custom form for UserProfile to make user field read-only
@@ -134,7 +167,8 @@ class UserProfileAdmin(ModelAdmin):
     exclude_from_explorer = False
     list_display = ("user", "phone_number", "branch", "route", "code", "designation", "get_email")
     list_filter = []  # No filters
-    search_fields = ("user__username", "user__email", "user__first_name", "user__last_name", "phone_number", "branch", "route", "code", "designation")
+    search_fields = ("user__username", "user__email", "user__first_name", "user__last_name", 
+                     "phone_number", "branch", "route", "code", "designation")
     list_display_add_buttons = None  # Remove the add button from list view
     list_per_page = 20  # Pagination
     

@@ -46,7 +46,9 @@ class CustomUserAdmin(UserAdmin):
     list_display = ("email", "first_name", "last_name", "phone_number", "is_staff", "is_active")
     list_filter = ("is_staff", "is_active", "is_superuser", "groups")
     ordering = ("email",)
-    search_fields = ("email", "first_name", "last_name", "phone_number")
+    search_fields = ("email", "username", "first_name", "last_name", "phone_number", 
+                     "profile__phone_number", "profile__branch", "profile__route", 
+                     "profile__code", "profile__designation")
 
     fieldsets = (
         (None, {"fields": ("email", "password")}),
@@ -67,7 +69,8 @@ class CustomUserAdmin(UserAdmin):
 class UserProfileAdmin(admin.ModelAdmin):
     list_display = ('user', 'phone_number', 'branch', 'route', 'code', 'designation')
     list_filter = ('branch', 'designation')
-    search_fields = ('user__email', 'user__first_name', 'user__last_name', 'phone_number', 'branch', 'route', 'code')
+    search_fields = ('user__email', 'user__username', 'user__first_name', 'user__last_name', 
+                     'phone_number', 'branch', 'route', 'code', 'designation')
     raw_id_fields = ('user',)
 
 
