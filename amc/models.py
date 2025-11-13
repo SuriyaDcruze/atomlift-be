@@ -34,7 +34,7 @@ class PaymentTerms(models.Model):
 class AMC(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
     reference_id = models.CharField(max_length=10, unique=True, editable=False)
-    amcname = models.CharField(max_length=100, blank=True)
+    # amcname field removed - migration 0006_remove_amcname_field.py
     latitude = models.CharField(max_length=255, blank=True, null=True)      # site address
     equipment_no = models.CharField(max_length=50, blank=True, null=True)   # job no
     invoice_frequency = models.CharField(
@@ -48,7 +48,7 @@ class AMC(models.Model):
         ],
         default="annually",
     )
-    amc_type = models.ForeignKey(AMCType, on_delete=models.SET_NULL, null=True, blank=True)
+    amc_type = models.ForeignKey(AMCType, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="AMC Pack Type")
     payment_terms = models.ForeignKey(PaymentTerms, on_delete=models.SET_NULL, null=True, blank=True)
     start_date = models.DateField()
     end_date = models.DateField(blank=True, null=True)
@@ -79,12 +79,13 @@ class AMC(models.Model):
         """Validate that amcname does not contain special characters"""
         super().clean()
         
-        if self.amcname:
-            # Allow letters, numbers, spaces, and hyphens
-            if not re.match(r'^[a-zA-Z0-9\s\-]+$', self.amcname):
-                raise ValidationError({
-                    'amcname': 'AMC Pack Name must not contain special characters. Only letters, numbers, spaces, and hyphens are allowed.'
-                })
+        # Commented out - amcname field is no longer used
+        # if self.amcname:
+        #     # Allow letters, numbers, spaces, and hyphens
+        #     if not re.match(r'^[a-zA-Z0-9\s\-]+$', self.amcname):
+        #         raise ValidationError({
+        #             'amcname': 'AMC Pack Name must not contain special characters. Only letters, numbers, spaces, and hyphens are allowed.'
+        #         })
 
     def save(self, *args, **kwargs):
         """Call clean before saving"""
@@ -202,7 +203,7 @@ class AMC(models.Model):
         MultiFieldPanel([
             FieldPanel("reference_id", read_only=True),
             FieldPanel("customer"),
-            FieldPanel("amcname"),
+            # FieldPanel("amcname"),  # Commented out - not needed
             FieldPanel("invoice_frequency"),
             FieldPanel("amc_type"),
             FieldPanel("payment_terms"),
@@ -245,7 +246,7 @@ class AMC(models.Model):
 class AMCTypeViewSet(SnippetViewSet):
     model = AMCType
     icon = "tag"
-    menu_label = "AMC Types"
+    menu_label = "AMC Pack Types"
     list_display = ("name",)
 
 
@@ -262,12 +263,35 @@ class AMCViewSet(SnippetViewSet):
     menu_label = "All AMCs"
     inspect_view_enabled = True
     create_template_name = 'amc/add_amc_custom.html'
+    inspect_view_fields = [
+        'reference_id',
+        'customer',
+        'amc_type',  # AMC Pack Type
+        'invoice_frequency',
+        'start_date',
+        'end_date',
+        'equipment_no',
+        'latitude',
+        'notes',
+        'is_generate_contract',
+        'no_of_services',
+        'price',
+        'no_of_lifts',
+        'gst_percentage',
+        'total',
+        'contract_amount',
+        'total_amount_paid',
+        'amount_due',
+        'amc_service_item',
+        'status',
+        'created',
+    ]
 
     # 👇 Columns shown in admin list
     list_display = (
         "reference_id",
         "customer",
-        "amcname",
+        # "amcname",  # Commented out - not needed
         "current_status",
         "contract_period",
         "amount_details",
@@ -278,7 +302,7 @@ class AMCViewSet(SnippetViewSet):
         "id",
         "reference_id",
         "customer",
-        "amcname",
+        # "amcname",  # Commented out - not needed
         "latitude",
         "equipment_no",
         "invoice_frequency",
@@ -305,7 +329,7 @@ class AMCViewSet(SnippetViewSet):
     # 👇 Searchable fields
     search_fields = (
         "reference_id",
-        "amcname",
+        # "amcname",  # Commented out - not needed
         "customer__site_name",
         "equipment_no",
     )
@@ -374,7 +398,7 @@ class AMCExpiringThisMonthViewSet(SnippetViewSet):
     list_display = (
         "reference_id",
         "customer",
-        "amcname",
+        # "amcname",  # Commented out - not needed
         "current_status",
         "contract_period",
         "amount_details",
@@ -384,7 +408,7 @@ class AMCExpiringThisMonthViewSet(SnippetViewSet):
         "id",
         "reference_id",
         "customer",
-        "amcname",
+        # "amcname",  # Commented out - not needed
         "latitude",
         "equipment_no",
         "invoice_frequency",
@@ -410,7 +434,7 @@ class AMCExpiringThisMonthViewSet(SnippetViewSet):
 
     search_fields = (
         "reference_id",
-        "amcname",
+        # "amcname",  # Commented out - not needed
         "customer__site_name",
         "equipment_no",
     )
@@ -453,7 +477,7 @@ class AMCExpiringLastMonthViewSet(SnippetViewSet):
     list_display = (
         "reference_id",
         "customer",
-        "amcname",
+        # "amcname",  # Commented out - not needed
         "current_status",
         "contract_period",
         "amount_details",
@@ -463,7 +487,7 @@ class AMCExpiringLastMonthViewSet(SnippetViewSet):
         "id",
         "reference_id",
         "customer",
-        "amcname",
+        # "amcname",  # Commented out - not needed
         "latitude",
         "equipment_no",
         "invoice_frequency",
@@ -489,7 +513,7 @@ class AMCExpiringLastMonthViewSet(SnippetViewSet):
 
     search_fields = (
         "reference_id",
-        "amcname",
+        # "amcname",  # Commented out - not needed
         "customer__site_name",
         "equipment_no",
     )
@@ -529,7 +553,7 @@ class AMCExpiringNextMonthViewSet(SnippetViewSet):
     list_display = (
         "reference_id",
         "customer",
-        "amcname",
+        # "amcname",  # Commented out - not needed
         "current_status",
         "contract_period",
         "amount_details",
@@ -539,7 +563,7 @@ class AMCExpiringNextMonthViewSet(SnippetViewSet):
         "id",
         "reference_id",
         "customer",
-        "amcname",
+        # "amcname",  # Commented out - not needed
         "latitude",
         "equipment_no",
         "invoice_frequency",
@@ -565,7 +589,7 @@ class AMCExpiringNextMonthViewSet(SnippetViewSet):
 
     search_fields = (
         "reference_id",
-        "amcname",
+        # "amcname",  # Commented out - not needed
         "customer__site_name",
         "equipment_no",
     )

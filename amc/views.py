@@ -363,7 +363,7 @@ def get_amc_renewal_data(request, pk):
         data = {
             'customer_id': amc.customer.id,
             'customer_name': amc.customer.site_name,
-            'amcname': amc.amcname,
+            # 'amcname': removed - field is commented out
             'start_date': new_start_date.strftime('%Y-%m-%d'),
             'end_date': new_end_date.strftime('%Y-%m-%d'),
             'amc_type_id': amc.amc_type.id if amc.amc_type else None,
@@ -426,7 +426,7 @@ def create_renewed_amc(request):
             existing_amc.amc_service_item = amc_service_item
         
         # Update AMC with renewal data
-        existing_amc.amcname = data.get('amcname', existing_amc.amcname)
+        # existing_amc.amcname removed - field is commented out
         existing_amc.invoice_frequency = data.get('invoice_frequency', existing_amc.invoice_frequency)
         existing_amc.start_date = data['start_date']
         existing_amc.end_date = data['end_date']
@@ -476,7 +476,7 @@ def create_amc_mobile(request):
             data = {
                 "id": amc.id,
                 "reference_id": amc.reference_id,
-                "amcname": amc.amcname,
+                # "amcname": removed - field is commented out
                 "customer": amc.customer.site_name,
                 "start_date": amc.start_date,
                 "end_date": amc.end_date,
@@ -507,7 +507,7 @@ def list_amcs_mobile(request):
         if search:
             queryset = queryset.filter(
                 Q(reference_id__icontains=search) |
-                Q(amcname__icontains=search) |
+                # Q(amcname__icontains=search) |  # amcname removed
                 Q(customer__site_name__icontains=search) |
                 Q(equipment_no__icontains=search) |
                 Q(latitude__icontains=search)

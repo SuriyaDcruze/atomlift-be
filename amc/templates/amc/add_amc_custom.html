@@ -506,6 +506,7 @@ body {
                 <p class="form-help">Auto-generated reference number</p>
               </div>
 
+              <!-- AMC Pack Name field commented out - not needed
               <div class="form-group">
                 <label class="form-label">AMC Pack Name</label>
                 <input
@@ -517,6 +518,7 @@ body {
                 />
                 <p id="amcnameError" class="form-error" style="display: none;"></p>
               </div>
+              -->
 
               <div class="form-group">
                 <label class="form-label">Invoice Frequency</label>
@@ -560,14 +562,14 @@ body {
 
             <!-- Right Column -->
             <div class="form-column">
-              <!-- AMC Type and Payment Terms -->
-              <h3 class="form-section-title">AMC Type and Payment Terms</h3>
+              <!-- AMC Pack Type and Payment Terms -->
+              <h3 class="form-section-title">AMC Pack Type and Payment Terms</h3>
 
               <div class="form-group">
-                <label class="form-label">AMC Type</label>
+                <label class="form-label">AMC Pack Type</label>
                 <div class="form-select-addon">
                   <select id="amc_type" name="amc_type" class="form-input form-select">
-                    <option value="">Loading AMC types...</option>
+                    <option value="">Loading AMC Pack Types...</option>
                   </select>
                   <button type="button" class="form-select-addon-button" onclick="openModal('amc-type')">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1112,52 +1114,53 @@ function showMessage(type, message) {
   }, type === 'success' ? 3000 : 5000);
 }
 
-function setupAmcnameValidation() {
-  const amcnameInput = document.getElementById('amcname');
-  const amcnameError = document.getElementById('amcnameError');
-  
-  amcnameInput.addEventListener('blur', () => {
-    validateAmcname();
-  });
-  
-  amcnameInput.addEventListener('input', () => {
-    // Clear error on input if validation passes
-    if (amcnameError.style.display === 'block') {
-      const amcname = amcnameInput.value.trim();
-      if (!amcname || /^[a-zA-Z0-9\s\-]+$/.test(amcname)) {
-        amcnameError.style.display = 'none';
-      }
-    }
-  });
-}
+// AMC Pack Name validation functions commented out - field not needed
+// function setupAmcnameValidation() {
+//   const amcnameInput = document.getElementById('amcname');
+//   const amcnameError = document.getElementById('amcnameError');
+//   
+//   amcnameInput.addEventListener('blur', () => {
+//     validateAmcname();
+//   });
+//   
+//   amcnameInput.addEventListener('input', () => {
+//     // Clear error on input if validation passes
+//     if (amcnameError.style.display === 'block') {
+//       const amcname = amcnameInput.value.trim();
+//       if (!amcname || /^[a-zA-Z0-9\s\-]+$/.test(amcname)) {
+//         amcnameError.style.display = 'none';
+//       }
+//     }
+//   });
+// }
 
-function validateAmcname() {
-  const amcname = document.getElementById('amcname').value.trim();
-  const amcnameError = document.getElementById('amcnameError');
-  
-  if (amcname) {
-    // Check for special characters (only allow letters, numbers, spaces, and hyphens)
-    const specialCharPattern = /[^a-zA-Z0-9\s\-]/;
-    if (specialCharPattern.test(amcname)) {
-      amcnameError.textContent = 'AMC Pack Name must not contain special characters. Only letters, numbers, spaces, and hyphens are allowed.';
-      amcnameError.style.display = 'block';
-      return false;
-    }
-  }
-  
-  amcnameError.style.display = 'none';
-  return true;
-}
+// function validateAmcname() {
+//   const amcname = document.getElementById('amcname').value.trim();
+//   const amcnameError = document.getElementById('amcnameError');
+//   
+//   if (amcname) {
+//     // Check for special characters (only allow letters, numbers, spaces, and hyphens)
+//     const specialCharPattern = /[^a-zA-Z0-9\s\-]/;
+//     if (specialCharPattern.test(amcname)) {
+//       amcnameError.textContent = 'AMC Pack Name must not contain special characters. Only letters, numbers, spaces, and hyphens are allowed.';
+//       amcnameError.style.display = 'block';
+//       return false;
+//     }
+//   }
+//   
+//   amcnameError.style.display = 'none';
+//   return true;
+// }
 
 document.addEventListener('DOMContentLoaded', function() {
   toggleContractFields();
-  setupAmcnameValidation();
+  // setupAmcnameValidation();  // Commented out - AMC Pack Name field not needed
 
   // Get customer ID from URL parameter
   var urlCustomerId = '{{ customer_id }}';
   var customerIdToSelect = (urlCustomerId && urlCustomerId !== 'None' && urlCustomerId !== '') ? urlCustomerId : null;
 
-  // Load customers and AMC types dynamically on page load
+  // Load customers and AMC Pack Types dynamically on page load
   loadCustomersDropdown(customerIdToSelect);
   loadAMCTypesDropdown();
   // Also attempt to load items initially
@@ -1356,14 +1359,14 @@ function loadAMCTypesDropdown() {
     .then(function(response) { return response.json(); })
     .then(function(data) {
       var amcTypeSelect = document.getElementById('amc_type');
-      amcTypeSelect.innerHTML = '<option value="">Select AMC Type</option>';
+      amcTypeSelect.innerHTML = '<option value="">Select AMC Pack Type</option>';
 
       data.forEach(function(amcType) {
         var option = document.createElement('option');
         option.value = amcType.id;
         option.textContent = amcType.name;
 
-        // If editing, select the current AMC type
+        // If editing, select the current AMC Pack Type
         if (currentAMCTypeId && amcType.id === currentAMCTypeId) {
           option.selected = true;
         }
@@ -1372,20 +1375,20 @@ function loadAMCTypesDropdown() {
       });
     })
     .catch(function(error) {
-      console.error('Error loading AMC types:', error);
+      console.error('Error loading AMC Pack Types:', error);
       var amcTypeSelect = document.getElementById('amc_type');
-      amcTypeSelect.innerHTML = '<option value="">Error loading AMC types</option>';
+      amcTypeSelect.innerHTML = '<option value="">Error loading AMC Pack Types</option>';
     });
 }
 
 function handleAMCFormSubmit(event) {
   event.preventDefault();
 
-  // Validate AMC Pack Name before submitting
-  if (!validateAmcname()) {
-    showMessage('error', 'Please fix the validation errors before submitting');
-    return;
-  }
+  // AMC Pack Name validation commented out - field not needed
+  // if (!validateAmcname()) {
+  //   showMessage('error', 'Please fix the validation errors before submitting');
+  //   return;
+  // }
 
   const form = document.getElementById('amcForm');
   const formData = new FormData(form);

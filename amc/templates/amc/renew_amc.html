@@ -236,9 +236,9 @@ body {
             </div>
             
             <div class="form-group">
-              <label class="form-label">AMC TYPE <span class="form-required">*</span></label>
+              <label class="form-label">AMC PACK TYPE <span class="form-required">*</span></label>
               <select class="form-select form-input" id="amcType" name="amc_type" required>
-                <option value="">Select AMC Type</option>
+                <option value="">Select AMC Pack Type</option>
                 {% for amc_type in amc_types %}
                 <option value="{{ amc_type.id }}">{{ amc_type.name }}</option>
                 {% endfor %}

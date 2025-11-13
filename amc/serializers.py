@@ -21,7 +21,7 @@ class AMCCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = AMC
         fields = [
-            'customer', 'amcname', 'latitude', 'equipment_no', 'invoice_frequency',
+            'customer', 'latitude', 'equipment_no', 'invoice_frequency',
             'amc_type', 'payment_terms', 'start_date', 'end_date', 'notes',
             'is_generate_contract', 'no_of_services', 'price', 'no_of_lifts',
             'gst_percentage', 'amc_service_item'
@@ -53,7 +53,7 @@ class AMCListSerializer(serializers.ModelSerializer):
     class Meta:
         model = AMC
         fields = [
-            'id', 'reference_id', 'amcname', 'latitude', 'equipment_no',
+            'id', 'reference_id', 'latitude', 'equipment_no',
             'invoice_frequency', 'invoice_frequency_display', 'start_date', 'end_date',
             'notes', 'is_generate_contract', 'no_of_services', 'price',
             'no_of_lifts', 'gst_percentage', 'total', 'contract_amount',

@@ -207,10 +207,10 @@ body {
       <!-- Modal Header -->
       <div class="w-modal-header">
         <h2 class="w-modal-title">
-          {% if is_edit %}Edit AMC Type{% else %}Create New AMC Type{% endif %}
+          {% if is_edit %}Edit AMC Pack Type{% else %}Create New AMC Pack Type{% endif %}
         </h2>
         <p class="w-modal-subtitle">
-          {% if is_edit %}Update AMC type details{% else %}Fill in the required field (*) to add an AMC type{% endif %}
+          {% if is_edit %}Update AMC Pack Type details{% else %}Fill in the required field (*) to add an AMC Pack Type{% endif %}
         </p>
       </div>
 
@@ -221,7 +221,7 @@ body {
 
           <div class="form-group">
             <label class="form-label">
-              AMC Type Name<span class="form-required">*</span>
+              AMC Pack Type Name<span class="form-required">*</span>
             </label>
             <input
               type="text"
@@ -230,7 +230,7 @@ body {
               value="{% if is_edit %}{{ amc_type.name }}{% endif %}"
               required
               class="form-input"
-              placeholder="Enter AMC type name"
+              placeholder="Enter AMC Pack Type name"
             />
             <p id="nameError" class="form-error" style="display: none;"></p>
           </div>
@@ -247,7 +247,7 @@ body {
             class="btn btn-primary"
             onclick="handleFormSubmit()"
           >
-            {% if is_edit %}Update AMC Type{% else %}Create AMC Type{% endif %}
+            {% if is_edit %}Update AMC Pack Type{% else %}Create AMC Pack Type{% endif %}
           </button>
         </div>
       </div>
@@ -265,7 +265,7 @@ function validateForm() {
   const name = document.getElementById('name').value.trim();
 
   if (!name) {
-    errors.name = 'AMC type name is required';
+    errors.name = 'AMC Pack Type name is required';
   }
 
   document.getElementById('nameError').textContent = errors.name || '';
@@ -306,18 +306,18 @@ async function handleFormSubmit() {
     submitButton.disabled = false;
 
     if (result.success) {
-      showMessage('success', result.message || (isEditMode ? 'AMC type updated successfully' : 'AMC type created successfully'));
+      showMessage('success', result.message || (isEditMode ? 'AMC Pack Type updated successfully' : 'AMC Pack Type created successfully'));
       setTimeout(() => {
         window.location.href = adminHomeUrl;
       }, 2000);
     } else {
-      showMessage('error', result.error || 'Failed to save AMC type');
+      showMessage('error', result.error || 'Failed to save AMC Pack Type');
     }
   } catch (error) {
-    console.error('Error saving AMC type:', error);
+    console.error('Error saving AMC Pack Type:', error);
     submitButton.textContent = originalText;
     submitButton.disabled = false;
-    showMessage('error', 'An error occurred while saving the AMC type');
+    showMessage('error', 'An error occurred while saving the AMC Pack Type');
   }
 }
 

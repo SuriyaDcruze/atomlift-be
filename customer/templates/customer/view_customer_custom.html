@@ -1219,8 +1219,7 @@ tr {
               <thead>
                 <tr>
                   <th>Reference ID</th>
-                  <th>AMC Name</th>
-                  <th>Type</th>
+                  <th>AMC Pack Type</th>
                   <th>Start Date</th>
                   <th>End Date</th>
                   <th>Equipment No</th>
@@ -1233,7 +1232,6 @@ tr {
                 {% for amc in amcs %}
                 <tr>
                   <td><strong>{{ amc.reference_id|default:"N/A" }}</strong></td>
-                  <td>{{ amc.amcname|default:"N/A" }}</td>
                   <td>{{ amc.amc_type|default:"N/A" }}</td>
                   <td>{{ amc.start_date|date:"M d, Y"|default:"N/A" }}</td>
                   <td>{{ amc.end_date|date:"M d, Y"|default:"N/A" }}</td>

@@ -162,7 +162,7 @@ def add_amc_custom(request):
             # Create AMC
             amc = AMC.objects.create(
                 customer=customer,
-                amcname=data.get('amcname', ''),  # Changed from 'amc_name' to 'amcname'
+                # amcname removed - field is commented out
                 invoice_frequency=data.get('invoice_frequency', 'annually'),
                 amc_type=amc_type,
                 start_date=data['start_date'],
@@ -194,7 +194,7 @@ def add_amc_custom(request):
             # Handle validation errors for multiple fields
             if e.message_dict:
                 # Prioritize showing field-specific errors
-                error_fields = ['amcname']
+                error_fields = []  # amcname removed
                 for field in error_fields:
                     if field in e.message_dict:
                         error_message = e.message_dict[field][0]
@@ -250,7 +250,7 @@ def edit_amc_custom(request, pk):
                 if customer:
                     amc.customer = customer
             
-            amc.amcname = data.get('amcname', amc.amcname)  # Changed from 'amc_name' to 'amcname'
+            # amcname removed - field is commented out
             amc.invoice_frequency = data.get('invoice_frequency', amc.invoice_frequency)
             amc.start_date = data.get('start_date', amc.start_date)
             amc.end_date = data.get('end_date', amc.end_date)
@@ -316,7 +316,7 @@ def edit_amc_custom(request, pk):
             # Handle validation errors for multiple fields
             if e.message_dict:
                 # Prioritize showing field-specific errors
-                error_fields = ['amcname']
+                error_fields = []  # amcname removed
                 for field in error_fields:
                     if field in e.message_dict:
                         error_message = e.message_dict[field][0]
@@ -377,11 +377,11 @@ def manage_amc_types_detail(request, pk):
             data = json.loads(request.body)
             amc_type.name = data['name']
             amc_type.save()
-            return JsonResponse({'success': True, 'message': 'AMC Type updated'})
+            return JsonResponse({'success': True, 'message': 'AMC Pack Type updated'})
         
         elif request.method == 'DELETE':
             amc_type.delete()
-            return JsonResponse({'success': True, 'message': 'AMC Type deleted'})
+            return JsonResponse({'success': True, 'message': 'AMC Pack Type deleted'})
             
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
@@ -494,7 +494,7 @@ def get_amc_renewal_data(request, pk):
         'payment_terms_id': amc.payment_terms.id if amc.payment_terms else None,
         'equipment_no': amc.equipment_no or '',
         'latitude': amc.latitude or '',
-        'amcname': amc.amcname or '',
+        # 'amcname': removed - field is commented out
     }
     
     return JsonResponse(data)
@@ -524,7 +524,7 @@ def create_renewed_amc(request):
             existing_amc.amc_type = amc_type
         
         # Update AMC with renewal data
-        existing_amc.amcname = data.get('amcname', existing_amc.amcname)
+        # existing_amc.amcname removed - field is commented out
         existing_amc.start_date = data['start_date']
         existing_amc.end_date = data['end_date']
         existing_amc.no_of_services = data.get('no_of_services', existing_amc.no_of_services)

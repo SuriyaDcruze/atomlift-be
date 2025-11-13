@@ -633,10 +633,10 @@ body {
             </div>
 
             <div class="form-group">
-              <label class="form-label">AMC Type</label>
+              <label class="form-label">AMC Pack Type</label>
               <div class="form-select-addon">
                 <select id="amc_type" name="amc_type" class="form-input form-select">
-                  <option value="">Loading AMC types...</option>
+                  <option value="">Loading AMC Pack Types...</option>
                 </select>
               </div>
             </div>
@@ -989,14 +989,14 @@ function loadAmcTypes() {
     .then(function(response) { return response.json(); })
     .then(function(data) {
       var select = document.getElementById('amc_type');
-      select.innerHTML = '<option value="">Select AMC Type</option>';
+      select.innerHTML = '<option value="">Select AMC Pack Type</option>';
 
       data.forEach(function(item) {
         var option = document.createElement('option');
         option.value = item.id;
         option.textContent = item.name;
 
-        // If editing, select the current AMC type
+        // If editing, select the current AMC Pack Type
         if (currentAmcTypeId && item.id === currentAmcTypeId) {
           option.selected = true;
         }
@@ -1005,9 +1005,9 @@ function loadAmcTypes() {
       });
     })
     .catch(function(error) {
-      console.error('Error loading AMC types:', error);
+      console.error('Error loading AMC Pack Types:', error);
       var select = document.getElementById('amc_type');
-      select.innerHTML = '<option value="">Error loading AMC types</option>';
+      select.innerHTML = '<option value="">Error loading AMC Pack Types</option>';
     });
 }
 

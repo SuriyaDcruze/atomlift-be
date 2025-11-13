@@ -629,9 +629,9 @@ body {
             </div>
 
             <div class="form-group">
-              <label class="form-label">AMC Type</label>
+              <label class="form-label">AMC Pack Type</label>
               <select id="amc_type" name="amc_type" class="form-select">
-                <option value="">Loading AMC types...</option>
+                <option value="">Loading AMC Pack Types...</option>
               </select>
             </div>
 
@@ -986,7 +986,7 @@ function loadAmcTypes() {
     .then(response => response.json())
     .then(data => {
       const select = document.getElementById('amc_type');
-      select.innerHTML = '<option value="">Select AMC Type</option>';
+      select.innerHTML = '<option value="">Select AMC Pack Type</option>';
       data.forEach(item => {
         const option = document.createElement('option');
         option.value = item.id;
@@ -995,9 +995,9 @@ function loadAmcTypes() {
       });
     })
     .catch(error => {
-      console.error('Error loading AMC types:', error);
-      document.getElementById('amc_type').innerHTML = '<option value="">Error loading AMC types</option>';
-      showMessage('error', 'Failed to load AMC types');
+      console.error('Error loading AMC Pack Types:', error);
+      document.getElementById('amc_type').innerHTML = '<option value="">Error loading AMC Pack Types</option>';
+      showMessage('error', 'Failed to load AMC Pack Types');
     });
 }
 
