@@ -128,14 +128,14 @@ class Customer(models.Model):
         # Auto-generate reference ID
         if not self.reference_id:
             last = Customer.objects.order_by('id').last()
-            if last and last.reference_id.startswith('CUST'):
+            if last and last.reference_id.startswith('ATOM'):
                 try:
-                    next_id = int(last.reference_id.replace('CUST', '')) + 1
+                    next_id = int(last.reference_id.replace('ATOM', '')) + 1
                 except ValueError:
                     next_id = 1
             else:
                 next_id = 1
-            self.reference_id = f'CUST{next_id:03d}'
+            self.reference_id = f'ATOM{next_id:03d}'
 
         # Office address sync
         if self.same_as_site_address:
