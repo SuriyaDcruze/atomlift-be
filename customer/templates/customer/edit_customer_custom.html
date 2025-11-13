@@ -118,6 +118,16 @@ body { font-family: 'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI','Roboto'
               <input type="text" id="pin_code" name="pin_code" value="{{ customer.pin_code }}" class="form-input" />
             </div>
             <div class="form-group">
+              <label class="form-label">Latitude</label>
+              <input type="number" id="latitude" name="latitude" value="{{ customer.latitude }}" class="form-input" step="any" min="-90" max="90" placeholder="e.g., 28.6139" />
+              <p class="form-help">Latitude coordinate (-90 to 90 degrees). Used for mapping and location services.</p>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Longitude</label>
+              <input type="number" id="longitude" name="longitude" value="{{ customer.longitude }}" class="form-input" step="any" min="-180" max="180" placeholder="e.g., 77.2090" />
+              <p class="form-help">Longitude coordinate (-180 to 180 degrees). Used for mapping and location services.</p>
+            </div>
+            <div class="form-group">
               <label class="form-label">State</label>
               <div class="form-select-addon">
                 <select id="province_state" name="province_state" class="form-input form-select">

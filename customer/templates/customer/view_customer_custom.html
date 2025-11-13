@@ -915,6 +915,14 @@ tr {
               <div class="form-value">{{ customer.country|default:"Not provided" }}</div>
             </div>
             <div class="form-group">
+              <label class="form-label">Latitude</label>
+              <div class="form-value">{% if customer.latitude %}{{ customer.latitude }}{% else %}Not provided{% endif %}</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Longitude</label>
+              <div class="form-value">{% if customer.longitude %}{{ customer.longitude }}{% else %}Not provided{% endif %}</div>
+            </div>
+            <div class="form-group">
               <label class="form-label">Sector</label>
               <div class="form-value">{{ customer.get_sector_display|default:"Not provided" }}</div>
             </div>
