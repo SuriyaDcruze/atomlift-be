@@ -11,7 +11,9 @@ class CustomerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Customer
         fields = [
-            'id', 'reference_id', 'site_id', 'job_no', 'site_name', 
+            'id', 'reference_id', 
+            # 'site_id',  # Don't need - removed
+            'job_no', 'site_name', 
             'site_address', 'email', 'phone', 'mobile', 'contact_person_name',
             'designation', 'city', 'branch', 'routes'
         ]

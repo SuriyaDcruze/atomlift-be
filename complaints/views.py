@@ -324,7 +324,7 @@ def get_customers(request):
         'mobile': c.mobile,
         'email': c.email,
         'job_no': c.job_no,
-        'site_id': c.site_id,
+        # 'site_id': c.site_id,  # Don't need - removed
     } for c in customers]
     return JsonResponse(data, safe=False)
 

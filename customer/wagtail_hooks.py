@@ -85,7 +85,7 @@ def add_customer_custom(request):
             data = json.loads(request.body)
             
             # Validate required fields
-            required_fields = ['site_id', 'site_name', 'mobile', 'job_no', 'city']
+            required_fields = ['site_name', 'mobile', 'job_no', 'city']  # site_id removed - don't need
             for field in required_fields:
                 if not data.get(field):
                     return JsonResponse({
@@ -159,7 +159,7 @@ def add_customer_custom(request):
 
             # Create customer
             customer = Customer.objects.create(
-                site_id=data['site_id'],
+                # site_id=data['site_id'],  # Don't need
                 job_no=data.get('job_no', ''),
                 site_name=data['site_name'],
                 site_address=data.get('site_address', ''),
@@ -220,7 +220,7 @@ def edit_customer_custom(request, pk):
             data = json.loads(request.body)
             
             # Validate required fields
-            required_fields = ['site_id', 'site_name', 'mobile', 'job_no', 'city']
+            required_fields = ['site_name', 'mobile', 'job_no', 'city']  # site_id removed - don't need
             for field in required_fields:
                 if not data.get(field):
                     return JsonResponse({
@@ -229,7 +229,7 @@ def edit_customer_custom(request, pk):
                     }, status=400)
             
             # Update fields
-            customer.site_id = data.get('site_id', customer.site_id)
+            # customer.site_id = data.get('site_id', customer.site_id)  # Don't need
             customer.job_no = data.get('job_no', customer.job_no)
             customer.site_name = data.get('site_name', customer.site_name)
             customer.site_address = data.get('site_address', customer.site_address)

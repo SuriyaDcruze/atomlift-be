@@ -145,7 +145,7 @@ function filterCustomers(searchTerm) {
       return (
         (customer.site_name && customer.site_name.toLowerCase().includes(term)) ||
         (customer.job_no && customer.job_no.toLowerCase().includes(term)) ||
-        (customer.site_id && customer.site_id.toLowerCase().includes(term)) ||
+        // (customer.site_id && customer.site_id.toLowerCase().includes(term)) ||  // Don't need - removed
         (customer.reference_id && customer.reference_id.toLowerCase().includes(term)) ||
         (customer.email && customer.email.toLowerCase().includes(term)) ||
         (customer.phone && customer.phone.toLowerCase().includes(term))
@@ -171,7 +171,6 @@ function displayCustomers(customers) {
       <div class="customer-item-name">${customer.reference_id || ''} ${customer.site_name || 'N/A'}</div>
       <div class="customer-item-details">
         ${customer.job_no ? 'Job No: ' + customer.job_no : ''} 
-        ${customer.site_id ? '| Site ID: ' + customer.site_id : ''}
         ${customer.email ? '| ' + customer.email : ''}
       </div>
     </div>

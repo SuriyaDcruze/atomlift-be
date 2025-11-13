@@ -19,7 +19,8 @@ class CustomerCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Customer
         fields = [
-            'site_id', 'job_no', 'site_name', 'site_address', 'email', 'phone', 'mobile',
+            # 'site_id',  # Don't need
+            'job_no', 'site_name', 'site_address', 'email', 'phone', 'mobile',
             'office_address', 'same_as_site_address', 'contact_person_name', 'designation',
             'pin_code', 'country', 'province_state', 'city', 'sector', 'routes', 'branch',
             'handover_date', 'billing_name', 'uploads_files', 'latitude', 'longitude'
@@ -58,7 +59,9 @@ class CustomerListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Customer
         fields = [
-            'id', 'reference_id', 'site_id', 'job_no', 'site_name', 'site_address',
+            'id', 'reference_id', 
+            # 'site_id',  # Don't need
+            'job_no', 'site_name', 'site_address',
             'email', 'phone', 'mobile', 'contact_person_name', 'designation',
             'city_name', 'sector', 'branch_name', 'route_name', 'province_state_name',
             'latitude', 'longitude'

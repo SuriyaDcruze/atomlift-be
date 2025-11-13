@@ -61,7 +61,7 @@ def one_year_from_today():
 
 class Customer(models.Model):
     reference_id = models.CharField(max_length=10, unique=True, editable=False)
-    site_id = models.CharField(max_length=30)
+    # site_id = models.CharField(max_length=30)  # Don't need
     job_no = models.CharField(max_length=50, blank=True, unique=True)
     site_name = models.CharField(max_length=100)
     site_address = models.TextField()
@@ -107,7 +107,7 @@ class Customer(models.Model):
     panels = [
         MultiFieldPanel([
             FieldPanel("reference_id", read_only=True),
-            FieldPanel("site_id"),
+            # FieldPanel("site_id"),  # Don't need
             FieldPanel("job_no"),
             FieldPanel("site_name"),
             FieldPanel("site_address"),
@@ -489,7 +489,7 @@ class CustomerViewSet(SnippetViewSet):
     
     search_fields = (
         "reference_id",
-        "site_id",
+        # "site_id",  # Don't need
         "site_name",
         "job_no",
         "email",

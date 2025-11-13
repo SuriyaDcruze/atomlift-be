@@ -221,9 +221,8 @@ def add_amc_custom(request):
             reference_id=customer_id
         ).first() or Customer.objects.filter(
             id=customer_id
-        ).first() or Customer.objects.filter(
-            site_id=customer_id
         ).first()
+        # or Customer.objects.filter(site_id=customer_id).first()  # Don't need - site_id removed
     
     context = {
         'is_edit': False,
@@ -411,7 +410,9 @@ def manage_payment_terms_detail(request, pk):
 def get_customers(request):
     """API for getting all customers"""
     customers = Customer.objects.all().values(
-        'id', 'reference_id', 'site_id', 'site_name', 'job_no', 'site_address'
+        'id', 'reference_id', 
+        # 'site_id',  # Don't need - removed
+        'site_name', 'job_no', 'site_address'
     )
     return JsonResponse(list(customers), safe=False)
 

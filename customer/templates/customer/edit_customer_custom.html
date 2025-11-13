@@ -48,10 +48,10 @@ body { font-family: 'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI','Roboto'
               <input type="text" id="reference_id" value="{{ customer.reference_id }}" class="form-input" readonly />
               <p class="form-help">Auto-generated reference number</p>
             </div>
-            <div class="form-group">
+            <!-- <div class="form-group">
               <label class="form-label">Site ID<span class="form-required">*</span></label>
               <input type="text" id="site_id" name="site_id" value="{{ customer.site_id }}" required class="form-input" />
-            </div>
+            </div> --> <!-- Don't need -->
             <div class="form-group">
               <label class="form-label">Site Name<span class="form-required">*</span></label>
               <input type="text" id="site_name" name="site_name" value="{{ customer.site_name }}" required class="form-input" oninput="updateSiteName(this.value)" />
@@ -198,6 +198,6 @@ function loadBranchesDropdown(){var currentBranchId={% if customer.branch %}{{ c
 function getCsrfToken(){var t=document.querySelector('[name=csrfmiddlewaretoken]');return t?t.value:''}
 function showMessage(type,message){alert(message)}
 function createFormData(){var els=document.querySelectorAll('input,select,textarea');var data={};for(var i=0;i<els.length;i++){var el=els[i];if(el.name){if(el.type==='checkbox'){data[el.name]=el.checked;}else{data[el.name]=el.value;}}}data.same_as_site_address=data.same_as_site_address||false;return data;}
-function handleFormSubmit(e){if(e)e.preventDefault();var data=createFormData();if(!data.site_id||!data.site_name||!data.mobile||!data.job_no||!data.city){showMessage('error','Please fill in all required fields (Site ID, Site Name, Mobile, Job No, City)');return;}if(data.mobile.length!==10){showMessage('error','Mobile number must be exactly 10 digits');return;}if(data.phone&&data.phone.length!==10){showMessage('error','Phone number must be exactly 10 digits');return;}var btn=document.getElementById('submitBtn');var txt=btn.textContent;btn.textContent='Saving...';btn.disabled=true;fetch(submitUrl,{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':getCsrfToken()},body:JSON.stringify(data)}).then(r=>r.json()).then(result=>{btn.textContent=txt;btn.disabled=false;if(result.success){window.location.href=adminHomeUrl;}else{showMessage('error',result.error||'Failed');}}).catch(()=>{btn.textContent=txt;btn.disabled=false;showMessage('error','An error occurred while saving the customer');});}
+function handleFormSubmit(e){if(e)e.preventDefault();var data=createFormData();if(!data.site_name||!data.mobile||!data.job_no||!data.city){showMessage('error','Please fill in all required fields (Site Name, Mobile, Job No, City)');return;}if(data.mobile.length!==10){showMessage('error','Mobile number must be exactly 10 digits');return;}if(data.phone&&data.phone.length!==10){showMessage('error','Phone number must be exactly 10 digits');return;}var btn=document.getElementById('submitBtn');var txt=btn.textContent;btn.textContent='Saving...';btn.disabled=true;fetch(submitUrl,{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':getCsrfToken()},body:JSON.stringify(data)}).then(r=>r.json()).then(result=>{btn.textContent=txt;btn.disabled=false;if(result.success){window.location.href=adminHomeUrl;}else{showMessage('error',result.error||'Failed');}}).catch(()=>{btn.textContent=txt;btn.disabled=false;showMessage('error','An error occurred while saving the customer');});}
 </script>
 {% endblock %}
