@@ -3,7 +3,7 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
-from .models import Customer, Route, Branch, ProvinceState
+from .models import Customer, Route, Branch, ProvinceState, City
 from rest_framework.decorators import api_view, permission_classes, parser_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
@@ -58,6 +58,19 @@ def get_branches(request):
         data = [
             {"id": branch.id, "value": branch.value}
             for branch in branches
+        ]
+        return JsonResponse(data, safe=False)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+@require_http_methods(["GET"])
+def get_cities(request):
+    """Get all cities"""
+    try:
+        cities = City.objects.all().order_by('value')
+        data = [
+            {"id": city.id, "value": city.value}
+            for city in cities
         ]
         return JsonResponse(data, safe=False)
     except Exception as e:
@@ -130,10 +143,10 @@ def list_customers_mobile(request):
                 Q(site_name__icontains=search) |
                 Q(job_no__icontains=search) |
                 Q(email__icontains=search) |
-                Q(phone__icontains=search) |
-                Q(mobile__icontains=search) |
-                Q(contact_person_name__icontains=search) |
-                Q(city__icontains=search)
+            Q(phone__icontains=search) |
+            Q(mobile__icontains=search) |
+            Q(contact_person_name__icontains=search) |
+            Q(city__value__icontains=search)
             )
 
         if branch_id:
@@ -223,6 +236,29 @@ def create_branch(request):
             "success": True,
             "id": branch.id,
             "value": branch.value
+        })
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def create_city(request):
+    """Create a new city"""
+    try:
+        data = json.loads(request.body)
+        value = data.get('value', '').strip()
+
+        if not value:
+            return JsonResponse({"error": "Value is required"}, status=400)
+
+        if City.objects.filter(value=value).exists():
+            return JsonResponse({"error": "City already exists"}, status=400)
+
+        city = City.objects.create(value=value)
+        return JsonResponse({
+            "success": True,
+            "id": city.id,
+            "value": city.value
         })
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
@@ -318,6 +354,36 @@ def update_branch(request, branch_id):
         return JsonResponse({"error": str(e)}, status=500)
 
 @csrf_exempt
+@require_http_methods(["PUT"])
+def update_city(request, city_id):
+    """Update an existing city"""
+    try:
+        data = json.loads(request.body)
+        value = data.get('value', '').strip()
+
+        if not value:
+            return JsonResponse({"error": "Value is required"}, status=400)
+
+        try:
+            city = City.objects.get(id=city_id)
+        except City.DoesNotExist:
+            return JsonResponse({"error": "City not found"}, status=404)
+
+        if City.objects.filter(value=value).exclude(id=city_id).exists():
+            return JsonResponse({"error": "City already exists"}, status=400)
+
+        city.value = value
+        city.save()
+
+        return JsonResponse({
+            "success": True,
+            "id": city.id,
+            "value": city.value
+        })
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+@csrf_exempt
 @require_http_methods(["DELETE"])
 def delete_state(request, state_id):
     """Delete a state/province"""
@@ -391,6 +457,32 @@ def delete_branch(request, branch_id):
         return JsonResponse({
             "success": True,
             "message": f"Branch '{value}' deleted successfully"
+        })
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+@csrf_exempt
+@require_http_methods(["DELETE"])
+def delete_city(request, city_id):
+    """Delete a city"""
+    try:
+        try:
+            city = City.objects.get(id=city_id)
+        except City.DoesNotExist:
+            return JsonResponse({"error": "City not found"}, status=404)
+
+        # Check if city is being used by any customer
+        if Customer.objects.filter(city=city).exists():
+            return JsonResponse({
+                "error": "Cannot delete city as it is being used by existing customers"
+            }, status=400)
+
+        value = city.value
+        city.delete()
+
+        return JsonResponse({
+            "success": True,
+            "message": f"City '{value}' deleted successfully"
         })
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)

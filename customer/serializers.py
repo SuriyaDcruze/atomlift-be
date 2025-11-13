@@ -1,10 +1,13 @@
 from rest_framework import serializers
-from .models import Customer, Route, Branch, ProvinceState
+from .models import Customer, Route, Branch, ProvinceState, City
 
 
 class CustomerCreateSerializer(serializers.ModelSerializer):
     province_state = serializers.PrimaryKeyRelatedField(
         queryset=ProvinceState.objects.all(), required=False, allow_null=True
+    )
+    city = serializers.PrimaryKeyRelatedField(
+        queryset=City.objects.all(), required=False, allow_null=True
     )
     routes = serializers.PrimaryKeyRelatedField(
         queryset=Route.objects.all(), required=False, allow_null=True
@@ -36,8 +39,6 @@ class CustomerCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({'phone': 'This field is required.'})
         if not attrs.get('contact_person_name'):
             raise serializers.ValidationError({'contact_person_name': 'This field is required.'})
-        if not attrs.get('city'):
-            raise serializers.ValidationError({'city': 'This field is required.'})
         return attrs
 
     def create(self, validated_data):
@@ -52,13 +53,14 @@ class CustomerListSerializer(serializers.ModelSerializer):
     branch_name = serializers.SerializerMethodField()
     route_name = serializers.SerializerMethodField()
     province_state_name = serializers.SerializerMethodField()
+    city_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Customer
         fields = [
             'id', 'reference_id', 'site_id', 'job_no', 'site_name', 'site_address',
             'email', 'phone', 'mobile', 'contact_person_name', 'designation',
-            'city', 'sector', 'branch_name', 'route_name', 'province_state_name'
+            'city_name', 'sector', 'branch_name', 'route_name', 'province_state_name'
         ]
 
     def get_branch_name(self, obj):
@@ -69,5 +71,8 @@ class CustomerListSerializer(serializers.ModelSerializer):
 
     def get_province_state_name(self, obj):
         return getattr(obj.province_state, 'value', None)
+
+    def get_city_name(self, obj):
+        return getattr(obj.city, 'value', None)
 
 

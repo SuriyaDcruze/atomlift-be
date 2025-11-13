@@ -640,14 +640,12 @@ body {
 
             <div class="form-group">
               <label class="form-label">City<span class="form-required">*</span></label>
-              <input
-                type="text"
-                id="city"
-                name="city"
-                value="{% if is_edit %}{{ customer.city }}{% endif %}"
-                class="form-input"
-                required
-              />
+              <div class="form-select-addon">
+                <select id="city" name="city" class="form-input form-select" required>
+                  <option value="">Loading cities...</option>
+                </select>
+                <button type="button" onclick="openModal('city')">+</button>
+              </div>
             </div>
 
             <div class="form-group">
@@ -874,10 +872,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-  // Load states, routes, and branches dynamically on page load
+  // Load states, routes, branches, and cities dynamically on page load
   loadStatesDropdown();
   loadRoutesDropdown();
   loadBranchesDropdown();
+  loadCitiesDropdown();
 });
 
 function loadStatesDropdown() {
@@ -979,12 +978,45 @@ function loadBranchesDropdown() {
     });
 }
 
+function loadCitiesDropdown() {
+  {% if is_edit and customer.city %}
+  var currentCityId = {{ customer.city.id }};
+  {% else %}
+  var currentCityId = null;
+  {% endif %}
+
+  fetch('/customer/api/customer/cities/')
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+      var citySelect = document.getElementById('city');
+      citySelect.innerHTML = '<option value="">Select City</option>';
+
+      data.forEach(function(city) {
+        var option = document.createElement('option');
+        option.value = city.id;
+        option.textContent = city.value;
+
+        // If editing, select the current city
+        if (currentCityId && city.id === currentCityId) {
+          option.selected = true;
+        }
+
+        citySelect.appendChild(option);
+      });
+    })
+    .catch(function(error) {
+      console.error('Error loading cities:', error);
+      var citySelect = document.getElementById('city');
+      citySelect.innerHTML = '<option value="">Error loading cities</option>';
+    });
+}
+
 function openModal(type) {
   currentModalType = type;
   var modal = document.getElementById('optionModal');
   var modalTitle = document.getElementById('modalTitle');
 
-  const titleMap = { state: 'State', route: 'Route', branch: 'Branch' };
+  const titleMap = { state: 'State', route: 'Route', branch: 'Branch', city: 'City' };
   modalTitle.textContent = 'Add New ' + (titleMap[type] || (type.charAt(0).toUpperCase() + type.slice(1)));
 
   loadExistingOptions(type);
@@ -997,7 +1029,7 @@ function closeModal() {
 }
 
 function loadExistingOptions(type) {
-  const listEndpoint = type === 'state' ? 'states' : (type === 'route' ? 'routes' : 'branches');
+  const listEndpoint = type === 'state' ? 'states' : (type === 'route' ? 'routes' : (type === 'city' ? 'cities' : 'branches'));
   fetch('/customer/api/customer/' + listEndpoint + '/')
     .then(function(response) { return response.json(); })
     .then(function(data) {
@@ -1016,7 +1048,7 @@ function saveOption() {
   var value = document.getElementById('modalInput').value.trim();
   if (!value) return;
 
-  const createEndpoint = currentModalType === 'state' ? 'states/create' : (currentModalType === 'route' ? 'routes/create' : 'branches/create');
+  const createEndpoint = currentModalType === 'state' ? 'states/create' : (currentModalType === 'route' ? 'routes/create' : (currentModalType === 'city' ? 'cities/create' : 'branches/create'));
   fetch('/customer/api/customer/' + createEndpoint + '/', {
     method: 'POST',
     headers: {
@@ -1028,7 +1060,7 @@ function saveOption() {
   .then(function(response) { return response.json(); })
   .then(function(data) {
     if (data.success) {
-      var selectId = currentModalType === 'state' ? 'province_state' : (currentModalType === 'route' ? 'routes' : 'branch');
+      var selectId = currentModalType === 'state' ? 'province_state' : (currentModalType === 'route' ? 'routes' : (currentModalType === 'city' ? 'city' : 'branch'));
       var select = document.getElementById(selectId);
       var option = new Option(value, data.id);
       select.appendChild(option);
@@ -1045,7 +1077,7 @@ function saveOption() {
 function editOption(type, id, currentValue) {
   var newValue = prompt('Edit ' + type.charAt(0).toUpperCase() + type.slice(1) + ':', currentValue);
   if (newValue && newValue.trim() && newValue !== currentValue) {
-    const updateEndpoint = type === 'state' ? 'states' : (type === 'route' ? 'routes' : 'branches');
+    const updateEndpoint = type === 'state' ? 'states' : (type === 'route' ? 'routes' : (type === 'city' ? 'cities' : 'branches'));
     fetch('/customer/api/customer/' + updateEndpoint + '/' + id + '/', {
       method: 'PUT',
       headers: {
@@ -1058,7 +1090,7 @@ function editOption(type, id, currentValue) {
     .then(function(data) {
       if (data.success) {
         loadExistingOptions(type);
-        var selectId = type === 'state' ? 'province_state' : (type === 'route' ? 'routes' : 'branch');
+        var selectId = type === 'state' ? 'province_state' : (type === 'route' ? 'routes' : (type === 'city' ? 'city' : 'branch'));
         var select = document.getElementById(selectId);
         var option = select.querySelector('option[value="' + id + '"]');
         if (option) {
@@ -1075,7 +1107,7 @@ function editOption(type, id, currentValue) {
 function deleteOption(type, id) {
   if (!confirm('Are you sure you want to delete this ' + type + '?')) return;
 
-  const deleteEndpoint = type === 'state' ? 'states' : (type === 'route' ? 'routes' : 'branches');
+  const deleteEndpoint = type === 'state' ? 'states' : (type === 'route' ? 'routes' : (type === 'city' ? 'cities' : 'branches'));
   fetch('/customer/api/customer/' + deleteEndpoint + '/' + id + '/delete/', {
     method: 'DELETE',
     headers: {
@@ -1086,7 +1118,7 @@ function deleteOption(type, id) {
   .then(function(data) {
     if (data.success) {
       loadExistingOptions(type);
-      var selectId = type === 'state' ? 'province_state' : (type === 'route' ? 'routes' : 'branch');
+      var selectId = type === 'state' ? 'province_state' : (type === 'route' ? 'routes' : (type === 'city' ? 'city' : 'branch'));
       var select = document.getElementById(selectId);
       var option = select.querySelector('option[value="' + id + '"]');
       if (option) {

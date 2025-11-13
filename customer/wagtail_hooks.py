@@ -10,7 +10,7 @@ from wagtail.admin.panels import FieldPanel, MultiFieldPanel
 from wagtail.snippets.widgets import SnippetListingButton
 import json
 
-from .models import Customer, Route, Branch, ProvinceState, CustomerLicense, CustomerContact, CustomerFeedback, CustomerFollowUp
+from .models import Customer, Route, Branch, ProvinceState, City, CustomerLicense, CustomerContact, CustomerFeedback, CustomerFollowUp
 
 
 @hooks.register('register_admin_urls')
@@ -26,6 +26,8 @@ def register_customer_form_url():
         path('api/customer/branches/<int:pk>/', manage_branches, name='api_manage_branches_detail'),
         path('api/customer/states/', manage_states, name='api_manage_states'),
         path('api/customer/states/<int:pk>/', manage_states, name='api_manage_states_detail'),
+        path('api/customer/cities/', manage_cities, name='api_manage_cities'),
+        path('api/customer/cities/<int:pk>/', manage_cities_detail, name='api_manage_cities_detail'),
         path('api/customer/contacts/create/', create_customer_contact, name='create_customer_contact'),
         path('api/customer/<int:customer_id>/notes/', update_customer_notes, name='update_customer_notes'),
         path('api/customer/feedback/create/', create_customer_feedback, name='create_customer_feedback'),
@@ -120,6 +122,10 @@ def add_customer_custom(request):
             if data.get('branch'):
                 branch = Branch.objects.filter(id=data['branch']).first()
             
+            city = None
+            if data.get('city'):
+                city = City.objects.filter(id=data['city']).first()
+            
             # Handle office address sync
             office_address = data.get('office_address', '')
             same_as_site = data.get('same_as_site_address')
@@ -147,7 +153,7 @@ def add_customer_custom(request):
                 designation=data.get('designation', ''),
                 pin_code=data.get('pin_code', ''),
                 province_state=province_state,
-                city=data.get('city', ''),
+                city=city,
                 sector=data.get('sector') if data.get('sector') else None,
                 routes=routes,
                 branch=branch,
@@ -179,6 +185,7 @@ def add_customer_custom(request):
         'routes': Route.objects.all(),
         'branches': Branch.objects.all(),
         'states': ProvinceState.objects.all(),
+        'cities': City.objects.all(),
     }
     return render(request, 'customer/add_customer_custom.html', context)
 
@@ -219,7 +226,8 @@ def edit_customer_custom(request, pk):
             customer.contact_person_name = data.get('contact_person_name', customer.contact_person_name)
             customer.designation = data.get('designation', customer.designation)
             customer.pin_code = data.get('pin_code', customer.pin_code)
-            customer.city = data.get('city', customer.city)
+            if data.get('city'):
+                customer.city = City.objects.filter(id=data['city']).first()
             customer.sector = data.get('sector') if data.get('sector') else customer.sector
             customer.billing_name = data.get('billing_name', customer.billing_name)
             
@@ -256,6 +264,7 @@ def edit_customer_custom(request, pk):
         'routes': Route.objects.all(),
         'branches': Branch.objects.all(),
         'states': ProvinceState.objects.all(),
+        'cities': City.objects.all(),
     }
     return render(request, 'customer/add_customer_custom.html', context)
 
@@ -449,6 +458,48 @@ def manage_states(request, pk):
         elif request.method == 'DELETE':
             state.delete()
             return JsonResponse({'success': True, 'message': 'State deleted'})
+            
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@csrf_exempt
+@require_http_methods(["GET", "POST"])
+def manage_cities(request, pk=None):
+    """API for managing cities"""
+    if request.method == 'GET':
+        cities = City.objects.all().values('id', 'value')
+        return JsonResponse(list(cities), safe=False)
+    
+    elif request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            city = City.objects.create(value=data['value'])
+            return JsonResponse({
+                'success': True,
+                'id': city.id,
+                'value': city.value
+            })
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@csrf_exempt
+@require_http_methods(["PUT", "DELETE"])
+def manage_cities_detail(request, pk):
+    """API for updating/deleting cities"""
+    try:
+        city = get_object_or_404(City, pk=pk)
+        
+        if request.method == 'PUT':
+            data = json.loads(request.body)
+            city.value = data['value']
+            city.save()
+            return JsonResponse({'success': True, 'message': 'City updated'})
+        
+        elif request.method == 'DELETE':
+            city.delete()
+            return JsonResponse({'success': True, 'message': 'City deleted'})
             
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)

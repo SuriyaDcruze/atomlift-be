@@ -35,6 +35,14 @@ class ProvinceState(models.Model):
         return self.value
 
 
+class City(models.Model):
+    value = models.CharField(max_length=100, unique=True)
+    panels = [FieldPanel("value")]
+
+    def __str__(self):
+        return self.value
+
+
 # ======================================================
 #  MAIN MODEL: CUSTOMER
 # ======================================================
@@ -68,7 +76,7 @@ class Customer(models.Model):
     pin_code = models.CharField(max_length=10, blank=True, null=True)
     country = models.CharField(max_length=100, blank=True, null=True)
     province_state = models.ForeignKey("ProvinceState", on_delete=models.SET_NULL, null=True)
-    city = models.CharField(max_length=100)
+    city = models.ForeignKey("City", on_delete=models.SET_NULL, null=True, blank=True)
     sector = models.CharField(max_length=20, choices=SECTOR_CHOICES, default='private', blank=True, null=True)
     routes = models.ForeignKey("Route", on_delete=models.SET_NULL, null=True, blank=True)
     branch = models.ForeignKey("Branch", on_delete=models.SET_NULL, null=True, blank=True)
@@ -431,7 +439,7 @@ class CustomerViewSet(SnippetViewSet):
     list_display = (
         "reference_id", "site_name", "job_no", "email", "phone", "number_of_lifts", "number_of_routine_services", "number_of_invoices",
     )
-    list_export = ("reference_id", "site_name", "job_no", "email", "phone", "city", "branch", "routes", "sector")
+    list_export = ("reference_id", "site_name", "job_no", "email", "phone", "city__value", "branch__value", "routes__value", "sector")
     
     search_fields = (
         "reference_id",
@@ -442,7 +450,7 @@ class CustomerViewSet(SnippetViewSet):
         "phone",
         "mobile",
         "contact_person_name",
-        "city",
+        "city__value",
         "branch__value",
         "routes__value",
         "province_state__value",
@@ -452,6 +460,7 @@ class CustomerViewSet(SnippetViewSet):
         "branch",
         "routes",
         "province_state",
+        "city",
         "sector",
     )
 
@@ -503,8 +512,14 @@ class CustomerLicenseGroup(SnippetViewSetGroup):
     menu_name = "Customer_license"
     menu_order = 4
 
+class CityViewSet(SnippetViewSet):
+    model = City
+    icon = "site"
+    menu_label = "Cities"
+
+
 class CustomerGroup(SnippetViewSetGroup):
-    items = (CustomerViewSet, RouteViewSet, BranchViewSet, ProvinceStateViewSet)
+    items = (CustomerViewSet, RouteViewSet, BranchViewSet, ProvinceStateViewSet, CityViewSet)
     menu_icon = "group"
     menu_label = "Customer"
     menu_name = "customer"

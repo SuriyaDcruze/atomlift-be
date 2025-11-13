@@ -472,7 +472,7 @@ body {
                     <strong>{{ challan.customer.site_name }}</strong><br>
                     {{ challan.customer.site_address }}<br>
                     {% if challan.customer.city or challan.customer.province_state or challan.customer.pin_code %}
-                      {{ challan.customer.city }}{% if challan.customer.province_state %}, {{ challan.customer.province_state.value }}{% endif %}{% if challan.customer.pin_code %} - {{ challan.customer.pin_code }}{% endif %}<br>
+                      {% if challan.customer.city %}{{ challan.customer.city.value }}{% endif %}{% if challan.customer.province_state %}{% if challan.customer.city %}, {% endif %}{{ challan.customer.province_state.value }}{% endif %}{% if challan.customer.pin_code %} - {{ challan.customer.pin_code }}{% endif %}<br>
                     {% endif %}
                     {% if challan.customer.country %}{{ challan.customer.country }}<br>{% endif %}
                     Phone: {{ challan.customer.phone }}{% if challan.customer.mobile %}, Mobile: {{ challan.customer.mobile }}{% endif %}{% if challan.customer.email %}<br>Email: {{ challan.customer.email }}{% endif %}
@@ -702,7 +702,7 @@ const customers = [
     phone: "{{ customer.phone }}",
     mobile: "{{ customer.mobile|default:'' }}",
     reference_id: "{{ customer.reference_id }}",
-    city: "{{ customer.city|default:''|escapejs }}",
+    city: "{% if customer.city %}{{ customer.city.value|escapejs }}{% endif %}",
     province_state: "{% if customer.province_state %}{{ customer.province_state.value|escapejs }}{% endif %}",
     pin_code: "{{ customer.pin_code|default:'' }}",
     country: "{{ customer.country|default:''|escapejs }}",

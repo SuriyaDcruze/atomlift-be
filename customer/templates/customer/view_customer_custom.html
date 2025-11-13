@@ -900,7 +900,7 @@ tr {
             <h3 class="form-section-title">Organization Details</h3>
             <div class="form-group">
               <label class="form-label">City</label>
-              <div class="form-value">{{ customer.city|default:"Not provided" }}</div>
+              <div class="form-value">{% if customer.city %}{{ customer.city.value }}{% else %}Not provided{% endif %}</div>
             </div>
             <div class="form-group">
               <label class="form-label">Pin Code</label>

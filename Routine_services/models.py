@@ -118,7 +118,10 @@ class RouteWiseServicesPage(Page):
         # Group services by customer location/route
         route_services = {}
         for service in services:
-            route = service.customer.city if service.customer else 'Unknown'
+            if service.customer and service.customer.city:
+                route = service.customer.city.value
+            else:
+                route = 'Unknown'
             if route not in route_services:
                 route_services[route] = []
             route_services[route].append(service)

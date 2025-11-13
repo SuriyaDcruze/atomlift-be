@@ -11,6 +11,7 @@ urlpatterns = [
     path("api/customer/states/", views.get_states, name="get_states"),
     path("api/customer/routes/", views.get_routes, name="get_routes"),
     path("api/customer/branches/", views.get_branches, name="get_branches"),
+    path("api/customer/cities/", views.get_cities, name="get_cities"),
     path("api/customer/next-reference/", views.get_next_customer_reference, name="get_next_customer_reference"),
     path("api/customer/list/", views.list_customers_mobile, name="list_customers_mobile"),
 
@@ -29,6 +30,11 @@ urlpatterns = [
     path("api/customer/branches/create/", views.create_branch, name="create_branch"),
     path("api/customer/branches/<int:branch_id>/", views.update_branch, name="update_branch"),
     path("api/customer/branches/<int:branch_id>/delete/", views.delete_branch, name="delete_branch"),
+
+    # CRUD operations for cities
+    path("api/customer/cities/create/", views.create_city, name="create_city"),
+    path("api/customer/cities/<int:city_id>/", views.update_city, name="update_city"),
+    path("api/customer/cities/<int:city_id>/delete/", views.delete_city, name="delete_city"),
     # Mobile create customer
     path("api/customer/create/", views.create_customer_mobile, name="create_customer_mobile"),
 ]
