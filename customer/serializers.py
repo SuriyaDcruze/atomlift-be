@@ -22,7 +22,7 @@ class CustomerCreateSerializer(serializers.ModelSerializer):
             'site_id', 'job_no', 'site_name', 'site_address', 'email', 'phone', 'mobile',
             'office_address', 'same_as_site_address', 'contact_person_name', 'designation',
             'pin_code', 'country', 'province_state', 'city', 'sector', 'routes', 'branch',
-            'handover_date', 'billing_name', 'uploads_files'
+            'handover_date', 'billing_name', 'uploads_files', 'latitude', 'longitude'
         ]
 
     def validate(self, attrs):
@@ -60,7 +60,8 @@ class CustomerListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'reference_id', 'site_id', 'job_no', 'site_name', 'site_address',
             'email', 'phone', 'mobile', 'contact_person_name', 'designation',
-            'city_name', 'sector', 'branch_name', 'route_name', 'province_state_name'
+            'city_name', 'sector', 'branch_name', 'route_name', 'province_state_name',
+            'latitude', 'longitude'
         ]
 
     def get_branch_name(self, obj):

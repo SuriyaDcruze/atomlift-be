@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.exceptions import ValidationError
 from datetime import date, timedelta
 from wagtail.admin.panels import FieldPanel, MultiFieldPanel
 from wagtail.snippets.models import register_snippet
@@ -84,6 +85,22 @@ class Customer(models.Model):
     billing_name = models.CharField(max_length=100, blank=True, null=True)
     uploads_files = models.FileField(upload_to='customer_uploads/', null=True, blank=True, max_length=100)
     notes = models.TextField(blank=True, null=True, help_text="Additional notes for this customer")
+    
+    # Geographic coordinates (optional)
+    latitude = models.DecimalField(
+        max_digits=10, 
+        decimal_places=8, 
+        blank=True, 
+        null=True,
+        help_text="Latitude coordinate (-90 to 90). Used for mapping and location services."
+    )
+    longitude = models.DecimalField(
+        max_digits=11, 
+        decimal_places=8, 
+        blank=True, 
+        null=True,
+        help_text="Longitude coordinate (-180 to 180). Used for mapping and location services."
+    )
 
     generate_license_now = models.BooleanField(default=False)
 
@@ -111,6 +128,8 @@ class Customer(models.Model):
             FieldPanel("country"),
             FieldPanel("province_state"),
             FieldPanel("city"),
+            FieldPanel("latitude"),
+            FieldPanel("longitude"),
             FieldPanel("sector"),
             FieldPanel("routes"),
             FieldPanel("branch"),
@@ -129,10 +148,37 @@ class Customer(models.Model):
         verbose_name = "Customer"
         verbose_name_plural = "Customers"
 
+    def clean(self):
+        """Validate latitude and longitude values"""
+        super().clean()
+        
+        # Validate latitude range (-90 to 90)
+        if self.latitude is not None:
+            if self.latitude < -90 or self.latitude > 90:
+                raise ValidationError({
+                    'latitude': 'Latitude must be between -90 and 90 degrees.'
+                })
+        
+        # Validate longitude range (-180 to 180)
+        if self.longitude is not None:
+            if self.longitude < -180 or self.longitude > 180:
+                raise ValidationError({
+                    'longitude': 'Longitude must be between -180 and 180 degrees.'
+                })
+        
+        # If one coordinate is provided, recommend providing both
+        if (self.latitude is not None and self.longitude is None) or \
+           (self.latitude is None and self.longitude is not None):
+            # This is just a warning, not an error, so we'll allow it
+            pass
+
     def __str__(self):
         return f"{self.site_name} - {self.job_no}" if self.job_no else self.site_name
 
     def save(self, *args, **kwargs):
+        # Validate before saving
+        self.full_clean()
+        
         # Auto-generate reference ID
         if not self.reference_id:
             last = Customer.objects.order_by('id').last()

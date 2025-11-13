@@ -138,6 +138,25 @@ def add_customer_custom(request):
             if isinstance(generate_license, str):
                 generate_license = generate_license.lower() in ('true', 'on', '1')
 
+            # Handle latitude and longitude
+            latitude = data.get('latitude')
+            longitude = data.get('longitude')
+            if latitude == '' or latitude is None:
+                latitude = None
+            else:
+                try:
+                    latitude = float(latitude)
+                except (ValueError, TypeError):
+                    latitude = None
+            
+            if longitude == '' or longitude is None:
+                longitude = None
+            else:
+                try:
+                    longitude = float(longitude)
+                except (ValueError, TypeError):
+                    longitude = None
+
             # Create customer
             customer = Customer.objects.create(
                 site_id=data['site_id'],
@@ -160,6 +179,8 @@ def add_customer_custom(request):
                 handover_date=data.get('handover_date') if data.get('handover_date') else None,
                 billing_name=data.get('billing_name', ''),
                 generate_license_now=generate_license,
+                latitude=latitude,
+                longitude=longitude,
             )
             
             return JsonResponse({
@@ -230,6 +251,25 @@ def edit_customer_custom(request, pk):
                 customer.city = City.objects.filter(id=data['city']).first()
             customer.sector = data.get('sector') if data.get('sector') else customer.sector
             customer.billing_name = data.get('billing_name', customer.billing_name)
+            
+            # Handle latitude and longitude
+            latitude = data.get('latitude')
+            longitude = data.get('longitude')
+            if latitude == '' or latitude is None:
+                customer.latitude = None
+            else:
+                try:
+                    customer.latitude = float(latitude)
+                except (ValueError, TypeError):
+                    customer.latitude = None
+            
+            if longitude == '' or longitude is None:
+                customer.longitude = None
+            else:
+                try:
+                    customer.longitude = float(longitude)
+                except (ValueError, TypeError):
+                    customer.longitude = None
             
             # Update foreign keys
             if data.get('province_state'):

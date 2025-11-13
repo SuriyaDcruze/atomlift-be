@@ -13,8 +13,6 @@ from customer.models import Customer
 from items.models import Item
 
 
-##
-
 # ---------- Dropdown Snippets ----------
 class AMCType(models.Model):
     name = models.CharField(max_length=50, unique=True)
