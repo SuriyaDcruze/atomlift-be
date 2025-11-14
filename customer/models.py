@@ -71,12 +71,12 @@ class Customer(models.Model):
     office_address = models.TextField(blank=True)
     same_as_site_address = models.BooleanField(default=False, help_text="Check to set office address same as site address")
 
-    contact_person_name = models.CharField(max_length=100)
+    contact_person_name = models.CharField(max_length=100, blank=True, null=True)
     designation = models.CharField(max_length=100, blank=True)
 
     pin_code = models.CharField(max_length=10, blank=True, null=True)
     country = models.CharField(max_length=100, blank=True, null=True)
-    province_state = models.ForeignKey("ProvinceState", on_delete=models.SET_NULL, null=True)
+    province_state = models.ForeignKey("ProvinceState", on_delete=models.SET_NULL, null=True, blank=True)
     city = models.ForeignKey("City", on_delete=models.SET_NULL, null=True, blank=True)
     sector = models.CharField(max_length=20, choices=SECTOR_CHOICES, default='private', blank=True, null=True)
     routes = models.ForeignKey("Route", on_delete=models.SET_NULL, null=True, blank=True)

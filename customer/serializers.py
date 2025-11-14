@@ -15,6 +15,7 @@ class CustomerCreateSerializer(serializers.ModelSerializer):
     branch = serializers.PrimaryKeyRelatedField(
         queryset=Branch.objects.all(), required=False, allow_null=True
     )
+    contact_person_name = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
     class Meta:
         model = Customer
@@ -38,8 +39,6 @@ class CustomerCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({'email': 'This field is required.'})
         if not attrs.get('phone'):
             raise serializers.ValidationError({'phone': 'This field is required.'})
-        if not attrs.get('contact_person_name'):
-            raise serializers.ValidationError({'contact_person_name': 'This field is required.'})
         return attrs
 
     def create(self, validated_data):
