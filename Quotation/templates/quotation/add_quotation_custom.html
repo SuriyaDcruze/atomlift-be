@@ -951,17 +951,45 @@ function fetchNextReferenceId() {
 
 function loadCustomers() {
   fetch('/quotation/api/customers/')
-    .then(response => response.json())
+    .then(response => {
+      console.log('Response status:', response.status, response.statusText);
+      if (!response.ok) {
+        // Try to get error message from response
+        return response.json().then(err => {
+          console.error('Server error:', err);
+          throw new Error(err.error || 'Failed to load customers');
+        }).catch(() => {
+          throw new Error(`HTTP ${response.status}: Failed to load customers`);
+        });
+      }
+      return response.json();
+    })
     .then(data => {
+      console.log('Received data:', data);
+      // Check if data is an array
+      if (!Array.isArray(data)) {
+        console.error('Invalid response format, expected array but got:', typeof data, data);
+        throw new Error('Invalid response format: expected array');
+      }
+      
+      if (data.length === 0) {
+        console.warn('No customers found');
+      }
+      
       allCustomers = data;
       
       // Populate hidden select for form submission
       const select = document.getElementById('customer');
+      if (!select) {
+        console.error('Customer select element not found');
+        return;
+      }
+      
       select.innerHTML = '<option value="">Select Customer</option>';
       allCustomers.forEach(customer => {
         const option = document.createElement('option');
         option.value = customer.id;
-        option.textContent = customer.site_name;
+        option.textContent = customer.site_name || 'Unnamed Customer';
         select.appendChild(option);
       });
       
@@ -976,8 +1004,13 @@ function loadCustomers() {
     })
     .catch(error => {
       console.error('Error loading customers:', error);
-      document.getElementById('customer').innerHTML = '<option value="">Error loading customers</option>';
-      showMessage('error', 'Failed to load customers');
+      const select = document.getElementById('customer');
+      if (select) {
+        select.innerHTML = '<option value="">Error loading customers</option>';
+      }
+      if (typeof showMessage !== 'undefined') {
+        showMessage('error', 'Failed to load customers: ' + error.message);
+      }
     });
 }
 
@@ -1266,7 +1299,6 @@ function filterCustomers(searchTerm) {
       return (
         (customer.site_name && customer.site_name.toLowerCase().includes(term)) ||
         (customer.job_no && customer.job_no.toLowerCase().includes(term)) ||
-        (customer.site_id && customer.site_id.toLowerCase().includes(term)) ||
         (customer.reference_id && customer.reference_id.toLowerCase().includes(term)) ||
         (customer.email && customer.email.toLowerCase().includes(term)) ||
         (customer.phone && customer.phone.toLowerCase().includes(term))
@@ -1292,7 +1324,6 @@ function displayCustomers(customers) {
       <div class="customer-item-name">${customer.site_name || 'N/A'}</div>
       <div class="customer-item-details">
         ${customer.job_no ? 'Job No: ' + customer.job_no : ''} 
-        ${customer.site_id ? '| Site ID: ' + customer.site_id : ''}
         ${customer.email ? '| ' + customer.email : ''}
       </div>
     </div>

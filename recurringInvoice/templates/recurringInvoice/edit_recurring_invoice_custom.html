@@ -726,15 +726,43 @@ var currentSalesPersonId = {% if is_edit and recurring_invoice.sales_person %}{{
 
 function loadCustomers() {
   fetch('/recurringInvoice/api/customers/')
-    .then(function(response) { return response.json(); })
+    .then(function(response) {
+      console.log('Response status:', response.status, response.statusText);
+      if (!response.ok) {
+        // Try to get error message from response
+        return response.json().then(function(err) {
+          console.error('Server error:', err);
+          throw new Error(err.error || 'Failed to load customers');
+        }).catch(function() {
+          throw new Error('HTTP ' + response.status + ': Failed to load customers');
+        });
+      }
+      return response.json();
+    })
     .then(function(data) {
+      console.log('Received data:', data);
+      // Check if data is an array
+      if (!Array.isArray(data)) {
+        console.error('Invalid response format, expected array but got:', typeof data, data);
+        throw new Error('Invalid response format: expected array');
+      }
+      
+      if (data.length === 0) {
+        console.warn('No customers found');
+      }
+      
       var select = document.getElementById('customer');
+      if (!select) {
+        console.error('Customer select element not found');
+        return;
+      }
+      
       select.innerHTML = '<option value="">Select Customer</option>';
 
       data.forEach(function(item) {
         var option = document.createElement('option');
         option.value = item.id;
-        option.textContent = item.site_name;
+        option.textContent = item.site_name || 'Unnamed Customer';
 
         // If editing, select the current customer
         if (currentCustomerId && item.id === currentCustomerId) {
@@ -747,7 +775,12 @@ function loadCustomers() {
     .catch(function(error) {
       console.error('Error loading customers:', error);
       var select = document.getElementById('customer');
-      select.innerHTML = '<option value="">Error loading customers</option>';
+      if (select) {
+        select.innerHTML = '<option value="">Error loading customers</option>';
+      }
+      if (typeof showMessage !== 'undefined') {
+        showMessage('error', 'Failed to load customers: ' + error.message);
+      }
     });
 }
 

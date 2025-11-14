@@ -249,6 +249,7 @@ def update_recurring_invoice(request, reference_id):
 
 # API endpoints for fetching dropdown options
 @require_http_methods(["GET"])
+@csrf_exempt
 def get_customers(request):
     """Get all customers"""
     try:
@@ -256,19 +257,22 @@ def get_customers(request):
         data = [
             {
                 "id": customer.id, 
-                "site_name": customer.site_name,
-                "site_address": customer.site_address,
-                "office_address": customer.office_address,
-                "job_no": customer.job_no,
-                "site_id": customer.site_id,
-                "reference_id": customer.reference_id,
-                "email": customer.email,
-                "phone": customer.phone
+                "site_name": customer.site_name or "",
+                "site_address": customer.site_address or "",
+                "office_address": customer.office_address or "",
+                "job_no": customer.job_no or "",
+                "reference_id": customer.reference_id or "",
+                "email": customer.email or "",
+                "phone": customer.phone or ""
             }
             for customer in customers
         ]
         return JsonResponse(data, safe=False)
     except Exception as e:
+        import traceback
+        import sys
+        error_trace = ''.join(traceback.format_exception(*sys.exc_info()))
+        print(f"Error in get_customers: {error_trace}", file=sys.stderr)
         return JsonResponse({"error": str(e)}, status=500)
 
 

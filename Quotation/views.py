@@ -175,6 +175,7 @@ def update_quotation(request, reference_id):
 
 # API endpoints for fetching dropdown options
 @require_http_methods(["GET"])
+@csrf_exempt
 def get_customers(request):
     """Get all customers"""
     try:
@@ -182,9 +183,8 @@ def get_customers(request):
         data = [
             {
                 "id": customer.id, 
-                "site_name": customer.site_name,
+                "site_name": customer.site_name or "",
                 "job_no": customer.job_no or "",
-                "site_id": customer.site_id or "",
                 "reference_id": customer.reference_id or "",
                 "email": customer.email or "",
                 "phone": customer.phone or ""
@@ -193,6 +193,10 @@ def get_customers(request):
         ]
         return JsonResponse(data, safe=False)
     except Exception as e:
+        import traceback
+        import sys
+        error_trace = ''.join(traceback.format_exception(*sys.exc_info()))
+        print(f"Error in get_customers: {error_trace}", file=sys.stderr)
         return JsonResponse({"error": str(e)}, status=500)
 
 
