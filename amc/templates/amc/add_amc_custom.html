@@ -805,6 +805,7 @@ body {
             </div>
           </div>
 
+          {% if is_edit %}
           <h3 class="form-section-title">Status Information</h3>
 
           <div class="form-grid">
@@ -815,7 +816,7 @@ body {
                   type="text"
                   id="status"
                   name="status"
-                  value="{% if is_edit %}{{ amc.status|default:'Pending' }}{% endif %}"
+                  value="{{ amc.status|default:'Pending' }}"
                   class="form-input"
                   readonly
                 />
@@ -829,13 +830,14 @@ body {
                   type="text"
                   id="created"
                   name="created"
-                  value="{% if is_edit %}{{ amc.created|date:'Y-m-d H:i' }}{% endif %}"
+                  value="{{ amc.created|date:'Y-m-d H:i' }}"
                   class="form-input"
                   readonly
                 />
               </div>
             </div>
           </div>
+          {% endif %}
         </form>
         {% else %}
         <div class="loading-spinner">
