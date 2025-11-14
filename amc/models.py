@@ -194,6 +194,13 @@ class AMC(models.Model):
             self.amount_due
         )
     amount_details.short_description = 'Amount'
+    
+    def get_amc_type_display(self):
+        """Method to display AMC Pack Type with proper formatting"""
+        if self.amc_type:
+            return str(self.amc_type)
+        return "—"
+    get_amc_type_display.short_description = 'AMC Pack Type'
 
     def __str__(self):
         return self.reference_id
@@ -291,6 +298,7 @@ class AMCViewSet(SnippetViewSet):
     list_display = (
         "reference_id",
         "customer",
+        "get_amc_type_display",
         # "amcname",  # Commented out - not needed
         "current_status",
         "contract_period",
@@ -398,6 +406,7 @@ class AMCExpiringThisMonthViewSet(SnippetViewSet):
     list_display = (
         "reference_id",
         "customer",
+        "get_amc_type_display",
         # "amcname",  # Commented out - not needed
         "current_status",
         "contract_period",
@@ -477,6 +486,7 @@ class AMCExpiringLastMonthViewSet(SnippetViewSet):
     list_display = (
         "reference_id",
         "customer",
+        "get_amc_type_display",
         # "amcname",  # Commented out - not needed
         "current_status",
         "contract_period",
@@ -553,6 +563,7 @@ class AMCExpiringNextMonthViewSet(SnippetViewSet):
     list_display = (
         "reference_id",
         "customer",
+        "get_amc_type_display",
         # "amcname",  # Commented out - not needed
         "current_status",
         "contract_period",
