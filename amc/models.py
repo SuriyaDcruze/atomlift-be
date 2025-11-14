@@ -37,6 +37,20 @@ class AMC(models.Model):
     # amcname field removed - migration 0006_remove_amcname_field.py
     latitude = models.CharField(max_length=255, blank=True, null=True)      # site address
     equipment_no = models.CharField(max_length=50, blank=True, null=True)   # job no
+    geo_latitude = models.DecimalField(
+        max_digits=10, 
+        decimal_places=8, 
+        blank=True, 
+        null=True,
+        help_text="Latitude coordinate (-90 to 90). Auto-filled from customer."
+    )
+    geo_longitude = models.DecimalField(
+        max_digits=11, 
+        decimal_places=8, 
+        blank=True, 
+        null=True,
+        help_text="Longitude coordinate (-180 to 180). Auto-filled from customer."
+    )
     invoice_frequency = models.CharField(
         max_length=20,
         choices=[

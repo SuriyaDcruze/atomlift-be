@@ -626,6 +626,36 @@ body {
               </div>
 
               <div class="form-group">
+                <label class="form-label">Latitude</label>
+                <input
+                  type="number"
+                  id="geo_latitude"
+                  name="geo_latitude"
+                  value="{% if is_edit %}{{ amc.geo_latitude|default:'' }}{% endif %}"
+                  class="form-input"
+                  step="0.00000001"
+                  min="-90"
+                  max="90"
+                />
+                <p class="form-help">Geographic latitude coordinate (-90 to 90)</p>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Longitude</label>
+                <input
+                  type="number"
+                  id="geo_longitude"
+                  name="geo_longitude"
+                  value="{% if is_edit %}{{ amc.geo_longitude|default:'' }}{% endif %}"
+                  class="form-input"
+                  step="0.00000001"
+                  min="-180"
+                  max="180"
+                />
+                <p class="form-help">Geographic longitude coordinate (-180 to 180)</p>
+              </div>
+
+              <div class="form-group">
                 <label class="form-label">Notes</label>
                 <textarea
                   id="notes"
@@ -868,9 +898,13 @@ function fetchCustomerDetails() {
     // Get customer data from the option's data attributes
     const jobNo = selectedOption.getAttribute('data-job-no') || '';
     const siteAddress = selectedOption.getAttribute('data-site-address') || '';
+    const customerLatitude = selectedOption.getAttribute('data-latitude') || '';
+    const customerLongitude = selectedOption.getAttribute('data-longitude') || '';
 
     const equipmentNoInput = document.getElementById('equipment_no');
     const latitudeInput = document.getElementById('latitude');
+    const geoLatitudeInput = document.getElementById('geo_latitude');
+    const geoLongitudeInput = document.getElementById('geo_longitude');
     
     var filled = false;
     
@@ -891,6 +925,24 @@ function fetchCustomerDetails() {
       // Clear if no site_address for selected customer
       latitudeInput.value = '';
     }
+
+    // Auto-fill Latitude from customer's latitude (always update when customer changes)
+    if (customerLatitude && customerLatitude.trim() !== '' && geoLatitudeInput) {
+      geoLatitudeInput.value = customerLatitude;
+      filled = true;
+    } else if (geoLatitudeInput && (!customerLatitude || customerLatitude.trim() === '')) {
+      // Clear if no latitude for selected customer
+      geoLatitudeInput.value = '';
+    }
+
+    // Auto-fill Longitude from customer's longitude (always update when customer changes)
+    if (customerLongitude && customerLongitude.trim() !== '' && geoLongitudeInput) {
+      geoLongitudeInput.value = customerLongitude;
+      filled = true;
+    } else if (geoLongitudeInput && (!customerLongitude || customerLongitude.trim() === '')) {
+      // Clear if no longitude for selected customer
+      geoLongitudeInput.value = '';
+    }
     
     if (filled) {
       showMessage('success', 'Customer details auto-filled successfully!');
@@ -899,8 +951,12 @@ function fetchCustomerDetails() {
     // If no customer selected, clear the fields
     const equipmentNoInput = document.getElementById('equipment_no');
     const latitudeInput = document.getElementById('latitude');
+    const geoLatitudeInput = document.getElementById('geo_latitude');
+    const geoLongitudeInput = document.getElementById('geo_longitude');
     if (equipmentNoInput) equipmentNoInput.value = '';
     if (latitudeInput) latitudeInput.value = '';
+    if (geoLatitudeInput) geoLatitudeInput.value = '';
+    if (geoLongitudeInput) geoLongitudeInput.value = '';
   }
 }
 
@@ -1199,9 +1255,11 @@ function prefillCustomer(customerId) {
         if (option.value === customerId) {
           customerSelect.value = customerId;
           
-          // Auto-fill equipment number and latitude from customer data
+          // Auto-fill equipment number, address, latitude, and longitude from customer data
           var jobNo = option.getAttribute('data-job-no') || '';
           var siteAddress = option.getAttribute('data-site-address') || '';
+          var customerLatitude = option.getAttribute('data-latitude') || '';
+          var customerLongitude = option.getAttribute('data-longitude') || '';
           
           var equipmentNoInput = document.getElementById('equipment_no');
           if (jobNo && equipmentNoInput) {
@@ -1212,9 +1270,19 @@ function prefillCustomer(customerId) {
           if (siteAddress && latitudeInput) {
             latitudeInput.value = siteAddress;
           }
+
+          var geoLatitudeInput = document.getElementById('geo_latitude');
+          if (customerLatitude && geoLatitudeInput) {
+            geoLatitudeInput.value = customerLatitude;
+          }
+
+          var geoLongitudeInput = document.getElementById('geo_longitude');
+          if (customerLongitude && geoLongitudeInput) {
+            geoLongitudeInput.value = customerLongitude;
+          }
           
           // Show success message
-          if (jobNo || siteAddress) {
+          if (jobNo || siteAddress || customerLatitude || customerLongitude) {
             showMessage('success', 'Customer details auto-filled successfully!');
           }
           
@@ -1306,6 +1374,8 @@ function loadCustomersDropdown(customerIdToSelect) {
         // Store customer data as attributes for later use
         option.setAttribute('data-job-no', customer.job_no || '');
         option.setAttribute('data-site-address', customer.site_address || '');
+        option.setAttribute('data-latitude', customer.latitude ? String(customer.latitude) : '');
+        option.setAttribute('data-longitude', customer.longitude ? String(customer.longitude) : '');
 
         // Select the customer if ID matches
         if (currentCustomerId && customer.id == currentCustomerId) {
@@ -1320,9 +1390,11 @@ function loadCustomersDropdown(customerIdToSelect) {
       if (selectedOption) {
         customerSelect.value = selectedOption.value;
         
-        // Auto-fill equipment number and latitude
+        // Auto-fill equipment number, address, latitude, and longitude
         var jobNo = selectedOption.getAttribute('data-job-no') || '';
         var siteAddress = selectedOption.getAttribute('data-site-address') || '';
+        var customerLatitude = selectedOption.getAttribute('data-latitude') || '';
+        var customerLongitude = selectedOption.getAttribute('data-longitude') || '';
         
         var equipmentNoInput = document.getElementById('equipment_no');
         if (jobNo && equipmentNoInput) {
@@ -1333,9 +1405,19 @@ function loadCustomersDropdown(customerIdToSelect) {
         if (siteAddress && latitudeInput) {
           latitudeInput.value = siteAddress;
         }
+
+        var geoLatitudeInput = document.getElementById('geo_latitude');
+        if (customerLatitude && geoLatitudeInput) {
+          geoLatitudeInput.value = customerLatitude;
+        }
+
+        var geoLongitudeInput = document.getElementById('geo_longitude');
+        if (customerLongitude && geoLongitudeInput) {
+          geoLongitudeInput.value = customerLongitude;
+        }
         
         // Show success message
-        if (jobNo || siteAddress) {
+        if (jobNo || siteAddress || customerLatitude || customerLongitude) {
           setTimeout(function() {
             showMessage('success', 'Customer details auto-filled successfully!');
           }, 500);

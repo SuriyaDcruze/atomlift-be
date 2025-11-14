@@ -158,6 +158,10 @@ def add_amc_custom(request):
             no_of_lifts = parse_int(data.get('no_of_lifts'), default=0)
             gst_percentage = parse_decimal(data.get('gst_percentage'), default=0)
             total_amount_paid = parse_decimal(data.get('total_amount_paid'), default=0)
+            
+            # Handle latitude and longitude - allow empty/None values
+            geo_latitude = parse_decimal(data.get('geo_latitude'))
+            geo_longitude = parse_decimal(data.get('geo_longitude'))
 
             # Create AMC
             amc = AMC.objects.create(
@@ -169,6 +173,8 @@ def add_amc_custom(request):
                 end_date=data['end_date'],
                 equipment_no=data.get('equipment_no', ''),
                 latitude=data.get('latitude', ''),
+                geo_latitude=geo_latitude,
+                geo_longitude=geo_longitude,
                 notes=data.get('notes', ''),
                 is_generate_contract=generate_contract,
                 no_of_services=no_of_services,
@@ -277,6 +283,12 @@ def edit_amc_custom(request, pk):
                     return float(value) if str(value).strip() else default
                 except (ValueError, TypeError):
                     return default
+            
+            # Handle latitude and longitude - allow empty/None values
+            if 'geo_latitude' in data:
+                amc.geo_latitude = parse_decimal(data.get('geo_latitude'))
+            if 'geo_longitude' in data:
+                amc.geo_longitude = parse_decimal(data.get('geo_longitude'))
             
             # Handle no_of_services - allow empty/None values
             if 'no_of_services' in data:
@@ -412,7 +424,7 @@ def get_customers(request):
     customers = Customer.objects.all().values(
         'id', 'reference_id', 
         # 'site_id',  # Don't need - removed
-        'site_name', 'job_no', 'site_address'
+        'site_name', 'job_no', 'site_address', 'latitude', 'longitude'
     )
     return JsonResponse(list(customers), safe=False)
 
