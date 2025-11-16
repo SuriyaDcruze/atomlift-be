@@ -360,7 +360,8 @@ class RecurringInvoiceItem(models.Model):
 
 # recurring_invoice/models.py (ViewSet and Grouping)
 
-from wagtail.snippets.views.snippets import SnippetViewSet, SnippetViewSetGroup
+from wagtail.snippets.views.snippets import SnippetViewSet, SnippetViewSetGroup, IndexView
+from django.http import HttpResponseForbidden
 
 class RecurringInvoiceViewSet(SnippetViewSet):
     model = RecurringInvoice
@@ -425,7 +426,19 @@ class RecurringInvoiceViewSet(SnippetViewSet):
         print(f"DEBUG: RecurringInvoiceViewSet.edit_view called with pk={pk}")
         instance = self.model.objects.get(pk=pk)
         return redirect(self.get_edit_url(instance))
-    
+
+    # Custom IndexView to restrict export to superusers
+    class RestrictedIndexView(IndexView):
+        def dispatch(self, request, *args, **kwargs):
+            """Override dispatch to check export permissions"""
+            export_format = request.GET.get('export')
+            if export_format in ['csv', 'xlsx']:
+                if not request.user.is_superuser:
+                    return HttpResponseForbidden("You do not have permission to access this resource.")
+            return super().dispatch(request, *args, **kwargs)
+
+    index_view_class = RestrictedIndexView
+
     def next_invoice_date_display(self, obj):
         """Display next invoice date in list view"""
         if not obj.auto_repeat:

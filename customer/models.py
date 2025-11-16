@@ -3,7 +3,8 @@ from django.core.exceptions import ValidationError
 from datetime import date, timedelta
 from wagtail.admin.panels import FieldPanel, MultiFieldPanel
 from wagtail.snippets.models import register_snippet
-from wagtail.snippets.views.snippets import SnippetViewSet, SnippetViewSetGroup
+from wagtail.snippets.views.snippets import SnippetViewSet, SnippetViewSetGroup, IndexView
+from django.http import HttpResponseForbidden
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
@@ -478,15 +479,27 @@ class CustomerViewSet(SnippetViewSet):
     icon = "user"
     menu_label = "Customers"
     inspect_view_enabled = True
-    
+
     # Disable default edit view to use custom styled pages
     edit_view_enabled = False
-    
+
     list_display = (
         "reference_id", "site_name", "job_no", "email", "phone", "number_of_lifts", "number_of_routine_services", "number_of_invoices",
     )
-    list_export = ("reference_id", "site_name", "job_no", "email", "phone", "city__value", "branch__value", "routes__value", "sector")
-    
+    # Use real attributes / helper methods for export (no double-underscore lookups)
+    # Related fields will use their __str__ display
+    list_export = (
+        "reference_id",
+        "site_name",
+        "job_no",
+        "email",
+        "phone",
+        "city",     # ForeignKey -> City.__str__ (value)
+        "branch",   # ForeignKey -> Branch.__str__
+        "routes",   # ManyToMany -> stringified list
+        "sector",
+    )
+
     search_fields = (
         "reference_id",
         # "site_id",  # Don't need
@@ -518,6 +531,20 @@ class CustomerViewSet(SnippetViewSet):
         """Override add URL to use custom styled page"""
         from django.urls import reverse
         return reverse('add_customer_custom')
+
+    # Custom IndexView to restrict export to superusers
+    class RestrictedIndexView(IndexView):
+        def dispatch(self, request, *args, **kwargs):
+            """Override dispatch to check export permissions"""
+            # Check if this is an export request
+            export_format = request.GET.get('export')
+            if export_format in ['csv', 'xlsx']:
+                # Only allow superusers to export
+                if not request.user.is_superuser:
+                    return HttpResponseForbidden("You do not have permission to access this resource.")
+            return super().dispatch(request, *args, **kwargs)
+    
+    index_view_class = RestrictedIndexView
 
 
 class CustomerLicenseViewSet(SnippetViewSet):

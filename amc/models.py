@@ -5,8 +5,9 @@ from datetime import date
 from decimal import Decimal
 from django.core.exceptions import ValidationError
 from wagtail.snippets.models import register_snippet
-from wagtail.snippets.views.snippets import SnippetViewSet, SnippetViewSetGroup
+from wagtail.snippets.views.snippets import SnippetViewSet, SnippetViewSetGroup, IndexView
 from wagtail.admin.panels import FieldPanel, MultiFieldPanel, TabbedInterface, ObjectList
+from django.http import HttpResponseForbidden
 import re
 
 from customer.models import Customer
@@ -367,6 +368,20 @@ class AMCViewSet(SnippetViewSet):
         "is_generate_contract",
         "created",
     )
+
+    # Custom IndexView to restrict export to superusers
+    class RestrictedIndexView(IndexView):
+        def dispatch(self, request, *args, **kwargs):
+            """Override dispatch to check export permissions"""
+            # Check if this is an export request
+            export_format = request.GET.get('export')
+            if export_format in ['csv', 'xlsx']:
+                # Only allow superusers to export
+                if not request.user.is_superuser:
+                    return HttpResponseForbidden("You do not have permission to access this resource.")
+            return super().dispatch(request, *args, **kwargs)
+    
+    index_view_class = RestrictedIndexView
 
     def get_add_url(self):
         from django.urls import reverse

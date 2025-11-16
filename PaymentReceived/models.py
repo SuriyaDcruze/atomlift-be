@@ -6,7 +6,8 @@ from django.forms.widgets import RadioSelect
 from django.core.exceptions import ValidationError
 from wagtail.admin.panels import FieldPanel, MultiFieldPanel
 from wagtail.snippets.models import register_snippet
-from wagtail.snippets.views.snippets import SnippetViewSet, SnippetViewSetGroup
+from wagtail.snippets.views.snippets import SnippetViewSet, SnippetViewSetGroup, IndexView
+from django.http import HttpResponseForbidden
 from django.urls import reverse
 from django.shortcuts import redirect
 
@@ -153,6 +154,18 @@ class PaymentReceivedViewSet(SnippetViewSet):
     def edit_view(self, request, pk):
         instance = self.model.objects.get(pk=pk)
         return redirect(self.get_edit_url(instance))
+
+    # Custom IndexView to restrict export to superusers
+    class RestrictedIndexView(IndexView):
+        def dispatch(self, request, *args, **kwargs):
+            """Override dispatch to check export permissions"""
+            export_format = request.GET.get('export')
+            if export_format in ['csv', 'xlsx']:
+                if not request.user.is_superuser:
+                    return HttpResponseForbidden("You do not have permission to access this resource.")
+            return super().dispatch(request, *args, **kwargs)
+
+    index_view_class = RestrictedIndexView
 
 
 # ---------- SNIPPET GROUP ----------
