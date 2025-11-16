@@ -378,7 +378,15 @@ class AMCViewSet(SnippetViewSet):
             if export_format in ['csv', 'xlsx']:
                 # Only allow superusers to export
                 if not request.user.is_superuser:
-                    return HttpResponseForbidden("You do not have permission to access this resource.")
+                    from django.contrib import messages
+                    from django.shortcuts import redirect
+                    messages.error(request, "You do not have permission to export AMCs.")
+                    params = request.GET.copy()
+                    params.pop("export", None)
+                    url = request.path
+                    if params:
+                        return redirect(f"{url}?{params.urlencode()}")
+                    return redirect(url)
             return super().dispatch(request, *args, **kwargs)
     
     index_view_class = RestrictedIndexView
