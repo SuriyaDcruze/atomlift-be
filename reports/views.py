@@ -502,7 +502,8 @@ def export_complaints_csv(request):
     for complaint in complaints:
         writer.writerow([
             complaint.reference or complaint.id,
-            complaint.date.strftime('%d.%m.%Y') if complaint.date else '',
+            # Use ISO date format so Excel/Sheets parse reliably
+            complaint.date.strftime('%Y-%m-%d') if complaint.date else '',
             complaint.customer.site_name if complaint.customer else 'Unknown',
             complaint.contact_person_name or 'N/A',
             complaint.contact_person_mobile or 'N/A',
@@ -534,8 +535,8 @@ def export_invoices_csv(request):
             invoice.reference_id or invoice.id,
             invoice.customer.site_name if invoice.customer else 'N/A',
             invoice.amc_type.name if invoice.amc_type else 'N/A',
-            invoice.start_date.strftime('%d.%m.%Y') if invoice.start_date else '',
-            invoice.due_date.strftime('%d.%m.%Y') if invoice.due_date else '',
+            invoice.start_date.strftime('%Y-%m-%d') if invoice.start_date else '',
+            invoice.due_date.strftime('%Y-%m-%d') if invoice.due_date else '',
             f'{invoice.discount}%' if invoice.discount else '0%',
             invoice.get_payment_term_display() if invoice.payment_term else 'N/A',
             invoice.get_status_display() if invoice.status else 'Open',
@@ -560,7 +561,7 @@ def export_quotations_csv(request):
     for quotation in quotations:
         writer.writerow([
             quotation.reference_id or quotation.id,
-            quotation.date.strftime('%d.%m.%Y') if quotation.date else '',
+            quotation.date.strftime('%Y-%m-%d') if quotation.date else '',
             quotation.customer.site_name if quotation.customer else 'N/A',
             quotation.amc_type.name if quotation.amc_type else 'N/A',
             quotation.type or 'N/A',
@@ -600,7 +601,12 @@ def export_complaints_xlsx(request):
     complaints = Complaint.objects.all().select_related('customer', 'assign_to', 'complaint_type', 'priority')
     for row_num, complaint in enumerate(complaints, 2):
         worksheet.cell(row=row_num, column=1, value=complaint.reference or str(complaint.id))
-        worksheet.cell(row=row_num, column=2, value=complaint.date.strftime('%d.%m.%Y') if complaint.date else '')
+        date_cell = worksheet.cell(row=row_num, column=2)
+        if complaint.date:
+            date_cell.value = complaint.date
+            date_cell.number_format = 'DD-MM-YYYY'
+        else:
+            date_cell.value = ''
         worksheet.cell(row=row_num, column=3, value=complaint.customer.site_name if complaint.customer else 'Unknown')
         worksheet.cell(row=row_num, column=4, value=complaint.contact_person_name or 'N/A')
         worksheet.cell(row=row_num, column=5, value=complaint.contact_person_mobile or 'N/A')
@@ -662,8 +668,18 @@ def export_invoices_xlsx(request):
         worksheet.cell(row=row_num, column=1, value=invoice.reference_id or str(invoice.id))
         worksheet.cell(row=row_num, column=2, value=invoice.customer.site_name if invoice.customer else 'N/A')
         worksheet.cell(row=row_num, column=3, value=invoice.amc_type.name if invoice.amc_type else 'N/A')
-        worksheet.cell(row=row_num, column=4, value=invoice.start_date.strftime('%d.%m.%Y') if invoice.start_date else '')
-        worksheet.cell(row=row_num, column=5, value=invoice.due_date.strftime('%d.%m.%Y') if invoice.due_date else '')
+        start_cell = worksheet.cell(row=row_num, column=4)
+        if invoice.start_date:
+            start_cell.value = invoice.start_date
+            start_cell.number_format = 'DD-MM-YYYY'
+        else:
+            start_cell.value = ''
+        due_cell = worksheet.cell(row=row_num, column=5)
+        if invoice.due_date:
+            due_cell.value = invoice.due_date
+            due_cell.number_format = 'DD-MM-YYYY'
+        else:
+            due_cell.value = ''
         worksheet.cell(row=row_num, column=6, value=f'{invoice.discount}%' if invoice.discount else '0%')
         worksheet.cell(row=row_num, column=7, value=invoice.get_payment_term_display() if invoice.payment_term else 'N/A')
         worksheet.cell(row=row_num, column=8, value=invoice.get_status_display() if invoice.status else 'Open')
@@ -718,7 +734,12 @@ def export_quotations_xlsx(request):
     quotations = Quotation.objects.all().select_related('customer', 'amc_type', 'sales_service_executive')
     for row_num, quotation in enumerate(quotations, 2):
         worksheet.cell(row=row_num, column=1, value=quotation.reference_id or str(quotation.id))
-        worksheet.cell(row=row_num, column=2, value=quotation.date.strftime('%d.%m.%Y') if quotation.date else '')
+        date_cell = worksheet.cell(row=row_num, column=2)
+        if quotation.date:
+            date_cell.value = quotation.date
+            date_cell.number_format = 'DD-MM-YYYY'
+        else:
+            date_cell.value = ''
         worksheet.cell(row=row_num, column=3, value=quotation.customer.site_name if quotation.customer else 'N/A')
         worksheet.cell(row=row_num, column=4, value=quotation.amc_type.name if quotation.amc_type else 'N/A')
         worksheet.cell(row=row_num, column=5, value=quotation.type or 'N/A')
@@ -762,7 +783,7 @@ def export_payments_csv(request):
     for payment in payments:
         writer.writerow([
             payment.payment_number or payment.id,
-            payment.date.strftime('%d.%m.%Y') if payment.date else '',
+            payment.date.strftime('%Y-%m-%d') if payment.date else '',
             payment.customer.site_name if payment.customer else 'N/A',
             payment.invoice.reference_id if payment.invoice else 'N/A',
             f'INR {payment.amount or 0.00}',
@@ -802,7 +823,12 @@ def export_payments_xlsx(request):
     payments = PaymentReceived.objects.all().select_related('customer', 'invoice')
     for row_num, payment in enumerate(payments, 2):
         worksheet.cell(row=row_num, column=1, value=payment.payment_number or str(payment.id))
-        worksheet.cell(row=row_num, column=2, value=payment.date.strftime('%d.%m.%Y') if payment.date else '')
+        date_cell = worksheet.cell(row=row_num, column=2)
+        if payment.date:
+            date_cell.value = payment.date
+            date_cell.number_format = 'DD-MM-YYYY'
+        else:
+            date_cell.value = ''
         worksheet.cell(row=row_num, column=3, value=payment.customer.site_name if payment.customer else 'N/A')
         worksheet.cell(row=row_num, column=4, value=payment.invoice.reference_id if payment.invoice else 'N/A')
         worksheet.cell(row=row_num, column=5, value=f'INR {payment.amount or 0.00}')
@@ -848,8 +874,8 @@ def export_amc_csv(request):
             amc.reference_id or amc.id,
             amc.customer.site_name if amc.customer else 'N/A',
             amc.amc_type.name if amc.amc_type else 'N/A',
-            amc.start_date.strftime('%d.%m.%Y') if amc.start_date else '',
-            amc.end_date.strftime('%d.%m.%Y') if amc.end_date else '',
+            amc.start_date.strftime('%Y-%m-%d') if amc.start_date else '',
+            amc.end_date.strftime('%Y-%m-%d') if amc.end_date else '',
             f'INR {amc.contract_amount or 0.00}',
             f'INR {amc.total_amount_paid or 0.00}',
             f'INR {amc.amount_due or 0.00}',
@@ -890,8 +916,18 @@ def export_amc_xlsx(request):
         worksheet.cell(row=row_num, column=1, value=amc.reference_id or str(amc.id))
         worksheet.cell(row=row_num, column=2, value=amc.customer.site_name if amc.customer else 'N/A')
         worksheet.cell(row=row_num, column=3, value=amc.amc_type.name if amc.amc_type else 'N/A')
-        worksheet.cell(row=row_num, column=4, value=amc.start_date.strftime('%d.%m.%Y') if amc.start_date else '')
-        worksheet.cell(row=row_num, column=5, value=amc.end_date.strftime('%d.%m.%Y') if amc.end_date else '')
+        start_cell = worksheet.cell(row=row_num, column=4)
+        if amc.start_date:
+            start_cell.value = amc.start_date
+            start_cell.number_format = 'DD-MM-YYYY'
+        else:
+            start_cell.value = ''
+        end_cell = worksheet.cell(row=row_num, column=5)
+        if amc.end_date:
+            end_cell.value = amc.end_date
+            end_cell.number_format = 'DD-MM-YYYY'
+        else:
+            end_cell.value = ''
         worksheet.cell(row=row_num, column=6, value=f'INR {amc.contract_amount or 0.00}')
         worksheet.cell(row=row_num, column=7, value=f'INR {amc.total_amount_paid or 0.00}')
         worksheet.cell(row=row_num, column=8, value=f'INR {amc.amount_due or 0.00}')
@@ -936,9 +972,9 @@ def export_routine_service_csv(request):
             amc.reference_id or amc.id,
             amc.customer.site_name if amc.customer else 'N/A',
             amc.amc_type.name if amc.amc_type else 'N/A',
-            amc.created.strftime('%d.%m.%Y %H:%M') if amc.created else '',
-            amc.start_date.strftime('%d.%m.%Y') if amc.start_date else '',
-            amc.end_date.strftime('%d.%m.%Y') if amc.end_date else '',
+            amc.created.strftime('%Y-%m-%d %H:%M') if amc.created else '',
+            amc.start_date.strftime('%Y-%m-%d') if amc.start_date else '',
+            amc.end_date.strftime('%Y-%m-%d') if amc.end_date else '',
             amc.get_status_display() if amc.status else 'Active',
         ])
     
@@ -976,9 +1012,24 @@ def export_routine_service_xlsx(request):
         worksheet.cell(row=row_num, column=1, value=amc.reference_id or str(amc.id))
         worksheet.cell(row=row_num, column=2, value=amc.customer.site_name if amc.customer else 'N/A')
         worksheet.cell(row=row_num, column=3, value=amc.amc_type.name if amc.amc_type else 'N/A')
-        worksheet.cell(row=row_num, column=4, value=amc.created.strftime('%d.%m.%Y %H:%M') if amc.created else '')
-        worksheet.cell(row=row_num, column=5, value=amc.start_date.strftime('%d.%m.%Y') if amc.start_date else '')
-        worksheet.cell(row=row_num, column=6, value=amc.end_date.strftime('%d.%m.%Y') if amc.end_date else '')
+        created_cell = worksheet.cell(row=row_num, column=4)
+        if amc.created:
+            created_cell.value = amc.created
+            created_cell.number_format = 'DD-MM-YYYY HH:MM'
+        else:
+            created_cell.value = ''
+        start_cell = worksheet.cell(row=row_num, column=5)
+        if amc.start_date:
+            start_cell.value = amc.start_date
+            start_cell.number_format = 'DD-MM-YYYY'
+        else:
+            start_cell.value = ''
+        end_cell = worksheet.cell(row=row_num, column=6)
+        if amc.end_date:
+            end_cell.value = amc.end_date
+            end_cell.number_format = 'DD-MM-YYYY'
+        else:
+            end_cell.value = ''
         worksheet.cell(row=row_num, column=7, value=amc.get_status_display() if amc.status else 'Active')
     
     # Adjust column widths

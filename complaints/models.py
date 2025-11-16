@@ -96,6 +96,22 @@ class Complaint(models.Model):
     def __str__(self):
         return f"{self.reference} - {self.subject}"
 
+    # -------- Helpers for exports --------
+    @property
+    def date_str(self):
+        """String version of complaint date for CSV/XLSX export (avoids Excel ###)."""
+        return self.date.strftime("%Y-%m-%d") if self.date else ""
+
+    @property
+    def created_str(self):
+        """String version of created datetime for CSV/XLSX export."""
+        return self.created.strftime("%Y-%m-%d %H:%M") if self.created else ""
+
+    @property
+    def updated_str(self):
+        """String version of updated datetime for CSV/XLSX export."""
+        return self.updated.strftime("%Y-%m-%d %H:%M") if self.updated else ""
+
     complaint_panels = [
         MultiFieldPanel([
             FieldPanel("reference", read_only=True),
@@ -219,12 +235,12 @@ class ComplaintViewSet(SnippetViewSet):
     # 👇 Add custom buttons
     list_display_add_buttons = True
 
-    # 👇 Export ALL model fields (CSV + XLSX)
+    # 👇 Export ALL model fields (CSV + XLSX) – dates as strings for Excel friendliness
     list_export = [
         "id",
         "reference",
         "complaint_type",
-        "date",
+        "date_str",
         "customer",
         "contact_person_name",
         "contact_person_mobile",
@@ -240,8 +256,8 @@ class ComplaintViewSet(SnippetViewSet):
         "solution",
         "technician_signature",
         "customer_signature",
-        "created",
-        "updated",
+        "created_str",
+        "updated_str",
     ]
     export_formats = ["csv", "xlsx"]
 

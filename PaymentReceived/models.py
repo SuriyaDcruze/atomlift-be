@@ -108,6 +108,12 @@ class PaymentReceived(models.Model):
     def __str__(self):
         return self.payment_number
 
+    # -------- Helpers for exports --------
+    @property
+    def date_str(self):
+        """String version of payment date for CSV/XLSX export (avoids Excel ###)."""
+        return self.date.strftime("%Y-%m-%d") if self.date else ""
+
 
 # ---------- SNIPPET VIEWSET ----------
 class PaymentReceivedViewSet(SnippetViewSet):
@@ -116,9 +122,15 @@ class PaymentReceivedViewSet(SnippetViewSet):
     menu_label = "Payments Received"
     inspect_view_enabled = True
     list_display = ["payment_number", "customer", "invoice", "amount", "payment_type", "date"]
+    # Export with stringified date so Excel doesn't render as ###
     list_export = [
-        "payment_number", "customer", "invoice", "amount", "date",
-        "payment_type", "tax_deducted"
+        "payment_number",
+        "customer",
+        "invoice",
+        "amount",
+        "date_str",
+        "payment_type",
+        "tax_deducted",
     ]
     
     # Search fields

@@ -149,6 +149,12 @@ class DeliveryChallan(ClusterableModel):
     def __str__(self):
         return self.reference_id
 
+    # -------- Helpers for exports --------
+    @property
+    def date_str(self):
+        """String version of challan date for CSV/XLSX export (avoids Excel ###)."""
+        return self.date.strftime("%Y-%m-%d") if self.date else ""
+
 
 class DeliveryChallanItem(models.Model):
     """Items in a delivery challan"""
@@ -198,10 +204,17 @@ class DeliveryChallanViewSet(SnippetViewSet):
     search_fields = ('reference_id', 'customer__site_name')
     list_filter = ('challan_type', 'date')
     
+    # Export with stringified date so Excel doesn't render it as ###
     list_export = [
-        'reference_id', 'customer', 'date',
-        'challan_type', 'place_of_supply', 'currency', 'total',
-        'customer_note', 'terms_conditions'
+        'reference_id',
+        'customer',
+        'date_str',
+        'challan_type',
+        'place_of_supply',
+        'currency',
+        'total',
+        'customer_note',
+        'terms_conditions',
     ]
     
     def get_add_url(self):

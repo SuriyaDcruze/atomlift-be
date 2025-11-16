@@ -220,6 +220,22 @@ class AMC(models.Model):
     def __str__(self):
         return self.reference_id
 
+    # -------- Helpers for exports --------
+    @property
+    def start_date_str(self):
+        """String version of start_date for CSV/XLSX export (avoids Excel ### date rendering)."""
+        return self.start_date.strftime("%Y-%m-%d") if self.start_date else ""
+
+    @property
+    def end_date_str(self):
+        """String version of end_date for CSV/XLSX export."""
+        return self.end_date.strftime("%Y-%m-%d") if self.end_date else ""
+
+    @property
+    def created_str(self):
+        """String version of created datetime for CSV/XLSX export."""
+        return self.created.strftime("%Y-%m-%d %H:%M") if self.created else ""
+
     # Wagtail panels
     basic_panels = [
         MultiFieldPanel([
@@ -320,7 +336,7 @@ class AMCViewSet(SnippetViewSet):
         "amount_details",
     )
 
-    # 👇 Export ALL model fields to CSV & XLSX
+    # 👇 Export ALL model fields to CSV & XLSX (dates as strings for Excel)
     list_export = [
         "id",
         "reference_id",
@@ -331,8 +347,8 @@ class AMCViewSet(SnippetViewSet):
         "invoice_frequency",
         "amc_type",
         "payment_terms",
-        "start_date",
-        "end_date",
+        "start_date_str",
+        "end_date_str",
         "notes",
         "is_generate_contract",
         "no_of_services",
@@ -345,7 +361,7 @@ class AMCViewSet(SnippetViewSet):
         "amount_due",
         "amc_service_item",
         "status",
-        "created",
+        "created_str",
     ]
     export_formats = ["csv", "xlsx"]
 
@@ -460,8 +476,8 @@ class AMCExpiringThisMonthViewSet(SnippetViewSet):
         "invoice_frequency",
         "amc_type",
         "payment_terms",
-        "start_date",
-        "end_date",
+        "start_date_str",
+        "end_date_str",
         "notes",
         "is_generate_contract",
         "no_of_services",
@@ -474,7 +490,7 @@ class AMCExpiringThisMonthViewSet(SnippetViewSet):
         "amount_due",
         "amc_service_item",
         "status",
-        "created",
+        "created_str",
     ]
     export_formats = ["csv", "xlsx"]
 
@@ -540,8 +556,8 @@ class AMCExpiringLastMonthViewSet(SnippetViewSet):
         "invoice_frequency",
         "amc_type",
         "payment_terms",
-        "start_date",
-        "end_date",
+        "start_date_str",
+        "end_date_str",
         "notes",
         "is_generate_contract",
         "no_of_services",
@@ -554,7 +570,7 @@ class AMCExpiringLastMonthViewSet(SnippetViewSet):
         "amount_due",
         "amc_service_item",
         "status",
-        "created",
+        "created_str",
     ]
     export_formats = ["csv", "xlsx"]
 

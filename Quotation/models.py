@@ -98,6 +98,17 @@ class Quotation(ClusterableModel):
 
     def __str__(self):
         return self.reference_id
+
+    # -------- Helpers for exports --------
+    @property
+    def date_str(self):
+        """String version of date for CSV/XLSX export (avoids Excel ### date rendering)."""
+        return self.date.strftime("%Y-%m-%d") if self.date else ""
+
+    @property
+    def lifts_str(self):
+        """Comma-separated list of related lifts for safe CSV/XLSX export."""
+        return ", ".join(str(lift) for lift in self.lifts.all())
     
 
 # quotation/views.py (ViewSet and Grouping)
@@ -121,17 +132,17 @@ class QuotationViewSet(SnippetViewSet):
         "date",
     )
 
-    # ✅ Export ALL model fields
+    # ✅ Export model fields (with stringified date/lifts for Excel)
     list_export = [
         "id",
         "reference_id",
         "customer",
         "amc_type",
         "sales_service_executive",
-        "lifts",
+        "lifts_str",
         "type",
         "year_of_make",
-        "date",
+        "date_str",
         "remark",
         "other_remark",
         "uploads_files",

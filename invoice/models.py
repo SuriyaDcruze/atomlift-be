@@ -85,6 +85,17 @@ class Invoice(ClusterableModel):
     def __str__(self):
         return self.reference_id
 
+    # -------- Helpers for exports --------
+    @property
+    def start_date_str(self):
+        """String version of start_date for CSV/XLSX export (avoids Excel ### date rendering)."""
+        return self.start_date.strftime("%Y-%m-%d") if self.start_date else ""
+
+    @property
+    def due_date_str(self):
+        """String version of due_date for CSV/XLSX export."""
+        return self.due_date.strftime("%Y-%m-%d") if self.due_date else ""
+
 
 class InvoiceItem(models.Model):
     # Relates back to the parent Invoice
@@ -146,10 +157,16 @@ class InvoiceViewSet(SnippetViewSet):
         'due_date',
     )
     
-    # You can customize export fields here if needed
+    # Export fields (use stringified dates so Excel doesn't render them as ###)
     list_export = [
-        "reference_id", "customer", "start_date", "due_date",
-        "discount", "payment_term", "total", "status",
+        "reference_id",
+        "customer",
+        "start_date_str",
+        "due_date_str",
+        "discount",
+        "payment_term",
+        "total",
+        "status",
     ]
 
     def get_add_url(self):
