@@ -20,7 +20,64 @@ http://your-domain.com/auth/api/mobile/
 
 ## API Endpoints
 
-### 1. Generate OTP
+### 1. Email + Password Login (New)
+
+**Endpoint**: `POST /auth/api/mobile/login/`
+
+**Description**: Logs in the user using email and password (alternative to OTP login) and returns an authentication token.
+
+**Request Body**:
+```json
+{
+    "email": "user@example.com",
+    "password": "your_password_here"
+}
+```
+
+**Response** (Success - 200):
+```json
+{
+    "user": {
+        "id": 1,
+        "email": "user@example.com",
+        "first_name": "John",
+        "last_name": "Doe",
+        "full_name": "John Doe",
+        "phone_number": "+1234567890",
+        "is_active": true,
+        "date_joined": "2024-01-01T00:00:00Z",
+        "last_login": "2024-01-15T10:30:00Z",
+        "profile": {
+            "phone_number": "+1234567890",
+            "branch": "Main Branch",
+            "route": "Route A",
+            "code": "EMP001",
+            "designation": "Manager"
+        },
+        "groups": ["Employees", "Managers"]
+    },
+    "token": "9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b",
+    "message": "Login successful"
+}
+```
+
+**Response** (Error - 400):
+```json
+{
+    "error": "Invalid email or password"
+}
+```
+
+**Response** (Error - 403):
+```json
+{
+    "error": "Access denied. Only employees can use mobile app"
+}
+```
+
+---
+
+### 2. Generate OTP
 
 **Endpoint**: `POST /auth/api/mobile/generate-otp/`
 
@@ -63,7 +120,7 @@ OR
 }
 ```
 
-### 2. Verify OTP and Login
+### 3. Verify OTP and Login
 
 **Endpoint**: `POST /auth/api/mobile/verify-otp/`
 
@@ -116,7 +173,7 @@ OR
 }
 ```
 
-### 3. Resend OTP
+### 4. Resend OTP
 
 **Endpoint**: `POST /auth/api/mobile/resend-otp/`
 
@@ -126,7 +183,7 @@ OR
 
 **Response**: Same as Generate OTP
 
-### 4. Get User Details
+### 5. Get User Details
 
 **Endpoint**: `GET /auth/api/mobile/user-details/`
 
@@ -177,7 +234,7 @@ Authorization: Token 9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b
 }
 ```
 
-### 5. Logout
+### 6. Logout
 
 **Endpoint**: `POST /auth/api/mobile/logout/`
 

@@ -137,3 +137,11 @@ class OTPSendResponseSerializer(serializers.Serializer):
     otp_type = serializers.CharField()
     contact_info = serializers.CharField()
     expires_in_minutes = serializers.IntegerField()
+
+
+class EmailPasswordLoginRequestSerializer(serializers.Serializer):
+    """
+    Request serializer for mobile email + password login.
+    """
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)

@@ -4,7 +4,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, authenticate
 from django.core.mail import send_mail
 from django.conf import settings
 from django.db.models import Q
@@ -13,11 +13,12 @@ import logging
 
 from .models import CustomUser, OTP
 from .serializers import (
-    GenerateOTPRequestSerializer, 
+    GenerateOTPRequestSerializer,
     VerifyOTPRequestSerializer,
     MobileLoginResponseSerializer,
     OTPSendResponseSerializer,
-    UserSerializer
+    UserSerializer,
+    EmailPasswordLoginRequestSerializer,
 )
 
 User = get_user_model()
@@ -350,3 +351,46 @@ def get_user_details(request):
             {'error': 'Failed to retrieve user details'}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def email_password_login(request):
+    """
+    Mobile app login using email + password (alternative to OTP).
+    Only users belonging to at least one group (employees) are allowed.
+    """
+    serializer = EmailPasswordLoginRequestSerializer(data=request.data)
+
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    email = serializer.validated_data["email"]
+    password = serializer.validated_data["password"]
+
+    user = authenticate(request, email=email, password=password)
+
+    if user is None or not user.is_active:
+        return Response(
+            {"error": "Invalid email or password"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Restrict to employee users (same rule as OTP flow)
+    if not user.groups.exists():
+        return Response(
+            {"error": "Access denied. Only employees can use mobile app"},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    token, created = Token.objects.get_or_create(user=user)
+
+    user_serializer = UserSerializer(user)
+    response_data = {
+        "user": user_serializer.data,
+        "token": token.key,
+        "message": "Login successful",
+    }
+
+    return Response(response_data, status=status.HTTP_200_OK)
