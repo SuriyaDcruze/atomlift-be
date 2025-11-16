@@ -278,6 +278,26 @@ class StockRegisterViewSet(SnippetViewSet):
     search_fields = ("register_no", "item__name", "reference", "description")
     list_filter = ("transaction_type", "date", "item__type")
 
+    # Custom IndexView to restrict export to superusers
+    class RestrictedIndexView(IndexView):
+        def dispatch(self, request, *args, **kwargs):
+            """Override dispatch to check export permissions"""
+            export_format = request.GET.get('export')
+            if export_format in ['csv', 'xlsx']:
+                if not request.user.is_superuser:
+                    from django.contrib import messages
+                    from django.shortcuts import redirect
+                    messages.error(request, "You do not have permission to export stock register.")
+                    params = request.GET.copy()
+                    params.pop("export", None)
+                    url = request.path
+                    if params:
+                        return redirect(f"{url}?{params.urlencode()}")
+                    return redirect(url)
+            return super().dispatch(request, *args, **kwargs)
+
+    index_view_class = RestrictedIndexView
+
 
 # ---------- GROUP ----------
 class InventoryGroup(SnippetViewSetGroup):

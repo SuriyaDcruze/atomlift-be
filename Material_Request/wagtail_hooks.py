@@ -1,5 +1,5 @@
 from wagtail.snippets.models import register_snippet
-from wagtail.snippets.views.snippets import SnippetViewSet, SnippetViewSetGroup
+from wagtail.snippets.views.snippets import SnippetViewSet, SnippetViewSetGroup, IndexView
 from wagtail import hooks
 from wagtail.admin.menu import MenuItem
 from wagtail.permissions import ModelPermissionPolicy
@@ -82,6 +82,26 @@ class MaterialRequestViewSet(SnippetViewSet):
         'requested_by',
     ]
     export_formats = ["csv", "xlsx"]
+
+    # Custom IndexView to restrict export to superusers
+    class RestrictedIndexView(IndexView):
+        def dispatch(self, request, *args, **kwargs):
+            """Override dispatch to check export permissions"""
+            export_format = request.GET.get('export')
+            if export_format in ['csv', 'xlsx']:
+                if not request.user.is_superuser:
+                    from django.contrib import messages
+                    from django.shortcuts import redirect
+                    messages.error(request, "You do not have permission to export material requests.")
+                    params = request.GET.copy()
+                    params.pop("export", None)
+                    url = request.path
+                    if params:
+                        return redirect(f"{url}?{params.urlencode()}")
+                    return redirect(url)
+            return super().dispatch(request, *args, **kwargs)
+
+    index_view_class = RestrictedIndexView
     
     def get_form_class(self, for_update=False):
         """Override form to make file field not required"""
