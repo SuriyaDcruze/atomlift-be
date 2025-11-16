@@ -1362,7 +1362,7 @@ tr {
               <tbody>
                 {% for complaint in complaints %}
                 <tr>
-                  <td>{{ complaint.complaint_id|default:"N/A" }}</td>
+                  <td>{{ complaint.reference|default:"N/A" }}</td>
                   <td>{{ complaint.created_date|date:"M d, Y"|default:"N/A" }}</td>
                   <td>{{ complaint.subject|default:"N/A" }}</td>
                   <td><span class="form-value">{{ complaint.status|default:"N/A" }}</span></td>
