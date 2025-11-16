@@ -52,9 +52,10 @@ class DeliveryChallan(ClusterableModel):
     
     # Financial Information
     currency = models.CharField(max_length=10, default='INR')
-    discount_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    # Increased max_digits to avoid "Ensure that there are no more than 12 digits in total" errors
+    discount_amount = models.DecimalField(max_digits=20, decimal_places=2, default=0.00)
     discount_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
-    adjustment = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    adjustment = models.DecimalField(max_digits=20, decimal_places=2, default=0.00)
     
     # Additional Information
     customer_note = models.TextField(blank=True)
@@ -152,10 +153,12 @@ class DeliveryChallanItem(models.Model):
     """Items in a delivery challan"""
     challan = ParentalKey(DeliveryChallan, on_delete=models.CASCADE, related_name='items')
     item = models.ForeignKey('items.Item', on_delete=models.SET_NULL, null=True, blank=True)
-    rate = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    qty = models.DecimalField(max_digits=10, decimal_places=2, default=1.00)
+    # Allow larger values for rate/qty so calculated totals don't overflow
+    rate = models.DecimalField(max_digits=20, decimal_places=2, default=0.00)
+    qty = models.DecimalField(max_digits=20, decimal_places=2, default=1.00)
     tax = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
-    total = models.DecimalField(max_digits=12, decimal_places=2, editable=False)
+    # Increased max_digits to avoid "no more than 12 digits" validation errors
+    total = models.DecimalField(max_digits=20, decimal_places=2, editable=False)
     
     panels = [
         FieldPanel('item'),
