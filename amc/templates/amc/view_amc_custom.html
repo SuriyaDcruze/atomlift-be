@@ -456,7 +456,7 @@ tr:hover {
           <div class="flex justify-between items-center mb-4">
             <h3 class="form-section-title">AMC ROUTINE SERVICES</h3>
             <div class="flex gap-2">
-              <button class="btn btn-primary" onclick="alert('Export functionality coming soon')">EXPORT</button>
+              <a href="{% url 'export_amc_routine_services_xlsx' amc.id %}" class="btn btn-primary">EXPORT</a>
               <a href="{% url 'edit_amc_routine_services' amc.id %}" class="btn btn-primary" target="_blank">EDIT</a>
             </div>
           </div>

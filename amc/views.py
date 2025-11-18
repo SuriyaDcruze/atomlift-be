@@ -240,6 +240,107 @@ def create_amc_type_mobile(request):
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+def export_amc_routine_services_xlsx(request, pk):
+    """Export AMC routine services to Excel"""
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment
+    from django.http import HttpResponse
+    from datetime import datetime
+    
+    amc = get_object_or_404(AMC.objects.select_related('customer'), pk=pk)
+    routine_services = AMCRoutineService.objects.filter(amc=amc).select_related('employee_assign').order_by('service_date')
+    
+    # Create workbook and worksheet
+    workbook = Workbook()
+    worksheet = workbook.active
+    worksheet.title = "Routine Services"
+    
+    # Header row styling
+    header_fill = PatternFill(start_color="2D3A6B", end_color="2D3A6B", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF", size=12)
+    
+    # Add AMC info at the top
+    worksheet.merge_cells('A1:H1')
+    info_cell = worksheet.cell(row=1, column=1, value=f"AMC Routine Services - {amc.reference_id}")
+    info_cell.font = Font(bold=True, size=14)
+    info_cell.alignment = Alignment(horizontal='center', vertical='center')
+    
+    worksheet.merge_cells('A2:H2')
+    customer_info = f"Customer: {amc.customer.site_name if amc.customer else 'N/A'} | Contract Period: {amc.start_date.strftime('%d/%m/%Y') if amc.start_date else 'N/A'} - {amc.end_date.strftime('%d/%m/%Y') if amc.end_date else 'N/A'}"
+    info_cell2 = worksheet.cell(row=2, column=1, value=customer_info)
+    info_cell2.font = Font(size=11)
+    info_cell2.alignment = Alignment(horizontal='center', vertical='center')
+    
+    # Headers (row 3)
+    headers = ['No', 'Lift Code', 'Date', 'Month', 'Block / Wing', 'Note', 'Assign To', 'Status']
+    for col_num, header in enumerate(headers, 1):
+        cell = worksheet.cell(row=3, column=col_num, value=header)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+    
+    # Data rows (starting from row 4)
+    for row_num, service in enumerate(routine_services, 4):
+        worksheet.cell(row=row_num, column=1, value=row_num - 3)  # No
+        
+        # Lift Code (from customer job_no)
+        lift_code = amc.customer.job_no if amc.customer and amc.customer.job_no else '—'
+        worksheet.cell(row=row_num, column=2, value=lift_code)
+        
+        # Date
+        date_cell = worksheet.cell(row=row_num, column=3)
+        if service.service_date:
+            date_cell.value = service.service_date
+            date_cell.number_format = 'DD/MM/YYYY'
+        else:
+            date_cell.value = '—'
+        
+        # Month
+        month_name = service.service_date.strftime('%B') if service.service_date else '—'
+        worksheet.cell(row=row_num, column=4, value=month_name)
+        
+        # Block / Wing
+        worksheet.cell(row=row_num, column=5, value=service.block_wing or '—')
+        
+        # Note
+        worksheet.cell(row=row_num, column=6, value=service.note or '—')
+        
+        # Assign To
+        if service.employee_assign:
+            employee_name = service.employee_assign.get_full_name() or service.employee_assign.username
+            worksheet.cell(row=row_num, column=7, value=employee_name)
+        else:
+            worksheet.cell(row=row_num, column=7, value='Unassigned')
+        
+        # Status
+        status_display = service.get_status_display() if hasattr(service, 'get_status_display') else service.status
+        worksheet.cell(row=row_num, column=8, value=status_display)
+    
+    # Adjust column widths
+    column_widths = {
+        'A': 8,   # No
+        'B': 15,  # Lift Code
+        'C': 12,  # Date
+        'D': 12,  # Month
+        'E': 15,  # Block / Wing
+        'F': 30,  # Note
+        'G': 20,  # Assign To
+        'H': 12,  # Status
+    }
+    for col_letter, width in column_widths.items():
+        worksheet.column_dimensions[col_letter].width = width
+    
+    # Save to response
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    filename = f"AMC_Routine_Services_{amc.reference_id}_{datetime.now().strftime('%Y%m%d')}.xlsx"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    workbook.save(response)
+    
+    return response
+
+
 def print_routine_service_certificate(request, pk):
     """Generate and download a PDF certificate for a routine service visit"""
     try:

@@ -29,6 +29,7 @@ def register_amc_form_url():
         path('amc/view-custom/<int:pk>/', view_amc_custom, name='view_amc_custom'),
         path('amc/routine-services/<int:pk>/', edit_amc_routine_services, name='edit_amc_routine_services'),
         path('amc/routine-service-certificate/<int:pk>/', views.print_routine_service_certificate, name='print_routine_service_certificate'),
+        path('amc/export-routine-services/<int:pk>/', views.export_amc_routine_services_xlsx, name='export_amc_routine_services_xlsx'),
         path('api/amc/routine-services/generate/', generate_amc_routine_services, name='generate_amc_routine_services'),
         path('api/amc/routine-services/save/', save_amc_routine_services, name='save_amc_routine_services'),
         # API endpoints for dropdown management (payment terms removed for now)
