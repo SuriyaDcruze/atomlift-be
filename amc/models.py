@@ -12,6 +12,7 @@ import re
 
 from customer.models import Customer
 from items.models import Item
+from django.conf import settings
 
 
 # ---------- Dropdown Snippets ----------
@@ -149,6 +150,68 @@ class AMC(models.Model):
             self.status = "active"
 
         super().save(*args, **kwargs)
+        
+        # Auto-generate routine services if no_of_services is set and dates are available
+        # This ensures services are created automatically based on AMC configuration
+        if self.no_of_services and self.start_date and self.end_date:
+            self._auto_generate_routine_services()
+
+    def _auto_generate_routine_services(self):
+        """Auto-generate routine services based on AMC dates and number of services"""
+        # Use Django's apps registry to get the model to avoid circular import
+        from django.apps import apps
+        try:
+            AMCRoutineService = apps.get_model('amc', 'AMCRoutineService')
+        except LookupError:
+            # Model not found, skip generation
+            return
+        
+        # Check if services already exist
+        existing_count = AMCRoutineService.objects.filter(amc=self).count()
+        if existing_count > 0:
+            # Services already exist, don't regenerate
+            return
+        
+        # Calculate service dates
+        total_days = (self.end_date - self.start_date).days
+        if total_days <= 0 or self.no_of_services <= 0:
+            return
+        
+        # Calculate interval between services (distribute evenly across contract period)
+        if self.no_of_services == 1:
+            # Only one service, place it at start date
+            service_dates = [self.start_date]
+        else:
+            # Distribute services evenly from start_date to end_date
+            # For example: 12 services over 365 days = ~30 days between services
+            interval_days = total_days / self.no_of_services
+            service_dates = []
+            
+            # First service at start date
+            service_dates.append(self.start_date)
+            
+            # Remaining services distributed evenly
+            for i in range(1, self.no_of_services):
+                days_to_add = int(interval_days * i)
+                service_date = self.start_date + timedelta(days=days_to_add)
+                # Ensure we don't exceed end_date
+                if service_date <= self.end_date:
+                    service_dates.append(service_date)
+                else:
+                    # If we exceed, use end_date for the last service
+                    service_dates.append(self.end_date)
+                    break
+        
+        # Generate service records
+        today = timezone.now().date()
+        for service_date in service_dates:
+            # Check if service already exists for this date
+            if not AMCRoutineService.objects.filter(amc=self, service_date=service_date).exists():
+                AMCRoutineService.objects.create(
+                    amc=self,
+                    service_date=service_date,
+                    status='due' if service_date >= today else 'overdue'
+                )
 
     def get_current_status(self):
         """Calculate current status based on dates (dynamic calculation)"""
@@ -278,6 +341,81 @@ class AMC(models.Model):
         ObjectList(basic_panels, heading="AMC Details"),
         ObjectList(contract_panels, heading="Contract & Pricing"),
     ])
+
+
+# ---------- AMC Routine Services ----------
+class AMCRoutineServiceSchedule(models.Model):
+    """Stores the schedule configuration for AMC routine services"""
+    amc = models.OneToOneField(AMC, on_delete=models.CASCADE, related_name='routine_service_schedule')
+    first_service_date = models.DateField(blank=True, null=True, help_text="First service date")
+    frequency_days = models.IntegerField(blank=True, null=True, help_text="Frequency in number of days")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Schedule for {self.amc.reference_id}"
+
+    class Meta:
+        verbose_name = "AMC Routine Service Schedule"
+        verbose_name_plural = "AMC Routine Service Schedules"
+
+
+class AMCRoutineService(models.Model):
+    """Individual scheduled routine service for an AMC"""
+    
+    STATUS_CHOICES = [
+        ('due', 'Due'),
+        ('overdue', 'Overdue'),
+        ('completed', 'Completed'),
+        ('cancelled', 'Cancelled'),
+    ]
+
+    amc = models.ForeignKey(AMC, on_delete=models.CASCADE, related_name='routine_services')
+    service_date = models.DateField()
+    block_wing = models.CharField(max_length=100, blank=True, null=True, help_text="Block / Wing")
+    employee_assign = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assigned_amc_routine_services',
+        help_text="Assigned employee"
+    )
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='due')
+    note = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['service_date']
+        verbose_name = "AMC Routine Service"
+        verbose_name_plural = "AMC Routine Services"
+
+    def __str__(self):
+        return f"{self.amc.reference_id} - {self.service_date}"
+
+    def get_status_display_class(self):
+        """Get CSS class for status badge"""
+        status_classes = {
+            'due': 'status-due',
+            'overdue': 'status-overdue',
+            'completed': 'status-completed',
+            'cancelled': 'status-cancelled',
+        }
+        return status_classes.get(self.status, '')
+
+    def is_overdue(self):
+        """Check if service is overdue"""
+        from django.utils import timezone
+        return self.service_date < timezone.now().date() and self.status not in ['completed', 'cancelled']
+
+    def save(self, *args, **kwargs):
+        """Auto-update status to overdue if past due date"""
+        from django.utils import timezone
+        if self.service_date and self.status not in ['completed', 'cancelled']:
+            if self.service_date < timezone.now().date():
+                self.status = 'overdue'
+        super().save(*args, **kwargs)
 
 
 # ---------- Wagtail admin viewsets ----------

@@ -6,7 +6,7 @@ from datetime import timedelta, date
 from wagtail.models import Page
 from wagtail.admin.panels import FieldPanel
 from wagtail.snippets.models import register_snippet
-from wagtail.snippets.views.snippets import SnippetViewSet, SnippetViewSetGroup
+from wagtail.snippets.views.snippets import SnippetViewSet, SnippetViewSetGroup, IndexView
 from customer.models import Customer
 from items.models import Item
 
@@ -171,10 +171,25 @@ class AllRoutineServicesPage(Page):
     content_panels = Page.content_panels
     
     def serve(self, request, *args, **kwargs):
-        services = RoutineService.objects.all()
+        # Get regular routine services
+        regular_services = list(RoutineService.objects.select_related('customer', 'lift', 'assigned_technician').all())
+        
+        # Get AMC routine services and convert to unified format
+        try:
+            from amc.models import AMCRoutineService
+            amc_services = AMCRoutineService.objects.select_related('amc__customer', 'employee_assign').all()
+            for amc_service in amc_services:
+                unified_service = _create_unified_service_from_amc(amc_service)
+                regular_services.append(unified_service)
+        except ImportError:
+            pass
+        
+        # Sort by service date descending
+        regular_services.sort(key=lambda x: x.service_date, reverse=True)
+        
         context = self.get_context(request)
         context.update({
-            'services': services,
+            'services': regular_services,
             'title': 'All Routine Services'
         })
         return render(request, 'routine_services/routine_services.html', context)
@@ -190,13 +205,46 @@ class TodayServicesPage(Page):
     
     def serve(self, request, *args, **kwargs):
         today = timezone.now().date()
-        services = RoutineService.objects.filter(service_date=today)
+        # Get regular routine services for today
+        regular_services = list(RoutineService.objects.select_related('customer', 'lift', 'assigned_technician').filter(service_date=today))
+        
+        # Get AMC routine services for today
+        try:
+            from amc.models import AMCRoutineService
+            amc_services = AMCRoutineService.objects.select_related('amc__customer', 'employee_assign').filter(service_date=today)
+            for amc_service in amc_services:
+                unified_service = _create_unified_service_from_amc(amc_service)
+                regular_services.append(unified_service)
+        except ImportError:
+            pass
+        
         context = self.get_context(request)
         context.update({
-            'services': services,
+            'services': regular_services,
             'title': 'Today\'s Services'
         })
         return render(request, 'routine_services/routine_services.html', context)
+
+
+def _create_unified_service_from_amc(amc_service):
+    """Helper function to create unified service object from AMC routine service"""
+    return type('UnifiedService', (), {
+        'id': f'amc_{amc_service.id}',
+        'service_date': amc_service.service_date,
+        'customer': amc_service.amc.customer,
+        'lift': None,  # AMC services don't have direct lift association
+        'service_type': f"AMC - {amc_service.amc.reference_id}",
+        'status': amc_service.status,
+        'assigned_technician': amc_service.employee_assign,
+        'description': amc_service.note or f"AMC Routine Service for {amc_service.amc.reference_id}",
+        'is_amc_service': True,
+        'amc_service': amc_service,
+        'amc': amc_service.amc,
+        'created_at': amc_service.created_at,
+        'updated_at': amc_service.updated_at,
+        'completed_at': None,
+        'notes': amc_service.note,
+    })()
 
 
 class RouteWiseServicesPage(Page):
@@ -208,14 +256,38 @@ class RouteWiseServicesPage(Page):
     content_panels = Page.content_panels
     
     def serve(self, request, *args, **kwargs):
-        services = RoutineService.objects.select_related('customer', 'lift').all()
+        # Get regular routine services
+        regular_services = list(RoutineService.objects.select_related('customer', 'lift').all())
+        
+        # Get AMC routine services and convert to unified format
+        try:
+            from amc.models import AMCRoutineService
+            amc_services = AMCRoutineService.objects.select_related('amc__customer').all()
+            for amc_service in amc_services:
+                unified_service = _create_unified_service_from_amc(amc_service)
+                regular_services.append(unified_service)
+        except ImportError:
+            pass
+        
         # Group services by customer location/route
         route_services = {}
-        for service in services:
-            if service.customer and service.customer.city:
-                route = service.customer.city.value
+        for service in regular_services:
+            if service.is_amc_service:
+                customer = service.amc.customer
+            else:
+                customer = service.customer
+            
+            # Get route from customer's city or routes field
+            if customer:
+                if hasattr(customer, 'city') and customer.city:
+                    route = customer.city.value if hasattr(customer.city, 'value') else str(customer.city)
+                elif hasattr(customer, 'routes') and customer.routes:
+                    route = customer.routes.value if hasattr(customer.routes, 'value') else str(customer.routes)
+                else:
+                    route = 'Unknown'
             else:
                 route = 'Unknown'
+            
             if route not in route_services:
                 route_services[route] = []
             route_services[route].append(service)
@@ -239,11 +311,25 @@ class ThisMonthServicesPage(Page):
     def serve(self, request, *args, **kwargs):
         today = timezone.now()
         start_of_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        services = RoutineService.objects.filter(service_date__gte=start_of_month.date())
+        # Get regular routine services for this month
+        regular_services = list(RoutineService.objects.select_related('customer', 'lift', 'assigned_technician').filter(service_date__gte=start_of_month.date()))
+        
+        # Get AMC routine services for this month
+        try:
+            from amc.models import AMCRoutineService
+            amc_services = AMCRoutineService.objects.select_related('amc__customer', 'employee_assign').filter(service_date__gte=start_of_month.date())
+            for amc_service in amc_services:
+                unified_service = _create_unified_service_from_amc(amc_service)
+                regular_services.append(unified_service)
+        except ImportError:
+            pass
+        
+        # Sort by service date descending
+        regular_services.sort(key=lambda x: x.service_date, reverse=True)
 
         context = self.get_context(request)
         context.update({
-            'services': services,
+            'services': regular_services,
             'title': 'This Month Services'
         })
         return render(request, 'routine_services/routine_services.html', context)
@@ -262,15 +348,33 @@ class LastMonthOverduePage(Page):
         start_of_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         start_of_last_month = (start_of_month - timedelta(days=1)).replace(day=1)
 
-        services = RoutineService.objects.filter(
+        # Get regular routine services
+        regular_services = list(RoutineService.objects.select_related('customer', 'lift', 'assigned_technician').filter(
             service_date__gte=start_of_last_month.date(),
             service_date__lt=start_of_month.date(),
             status__in=['pending', 'overdue']
-        )
+        ))
+        
+        # Get AMC routine services
+        try:
+            from amc.models import AMCRoutineService
+            amc_services = AMCRoutineService.objects.select_related('amc__customer', 'employee_assign').filter(
+                service_date__gte=start_of_last_month.date(),
+                service_date__lt=start_of_month.date(),
+                status__in=['due', 'overdue']
+            )
+            for amc_service in amc_services:
+                unified_service = _create_unified_service_from_amc(amc_service)
+                regular_services.append(unified_service)
+        except ImportError:
+            pass
+        
+        # Sort by service date descending
+        regular_services.sort(key=lambda x: x.service_date, reverse=True)
 
         context = self.get_context(request)
         context.update({
-            'services': services,
+            'services': regular_services,
             'title': 'Last Month Overdue'
         })
         return render(request, 'routine_services/routine_services.html', context)
@@ -288,15 +392,33 @@ class ThisMonthOverduePage(Page):
         today = timezone.now()
         start_of_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
-        services = RoutineService.objects.filter(
+        # Get regular routine services
+        regular_services = list(RoutineService.objects.select_related('customer', 'lift', 'assigned_technician').filter(
             service_date__gte=start_of_month.date(),
             service_date__lt=today.date(),
             status__in=['pending', 'overdue']
-        )
+        ))
+        
+        # Get AMC routine services
+        try:
+            from amc.models import AMCRoutineService
+            amc_services = AMCRoutineService.objects.select_related('amc__customer', 'employee_assign').filter(
+                service_date__gte=start_of_month.date(),
+                service_date__lt=today.date(),
+                status__in=['due', 'overdue']
+            )
+            for amc_service in amc_services:
+                unified_service = _create_unified_service_from_amc(amc_service)
+                regular_services.append(unified_service)
+        except ImportError:
+            pass
+        
+        # Sort by service date descending
+        regular_services.sort(key=lambda x: x.service_date, reverse=True)
 
         context = self.get_context(request)
         context.update({
-            'services': services,
+            'services': regular_services,
             'title': 'This Month Overdue'
         })
         return render(request, 'routine_services/routine_services.html', context)
@@ -314,14 +436,31 @@ class ThisMonthCompletedPage(Page):
         today = timezone.now()
         start_of_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
-        services = RoutineService.objects.filter(
+        # Get regular routine services
+        regular_services = list(RoutineService.objects.select_related('customer', 'lift', 'assigned_technician').filter(
             service_date__gte=start_of_month.date(),
             status='completed'
-        )
+        ))
+        
+        # Get AMC routine services
+        try:
+            from amc.models import AMCRoutineService
+            amc_services = AMCRoutineService.objects.select_related('amc__customer', 'employee_assign').filter(
+                service_date__gte=start_of_month.date(),
+                status='completed'
+            )
+            for amc_service in amc_services:
+                unified_service = _create_unified_service_from_amc(amc_service)
+                regular_services.append(unified_service)
+        except ImportError:
+            pass
+        
+        # Sort by service date descending
+        regular_services.sort(key=lambda x: x.service_date, reverse=True)
 
         context = self.get_context(request)
         context.update({
-            'services': services,
+            'services': regular_services,
             'title': 'This Month Completed'
         })
         return render(request, 'routine_services/routine_services.html', context)
@@ -340,15 +479,33 @@ class LastMonthCompletedPage(Page):
         start_of_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         start_of_last_month = (start_of_month - timedelta(days=1)).replace(day=1)
 
-        services = RoutineService.objects.filter(
+        # Get regular routine services
+        regular_services = list(RoutineService.objects.select_related('customer', 'lift', 'assigned_technician').filter(
             service_date__gte=start_of_last_month.date(),
             service_date__lt=start_of_month.date(),
             status='completed'
-        )
+        ))
+        
+        # Get AMC routine services
+        try:
+            from amc.models import AMCRoutineService
+            amc_services = AMCRoutineService.objects.select_related('amc__customer', 'employee_assign').filter(
+                service_date__gte=start_of_last_month.date(),
+                service_date__lt=start_of_month.date(),
+                status='completed'
+            )
+            for amc_service in amc_services:
+                unified_service = _create_unified_service_from_amc(amc_service)
+                regular_services.append(unified_service)
+        except ImportError:
+            pass
+        
+        # Sort by service date descending
+        regular_services.sort(key=lambda x: x.service_date, reverse=True)
 
         context = self.get_context(request)
         context.update({
-            'services': services,
+            'services': regular_services,
             'title': 'Last Month Completed'
         })
         return render(request, 'routine_services/routine_services.html', context)
@@ -363,11 +520,25 @@ class PendingServicesPage(Page):
     content_panels = Page.content_panels
     
     def serve(self, request, *args, **kwargs):
-        services = RoutineService.objects.filter(status='pending')
+        # Get regular routine services
+        regular_services = list(RoutineService.objects.select_related('customer', 'lift', 'assigned_technician').filter(status='pending'))
+        
+        # Get AMC routine services
+        try:
+            from amc.models import AMCRoutineService
+            amc_services = AMCRoutineService.objects.select_related('amc__customer', 'employee_assign').filter(status='due')
+            for amc_service in amc_services:
+                unified_service = _create_unified_service_from_amc(amc_service)
+                regular_services.append(unified_service)
+        except ImportError:
+            pass
+        
+        # Sort by service date descending
+        regular_services.sort(key=lambda x: x.service_date, reverse=True)
 
         context = self.get_context(request)
         context.update({
-            'services': services,
+            'services': regular_services,
             'title': 'Pending Services'
         })
         return render(request, 'routine_services/routine_services.html', context)
@@ -594,6 +765,59 @@ class RoutineServiceViewSet(SnippetViewSet):
 
     def get_queryset(self, request):
         return RoutineService.objects.all().order_by("-service_date")
+
+    # Custom IndexView to include AMC routine services
+    class CombinedIndexView(IndexView):
+        def get_context_data(self, **kwargs):
+            context = super().get_context_data(**kwargs)
+            
+            # Get regular routine services
+            regular_services = list(RoutineService.objects.select_related(
+                'customer', 'lift', 'assigned_technician'
+            ).all())
+            
+            # Get AMC routine services and convert to unified format
+            try:
+                from amc.models import AMCRoutineService
+                amc_services = AMCRoutineService.objects.select_related(
+                    'amc__customer', 'employee_assign'
+                ).all()
+                
+                # Create unified service objects for AMC services
+                for amc_service in amc_services:
+                    # Create a unified service object that matches RoutineService interface
+                    unified_service = type('UnifiedService', (), {
+                        'id': f'amc_{amc_service.id}',
+                        'pk': f'amc_{amc_service.id}',
+                        'service_date': amc_service.service_date,
+                        'customer': amc_service.amc.customer,
+                        'lift': None,  # AMC services don't have direct lift association
+                        'service_type': f"AMC - {amc_service.amc.reference_id}",
+                        'status': amc_service.status,
+                        'assigned_technician': amc_service.employee_assign,
+                        'description': amc_service.note or f"AMC Routine Service for {amc_service.amc.reference_id}",
+                        'is_amc_service': True,
+                        'amc_service': amc_service,
+                        'amc': amc_service.amc,
+                        'created_at': amc_service.created_at,
+                        'updated_at': amc_service.updated_at,
+                        'completed_at': None,
+                        'notes': amc_service.note,
+                    })()
+                    regular_services.append(unified_service)
+            except ImportError:
+                pass  # AMC app not available
+            
+            # Sort by service date descending
+            regular_services.sort(key=lambda x: x.service_date, reverse=True)
+            
+            # Update the context with combined services
+            context['object_list'] = regular_services
+            context['page_obj'] = None  # Disable pagination for now since we're combining querysets
+            
+            return context
+    
+    index_view_class = CombinedIndexView
 
 
 # ======================================================

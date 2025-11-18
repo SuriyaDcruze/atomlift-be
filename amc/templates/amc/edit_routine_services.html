@@ -1,0 +1,693 @@
+{% extends "wagtailadmin/base.html" %}
+{% load static wagtailcore_tags %}
+
+{% block extra_css %}
+<style>
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+.w-content-wrapper {
+  background: #f5f5f5;
+  min-height: calc(100vh - 4rem);
+  padding: 2rem;
+}
+
+.w-modal-overlay {
+  position: static;
+  inset: auto;
+  background-color: transparent;
+  display: block;
+  padding: 0;
+}
+
+.w-modal-content {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.15);
+  width: 100%;
+  max-width: 90rem;
+  margin: 2rem auto;
+  max-height: none;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+}
+
+.w-modal-header {
+  background: linear-gradient(to right, #2D3A6B, #243158);
+  padding: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.w-modal-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: white;
+}
+
+.w-modal-body {
+  padding: 1.5rem;
+  max-height: none;
+  overflow: visible;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.form-required {
+  color: #EF4444;
+  margin-left: 0.25rem;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  border: 1px solid #D1D5DB;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.75rem center;
+  background-repeat: no-repeat;
+  background-size: 1rem;
+  padding-right: 2.5rem;
+}
+
+.btn {
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.btn-primary {
+  background: linear-gradient(to right, #3B82F6, #1D4ED8);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(to right, #2563EB, #1E40AF);
+}
+
+.btn-secondary {
+  background: #6B7280;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: #4B5563;
+}
+
+.btn-danger {
+  background: #EF4444;
+  color: white;
+}
+
+.btn-danger:hover {
+  background: #DC2626;
+}
+
+.flex {
+  display: flex;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.gap-2 {
+  gap: 0.5rem;
+}
+
+.mb-4 {
+  margin-bottom: 1rem;
+}
+
+.mt-4 {
+  margin-top: 1rem;
+}
+
+.input-group {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+}
+
+.input-group .form-group {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.table-container {
+  overflow-x: auto;
+  margin-top: 1rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+th, td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+th {
+  background: #F9FAFB;
+  color: #374151;
+  font-weight: 600;
+}
+
+tr:hover {
+  background-color: #F9FAFB;
+}
+
+.service-row input,
+.service-row select {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #D1D5DB;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.service-row input[type="date"] {
+  padding: 0.5rem;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 0.25rem;
+}
+
+.status-select {
+  min-width: 120px;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem;
+  color: #EF4444;
+  font-size: 1rem;
+}
+
+.icon-btn:hover {
+  color: #DC2626;
+}
+
+.help-icon {
+  color: #6B7280;
+  font-size: 0.875rem;
+  margin-left: 0.25rem;
+  cursor: help;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="w-content-wrapper">
+  <div class="w-modal-overlay">
+    <div class="w-modal-content">
+      <!-- Modal Header -->
+      <div class="w-modal-header">
+        <h2 class="w-modal-title">AMC ROUTINE SERVICES</h2>
+        <button class="close-btn" onclick="window.close()">×</button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="w-modal-body">
+        <!-- Service Parameters -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 1rem; margin-bottom: 2rem; align-items: end;">
+          <div class="form-group">
+            <label class="form-label">
+              FIRST SERVICE DATE
+              <span class="help-icon" title="Select the first service date">?</span>
+            </label>
+            <input
+              type="date"
+              id="first_service_date"
+              class="form-input"
+              value="{% if schedule.first_service_date %}{{ schedule.first_service_date|date:'Y-m-d' }}{% endif %}"
+              min="{% if amc.start_date %}{{ amc.start_date|date:'Y-m-d' }}{% else %}{{ 'now'|date:'Y-m-d' }}{% endif %}"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label">
+              FREQUENCY (NO OF DAYS) <span class="form-required">*</span>
+              <span class="help-icon" title="Number of days between services">?</span>
+            </label>
+            <input
+              type="number"
+              id="frequency_days"
+              class="form-input"
+              placeholder="Frequency"
+              value="{{ schedule.frequency_days|default:'' }}"
+              min="1"
+              required
+            />
+          </div>
+          <div>
+            <button class="btn btn-primary" id="set-frequency-btn">SET</button>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex justify-between items-center mb-4">
+          <div class="flex gap-2">
+            <button class="btn btn-primary" id="add-service-btn">+ ADD NEW SERVICE</button>
+            <button class="btn btn-secondary" id="bulk-actions-btn">BULK ACTIONS ▼</button>
+          </div>
+        </div>
+
+        <!-- Services Table -->
+        <div class="table-container">
+          <table id="services-table">
+            <thead>
+              <tr>
+                <th>
+                  <input type="checkbox" id="select-all" />
+                </th>
+                <th>Date</th>
+                <th>Block / Wing</th>
+                <th>Employee Assign</th>
+                <th>Status</th>
+                <th>Note</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="services-tbody">
+              {% for service in routine_services %}
+              <tr class="service-row" data-service-id="{{ service.id }}">
+                <td>
+                  <input type="checkbox" class="service-checkbox" />
+                </td>
+                <td>
+                  <input
+                    type="date"
+                    class="service-date"
+                    value="{{ service.service_date|date:'Y-m-d' }}"
+                    min="{% if amc.start_date %}{{ amc.start_date|date:'Y-m-d' }}{% else %}{{ 'now'|date:'Y-m-d' }}{% endif %}"
+                  />
+                  <div style="font-size: 0.75rem; color: #6B7280; margin-top: 0.25rem;">
+                    {{ service.service_date|date:"F" }}
+                  </div>
+                </td>
+                <td>
+                  <div style="display: flex; gap: 0.25rem;">
+                    <input
+                      type="text"
+                      class="service-block-wing"
+                      value="{{ service.block_wing|default:'' }}"
+                      placeholder="Block / Wing"
+                    />
+                    <button class="icon-btn" onclick="removeService(this)" title="Remove">-</button>
+                  </div>
+                </td>
+                <td>
+                  <select class="service-employee">
+                    <option value="">Select Employee</option>
+                    {% for employee in employees %}
+                    <option value="{{ employee.id }}" {% if service.employee_assign_id == employee.id %}selected{% endif %}>
+                      {{ employee.get_full_name|default:employee.username }}
+                    </option>
+                    {% endfor %}
+                  </select>
+                </td>
+                <td>
+                  <select class="service-status status-select">
+                    <option value="due" {% if service.status == 'due' %}selected{% endif %}>due</option>
+                    <option value="overdue" {% if service.status == 'overdue' %}selected{% endif %}>overdue</option>
+                    <option value="completed" {% if service.status == 'completed' %}selected{% endif %}>completed</option>
+                    <option value="cancelled" {% if service.status == 'cancelled' %}selected{% endif %}>cancelled</option>
+                  </select>
+                </td>
+                <td>
+                  <input
+                    type="text"
+                    class="service-note"
+                    value="{{ service.note|default:'' }}"
+                    placeholder="Note"
+                  />
+                </td>
+                <td>
+                  <button class="icon-btn" onclick="removeService(this)" title="Delete">×</button>
+                </td>
+              </tr>
+              {% empty %}
+              <tr id="empty-row">
+                <td colspan="7" style="text-align: center; padding: 2rem; color: #6B7280;">
+                  No services scheduled. Set first service date and frequency, then click SET to generate services.
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Footer Buttons -->
+        <div class="flex justify-end gap-2 mt-4">
+          <button class="btn btn-primary" id="save-btn">SAVE</button>
+          <button class="btn btn-secondary" onclick="window.close()">CLOSE</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const amcId = {{ amc.id }};
+const amcStartDate = '{% if amc.start_date %}{{ amc.start_date|date:"Y-m-d" }}{% else %}{{ "now"|date:"Y-m-d" }}{% endif %}';
+const today = new Date().toISOString().split('T')[0];
+const minDate = amcStartDate > today ? amcStartDate : today;
+
+// Set minimum date for first service date input
+document.addEventListener('DOMContentLoaded', function() {
+  const firstDateInput = document.getElementById('first_service_date');
+  if (firstDateInput) {
+    firstDateInput.setAttribute('min', minDate);
+    
+    // Validate on change
+    firstDateInput.addEventListener('change', function() {
+      const selectedDate = this.value;
+      if (selectedDate && selectedDate < minDate) {
+        alert('First service date cannot be in the past. Minimum date is ' + minDate);
+        this.value = minDate;
+      }
+    });
+  }
+  
+  // Set minimum date for all service date inputs in the table
+  const serviceDateInputs = document.querySelectorAll('.service-date');
+  serviceDateInputs.forEach(input => {
+    input.setAttribute('min', minDate);
+    input.addEventListener('change', function() {
+      const selectedDate = this.value;
+      if (selectedDate && selectedDate < minDate) {
+        alert('Service date cannot be in the past. Minimum date is ' + minDate);
+        this.value = minDate;
+      }
+    });
+  });
+});
+
+// Set frequency button
+document.getElementById('set-frequency-btn').addEventListener('click', async function() {
+  const firstDate = document.getElementById('first_service_date').value;
+  const frequency = document.getElementById('frequency_days').value;
+  
+  if (!firstDate || !frequency) {
+    alert('Please enter first service date and frequency');
+    return;
+  }
+  
+  // Validate first service date
+  if (firstDate < minDate) {
+    alert('First service date cannot be in the past. Minimum date is ' + minDate);
+    document.getElementById('first_service_date').value = minDate;
+    return;
+  }
+  
+  const btn = this;
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Generating...';
+  
+  try {
+    const response = await fetch('/admin/api/amc/routine-services/generate/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken'),
+      },
+      body: JSON.stringify({
+        amc_id: amcId,
+        first_service_date: firstDate,
+        frequency_days: parseInt(frequency),
+      }),
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      // Clear existing rows
+      const tbody = document.getElementById('services-tbody');
+      tbody.innerHTML = '';
+      
+      // Add new service rows
+      result.service_dates.forEach((serviceDate, index) => {
+        addServiceRow(serviceDate.date, serviceDate.month_name);
+      });
+      
+      alert(`Generated ${result.count} routine services`);
+    } else {
+      alert('Error: ' + result.error);
+    }
+  } catch (error) {
+    alert('Network error. Please try again.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+});
+
+// Add new service button
+document.getElementById('add-service-btn').addEventListener('click', function() {
+  addServiceRow(minDate, new Date(minDate).toLocaleString('default', { month: 'long' }));
+});
+
+function addServiceRow(dateValue, monthName) {
+  const tbody = document.getElementById('services-tbody');
+  const emptyRow = document.getElementById('empty-row');
+  if (emptyRow) {
+    emptyRow.remove();
+  }
+  
+  // Ensure date is not in the past
+  const selectedDate = dateValue < minDate ? minDate : dateValue;
+  const dateObj = new Date(selectedDate);
+  const monthNameFinal = dateObj.toLocaleString('default', { month: 'long' });
+  
+  const row = document.createElement('tr');
+  row.className = 'service-row';
+  row.innerHTML = `
+    <td>
+      <input type="checkbox" class="service-checkbox" />
+    </td>
+    <td>
+      <input type="date" class="service-date" value="${selectedDate}" min="${minDate}" />
+      <div style="font-size: 0.75rem; color: #6B7280; margin-top: 0.25rem;">${monthNameFinal}</div>
+    </td>
+    <td>
+      <div style="display: flex; gap: 0.25rem;">
+        <input type="text" class="service-block-wing" placeholder="Block / Wing" />
+        <button class="icon-btn" onclick="removeService(this)" title="Remove">-</button>
+      </div>
+    </td>
+    <td>
+      <select class="service-employee">
+        <option value="">Select Employee</option>
+        {% for employee in employees %}
+        <option value="{{ employee.id }}">{{ employee.get_full_name|default:employee.username }}</option>
+        {% endfor %}
+      </select>
+    </td>
+    <td>
+      <select class="service-status status-select">
+        <option value="due" selected>due</option>
+        <option value="overdue">overdue</option>
+        <option value="completed">completed</option>
+        <option value="cancelled">cancelled</option>
+      </select>
+    </td>
+    <td>
+      <input type="text" class="service-note" placeholder="Note" />
+    </td>
+    <td>
+      <button class="icon-btn" onclick="removeService(this)" title="Delete">×</button>
+    </td>
+  `;
+  
+  tbody.appendChild(row);
+  
+  // Update month name when date changes and validate
+  const dateInput = row.querySelector('.service-date');
+  dateInput.addEventListener('change', function() {
+    const selectedDate = this.value;
+    if (selectedDate && selectedDate < minDate) {
+      alert('Service date cannot be in the past. Minimum date is ' + minDate);
+      this.value = minDate;
+    }
+    const date = new Date(this.value);
+    const monthDiv = this.nextElementSibling;
+    monthDiv.textContent = date.toLocaleString('default', { month: 'long' });
+  });
+}
+
+function removeService(btn) {
+  const row = btn.closest('tr');
+  row.remove();
+  
+  // Show empty message if no rows left
+  const tbody = document.getElementById('services-tbody');
+  if (tbody.children.length === 0) {
+    tbody.innerHTML = `
+      <tr id="empty-row">
+        <td colspan="7" style="text-align: center; padding: 2rem; color: #6B7280;">
+          No services scheduled. Set first service date and frequency, then click SET to generate services.
+        </td>
+      </tr>
+    `;
+  }
+}
+
+// Select all checkbox
+document.getElementById('select-all')?.addEventListener('change', function() {
+  const checkboxes = document.querySelectorAll('.service-checkbox');
+  checkboxes.forEach(cb => cb.checked = this.checked);
+});
+
+// Save button
+document.getElementById('save-btn').addEventListener('click', async function() {
+  const tbody = document.getElementById('services-tbody');
+  const rows = tbody.querySelectorAll('.service-row');
+  
+  if (rows.length === 0) {
+    alert('No services to save');
+    return;
+  }
+  
+  const services = [];
+  let hasInvalidDate = false;
+  rows.forEach(row => {
+    const date = row.querySelector('.service-date').value;
+    if (date) {
+      // Validate date is not in the past
+      if (date < minDate) {
+        hasInvalidDate = true;
+        alert('One or more service dates are in the past. Please update them before saving.');
+        return;
+      }
+      services.push({
+        date: date,
+        block_wing: row.querySelector('.service-block-wing').value || '',
+        employee_id: row.querySelector('.service-employee').value || null,
+        status: row.querySelector('.service-status').value,
+        note: row.querySelector('.service-note').value || '',
+      });
+    }
+  });
+  
+  if (hasInvalidDate) {
+    return;
+  }
+  
+  const btn = this;
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+  
+  try {
+    const response = await fetch('/admin/api/amc/routine-services/save/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken'),
+      },
+      body: JSON.stringify({
+        amc_id: amcId,
+        services: services,
+      }),
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      alert(result.message);
+      window.location.reload();
+    } else {
+      alert('Error: ' + result.error);
+    }
+  } catch (error) {
+    alert('Network error. Please try again.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+});
+
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+</script>
+{% endblock %}
+
+

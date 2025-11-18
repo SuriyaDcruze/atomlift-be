@@ -104,23 +104,48 @@
                 <tr>
                     <td>{{ service.service_date|date:"d.m.Y" }}</td>
                     <td>{{ service.customer.site_name|default:"N/A" }}</td>
-                    <td>{{ service.lift|default:"N/A" }}</td>
+                    <td>
+                        {% if service.is_amc_service %}
+                            {% if service.amc.customer.job_no %}
+                                {{ service.amc.customer.job_no }}
+                            {% else %}
+                                AMC Service
+                            {% endif %}
+                        {% else %}
+                            {{ service.lift|default:"N/A" }}
+                        {% endif %}
+                    </td>
                     <td>{{ service.service_type }}</td>
                     <td>
                         {% if service.status == "completed" %}
                             <span class="badge badge-completed">Completed</span>
-                        {% elif service.status == "pending" %}
-                            <span class="badge badge-pending">Pending</span>
+                        {% elif service.status == "pending" or service.status == "due" %}
+                            <span class="badge badge-pending">{% if service.status == "due" %}Due{% else %}Pending{% endif %}</span>
                         {% elif service.status == "overdue" %}
                             <span class="badge badge-overdue">Overdue</span>
                         {% elif service.status == "in_progress" %}
                             <span class="badge badge-in-progress">In Progress</span>
                         {% else %}
-                            <span class="badge">{{ service.get_status_display }}</span>
+                            <span class="badge">{{ service.get_status_display|default:service.status|title }}</span>
                         {% endif %}
                     </td>
-                    <td>{{ service.assigned_technician.get_full_name|default:"Unassigned" }}</td>
-                    <td>{{ service.description|truncatewords:10|default:"-" }}</td>
+                    <td>
+                        {% if service.is_amc_service %}
+                            {{ service.assigned_technician.get_full_name|default:service.assigned_technician.username|default:"Unassigned" }}
+                        {% else %}
+                            {{ service.assigned_technician.get_full_name|default:"Unassigned" }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if service.is_amc_service %}
+                            {% if service.amc_service.block_wing %}
+                                Block/Wing: {{ service.amc_service.block_wing }}. 
+                            {% endif %}
+                            {{ service.description|truncatewords:10|default:"-" }}
+                        {% else %}
+                            {{ service.description|truncatewords:10|default:"-" }}
+                        {% endif %}
+                    </td>
                 </tr>
                 {% empty %}
                 <tr>

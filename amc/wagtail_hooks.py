@@ -13,9 +13,10 @@ import json
 from .views import get_customer_json  # Add this import
 from . import views
 
-from .models import AMC, AMCType
+from .models import AMC, AMCType, AMCRoutineService, AMCRoutineServiceSchedule
 from customer.models import Customer
 from items.models import Item
+from django.contrib.auth import get_user_model
 
 
 # ... (existing imports and code above) ...
@@ -25,6 +26,11 @@ def register_amc_form_url():
     return [
         path('amc/add-custom/', add_amc_custom, name='add_amc_custom'),
         path('amc/edit-custom/<int:pk>/', edit_amc_custom, name='edit_amc_custom'),
+        path('amc/view-custom/<int:pk>/', view_amc_custom, name='view_amc_custom'),
+        path('amc/routine-services/<int:pk>/', edit_amc_routine_services, name='edit_amc_routine_services'),
+        path('amc/routine-service-certificate/<int:pk>/', views.print_routine_service_certificate, name='print_routine_service_certificate'),
+        path('api/amc/routine-services/generate/', generate_amc_routine_services, name='generate_amc_routine_services'),
+        path('api/amc/routine-services/save/', save_amc_routine_services, name='save_amc_routine_services'),
         # API endpoints for dropdown management (payment terms removed for now)
         path('api/amc/amc-types/', manage_amc_types, name='api_manage_amc_types'),
         path('api/amc/amc-types/<int:pk>/', manage_amc_types_detail, name='api_manage_amc_types_detail'),
@@ -242,6 +248,51 @@ def add_amc_custom(request):
     return render(request, 'amc/add_amc_custom.html', context)
 
 
+def view_amc_custom(request, pk):
+    """Custom view for viewing AMC details in read-only mode"""
+    from lift.models import Lift
+    from customer.models import CustomerContact
+    
+    amc = get_object_or_404(
+        AMC.objects.select_related('customer', 'amc_type', 'payment_terms', 'amc_service_item'),
+        pk=pk
+    )
+    
+    # Get customer details
+    customer = amc.customer
+    
+    # Get lifts assigned to this customer (where lift_code equals customer's job_no)
+    lifts = []
+    if customer.job_no:
+        lifts = Lift.objects.filter(lift_code=customer.job_no)
+    
+    # Get primary contact for the customer
+    primary_contact = None
+    if customer:
+        contacts = CustomerContact.objects.filter(customer=customer).order_by('id')
+        if contacts.exists():
+            primary_contact = contacts.first()
+    
+    # Get routine services - if none exist, try to auto-generate them
+    routine_services = AMCRoutineService.objects.filter(amc=amc).select_related('employee_assign').order_by('service_date')
+    
+    # If no services exist but AMC has configuration, trigger auto-generation
+    if not routine_services.exists() and amc.no_of_services and amc.start_date and amc.end_date:
+        # Trigger auto-generation by calling the method
+        amc._auto_generate_routine_services()
+        # Refresh the queryset
+        routine_services = AMCRoutineService.objects.filter(amc=amc).select_related('employee_assign').order_by('service_date')
+    
+    context = {
+        'amc': amc,
+        'customer': customer,
+        'lifts': lifts,
+        'primary_contact': primary_contact,
+        'routine_services': routine_services,
+    }
+    return render(request, 'amc/view_amc_custom.html', context)
+
+
 def edit_amc_custom(request, pk):
     """Custom view for editing an AMC"""
     amc = get_object_or_404(AMC, pk=pk)
@@ -436,14 +487,26 @@ def get_items(request):
     return JsonResponse(list(items), safe=False)
 
 
-# AMC Renewal Feature
-@hooks.register('register_snippet_listing_buttons')
-def add_renew_amc_button(snippet, user, next_url=None):
-    """Add 'Renew AMC' button for expired or expiring AMCs."""
+# AMC Listing Buttons - View and Renew
+@hooks.register('construct_snippet_listing_buttons')
+def customize_amc_listing_buttons(buttons, snippet, user, context=None):
+    """Customize AMC listing buttons - add View button and conditionally add Renew button"""
     if isinstance(snippet, AMC):
-        today = date.today()
+        # Add View button
+        try:
+            view_url = reverse('view_amc_custom', kwargs={'pk': snippet.pk})
+        except:
+            view_url = f"/admin/amc/view-custom/{snippet.pk}/"
         
-        # Check if AMC is expired or expiring within 30 days
+        buttons.append(SnippetListingButton(
+            label='View',
+            url=view_url,
+            priority=90,
+            icon_name='view',
+        ))
+        
+        # Add Renew AMC button for expired or expiring AMCs
+        today = date.today()
         if snippet.end_date:
             days_until_expiry = (snippet.end_date - today).days
             is_expired = snippet.end_date < today
@@ -452,19 +515,18 @@ def add_renew_amc_button(snippet, user, next_url=None):
             # Only show button for expired or expiring AMCs
             if is_expired or is_expiring_soon:
                 try:
-                    url = reverse('renew_amc', kwargs={'pk': snippet.pk})
+                    renew_url = reverse('renew_amc', kwargs={'pk': snippet.pk})
                 except:
-                    url = f"/admin/amc/renew/{snippet.pk}/"
+                    renew_url = f"/admin/amc/renew/{snippet.pk}/"
                 
-                return [
-                    SnippetListingButton(
-                        label='Renew AMC',
-                        url=url,
-                        priority=90,
-                        icon_name='repeat',
-                    )
-                ]
-    return []
+                buttons.append(SnippetListingButton(
+                    label='Renew AMC',
+                    url=renew_url,
+                    priority=85,
+                    icon_name='repeat',
+                ))
+    
+    return buttons
 
 
 def renew_amc_page(request, pk):
@@ -561,3 +623,176 @@ def create_renewed_amc(request):
         
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+# AMC Routine Services Views
+def edit_amc_routine_services(request, pk):
+    """View for editing AMC routine services"""
+    amc = get_object_or_404(AMC.objects.select_related('customer'), pk=pk)
+    User = get_user_model()
+    employees = User.objects.filter(is_active=True).order_by('username')
+    
+    # Get or create schedule
+    schedule, created = AMCRoutineServiceSchedule.objects.get_or_create(amc=amc)
+    
+    # Get existing routine services
+    routine_services = AMCRoutineService.objects.filter(amc=amc).order_by('service_date')
+    
+    context = {
+        'amc': amc,
+        'schedule': schedule,
+        'routine_services': routine_services,
+        'employees': employees,
+    }
+    return render(request, 'amc/edit_routine_services.html', context)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def generate_amc_routine_services(request):
+    """API to generate routine services based on first date and frequency"""
+    try:
+        data = json.loads(request.body)
+        amc_id = data.get('amc_id')
+        first_service_date = data.get('first_service_date')
+        frequency_days = data.get('frequency_days')
+        
+        if not amc_id or not first_service_date or not frequency_days:
+            return JsonResponse({
+                'success': False,
+                'error': 'AMC ID, first service date, and frequency are required'
+            }, status=400)
+        
+        amc = get_object_or_404(AMC, pk=amc_id)
+        
+        # Parse dates
+        first_date = date.fromisoformat(first_service_date)
+        frequency = int(frequency_days)
+        
+        # Validate first service date is not in the past
+        from django.utils import timezone
+        today = timezone.now().date()
+        min_date = amc.start_date if amc.start_date else today
+        # Use the later of AMC start date or today
+        if min_date < today:
+            min_date = today
+        
+        if first_date < min_date:
+            return JsonResponse({
+                'success': False,
+                'error': f'First service date cannot be in the past. Minimum date is {min_date.strftime("%d/%m/%Y")}'
+            }, status=400)
+        
+        # Get or create schedule
+        schedule, created = AMCRoutineServiceSchedule.objects.get_or_create(amc=amc)
+        schedule.first_service_date = first_date
+        schedule.frequency_days = frequency
+        schedule.save()
+        
+        # Calculate number of services based on AMC contract period
+        if not amc.end_date:
+            return JsonResponse({
+                'success': False,
+                'error': 'AMC end date is required to generate services'
+            }, status=400)
+        
+        # Generate service dates
+        service_dates = []
+        current_date = first_date
+        service_number = 1
+        
+        while current_date <= amc.end_date:
+            service_dates.append({
+                'service_number': service_number,
+                'date': current_date.strftime('%Y-%m-%d'),
+                'date_display': current_date.strftime('%m/%d/%Y'),
+                'month_name': current_date.strftime('%B'),
+            })
+            current_date += timedelta(days=frequency)
+            service_number += 1
+        
+        return JsonResponse({
+            'success': True,
+            'service_dates': service_dates,
+            'count': len(service_dates)
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def save_amc_routine_services(request):
+    """API to save routine services"""
+    try:
+        data = json.loads(request.body)
+        amc_id = data.get('amc_id')
+        services = data.get('services', [])
+        
+        if not amc_id:
+            return JsonResponse({
+                'success': False,
+                'error': 'AMC ID is required'
+            }, status=400)
+        
+        amc = get_object_or_404(AMC, pk=amc_id)
+        
+        # Validate service dates are not in the past
+        from django.utils import timezone
+        today = timezone.now().date()
+        min_date = amc.start_date if amc.start_date else today
+        # Use the later of AMC start date or today
+        if min_date < today:
+            min_date = today
+        
+        # Validate all service dates before processing
+        for service_data in services:
+            service_date_str = service_data.get('date')
+            if service_date_str:
+                try:
+                    service_date = date.fromisoformat(service_date_str)
+                    if service_date < min_date:
+                        return JsonResponse({
+                            'success': False,
+                            'error': f'Service date {service_date_str} cannot be in the past. Minimum date is {min_date.strftime("%d/%m/%Y")}'
+                        }, status=400)
+                except (ValueError, TypeError):
+                    return JsonResponse({
+                        'success': False,
+                        'error': f'Invalid date format: {service_date_str}'
+                    }, status=400)
+        
+        # Delete existing services
+        AMCRoutineService.objects.filter(amc=amc).delete()
+        
+        # Create new services
+        created_services = []
+        for service_data in services:
+            service = AMCRoutineService.objects.create(
+                amc=amc,
+                service_date=date.fromisoformat(service_data.get('date')),
+                block_wing=service_data.get('block_wing', ''),
+                employee_assign_id=service_data.get('employee_id') if service_data.get('employee_id') else None,
+                status=service_data.get('status', 'due'),
+                note=service_data.get('note', ''),
+            )
+            created_services.append({
+                'id': service.id,
+                'date': service.service_date.strftime('%Y-%m-%d'),
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'{len(created_services)} routine services saved successfully',
+            'count': len(created_services)
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)

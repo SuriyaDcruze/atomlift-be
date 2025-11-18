@@ -1,0 +1,538 @@
+{% extends "wagtailadmin/base.html" %}
+{% load static wagtailcore_tags %}
+
+{% block extra_css %}
+<style>
+/* Existing styles (unchanged) */
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+.w-content-wrapper {
+  background: #f5f5f5;
+  min-height: calc(100vh - 4rem);
+  padding: 2rem;
+}
+
+.w-modal-overlay {
+  position: static;
+  inset: auto;
+  background-color: transparent;
+  display: block;
+  padding: 0;
+}
+
+.w-modal-content {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.15);
+  width: 100%;
+  max-width: 72rem;
+  margin: 2rem auto;
+  max-height: none;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+}
+
+.w-modal-header {
+  background: linear-gradient(to right, #2D3A6B, #243158);
+  padding: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.w-modal-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: white;
+}
+
+.w-modal-subtitle {
+  margin: 0;
+  color: white;
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
+
+.w-modal-body {
+  padding: 1.5rem;
+  max-height: none;
+  overflow: visible;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
+.form-section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 2px solid #E5E7EB;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.form-value {
+  display: block;
+  font-size: 0.875rem;
+  color: #6B7280;
+  background: #F9FAFB;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  border: 1px solid #E5E7EB;
+  min-height: 2.5rem;
+  word-wrap: break-word;
+}
+
+.form-value.empty {
+  color: #9CA3AF;
+  font-style: italic;
+}
+
+.btn {
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.btn-primary {
+  background: linear-gradient(to right, #2D3A6B, #243158);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(to right, #213066, #182755);
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  border: 2px solid;
+}
+
+.status-active {
+  background-color: #D1FAE5;
+  color: #065F46;
+  border-color: #10B981;
+}
+
+.status-expired {
+  background-color: #FEE2E2;
+  color: #991B1B;
+  border-color: #EF4444;
+}
+
+.status-cancelled {
+  background-color: #F3F4F6;
+  color: #374151;
+  border-color: #9CA3AF;
+}
+
+.status-on_hold {
+  background-color: #FEF3C7;
+  color: #92400E;
+  border-color: #F59E0B;
+}
+
+.status-due {
+  background-color: #DBEAFE;
+  color: #1E40AF;
+  border-color: #3B82F6;
+}
+
+.status-overdue {
+  background-color: #FEE2E2;
+  color: #991B1B;
+  border-color: #EF4444;
+}
+
+.status-completed {
+  background-color: #D1FAE5;
+  color: #065F46;
+  border-color: #10B981;
+}
+
+.status-cancelled {
+  background-color: #F3F4F6;
+  color: #374151;
+  border-color: #9CA3AF;
+}
+
+.table-container {
+  overflow-x: auto;
+  margin-top: 1rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+th, td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+th {
+  background: #F9FAFB;
+  color: #374151;
+  font-weight: 600;
+}
+
+tr:hover {
+  background-color: #F9FAFB;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 2rem;
+  color: #6B7280;
+}
+
+.empty-state p {
+  margin: 0.5rem 0;
+}
+
+.flex {
+  display: flex;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.gap-2 {
+  gap: 0.5rem;
+}
+
+.mb-4 {
+  margin-bottom: 1rem;
+}
+
+.mt-8 {
+  margin-top: 2rem;
+}
+
+.text-sm {
+  font-size: 0.875rem;
+}
+
+.badge-yellow {
+  background-color: #FEF3C7;
+  color: #92400E;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge-purple {
+  background-color: #E9D5FF;
+  color: #6B21A8;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem;
+  color: #3B82F6;
+  font-size: 1rem;
+}
+
+.icon-btn:hover {
+  color: #2563EB;
+}
+
+@media (max-width: 1024px) {
+  .form-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .w-modal-content {
+    margin: 1rem auto;
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="w-content-wrapper">
+  <div class="w-modal-overlay">
+    <div class="w-modal-content">
+      <!-- Modal Header -->
+      <div class="w-modal-header">
+        <div>
+          <h2 class="w-modal-title">AMC DETAILS (AMC ID: {{ amc.reference_id }})</h2>
+          <div style="display: flex; align-items: center; gap: 1rem; margin-top: 0.5rem;">
+            <span class="status-badge status-{{ amc.status }}">
+              {{ amc.get_status_display_name|upper }}
+            </span>
+            <span style="color: white; font-size: 0.875rem;">
+              CONTRACT PERIOD: {{ amc.start_date|date:"d/m/Y" }} - {{ amc.end_date|date:"d/m/Y" }}
+            </span>
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <button class="btn btn-primary" onclick="alert('Change Status functionality coming soon')">CHANGE STATUS</button>
+          <a href="{% url 'edit_amc_custom' amc.id %}" class="btn btn-primary">EDIT AMC</a>
+        </div>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="w-modal-body">
+        <!-- AMC Details -->
+        <div class="form-grid">
+          <!-- Left Column -->
+          <div class="form-column">
+            <div class="form-group">
+              <label class="form-label">AMC TYPE:</label>
+              {% if amc.amc_type %}
+                <div class="badge-yellow" style="display: inline-block; margin-top: 0.5rem;">
+                  {{ amc.amc_type.name }}
+                </div>
+                <button class="icon-btn" style="margin-left: 0.5rem;" onclick="alert('Edit AMC Type functionality coming soon')">✏️</button>
+              {% else %}
+                <div class="form-value empty">Not set</div>
+              {% endif %}
+            </div>
+            <div class="form-group">
+              <label class="form-label">Created: Date</label>
+              <div class="form-value">{{ amc.created|date:"d/m/Y" }}</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">NEXT PAYMENT:</label>
+              <div class="form-value empty">Not set</div>
+              <button class="icon-btn" style="margin-left: 0.5rem;" onclick="alert('Edit Next Payment functionality coming soon')">✏️</button>
+            </div>
+          </div>
+
+          <!-- Middle Column -->
+          <div class="form-column">
+            <div class="form-group">
+              <label class="form-label">SITE:</label>
+              {% if customer %}
+                <div class="badge-purple" style="display: inline-block; margin-top: 0.5rem;">
+                  {{ customer.site_name|default:"N/A" }}
+                </div>
+              {% else %}
+                <div class="form-value empty">Not set</div>
+              {% endif %}
+            </div>
+            <div class="form-group">
+              <label class="form-label">Contact:</label>
+              {% if primary_contact %}
+                <div class="form-value">
+                  {{ primary_contact.first_name }} {{ primary_contact.last_name|default:"" }}
+                  {% if primary_contact.mobile %}
+                    <br>Mobile: {{ primary_contact.mobile }}
+                  {% endif %}
+                </div>
+              {% elif customer %}
+                <div class="form-value">
+                  {{ customer.contact_person_name|default:"N/A" }}
+                  {% if customer.mobile %}
+                    <br>Mobile: {{ customer.mobile }}
+                  {% endif %}
+                </div>
+              {% else %}
+                <div class="form-value empty">Not provided</div>
+              {% endif %}
+            </div>
+            <div class="form-group">
+              <label class="form-label">CITY:</label>
+              <div class="form-value">
+                {% if customer and customer.city %}
+                  {{ customer.city.value }}
+                {% else %}
+                  Not provided
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column -->
+          <div class="form-column">
+            <div class="form-group">
+              <label class="form-label">FILE:</label>
+              <div class="form-value empty">No file uploaded</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">NOTES:</label>
+              <div class="form-value">
+                {% if amc.notes %}
+                  {{ amc.notes|linebreaks }}
+                {% else %}
+                  <span class="empty">No notes</span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AMC Items Section -->
+        <div class="mt-8">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="form-section-title">AMC ITEMS</h3>
+            <button class="btn btn-primary" onclick="alert('Add Item functionality coming soon')">ADD ITEM</button>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Action</th>
+                  <th>Name</th>
+                  <th>Description</th>
+                  <th>Hrs/Qty</th>
+                  <th>Rate per Unit</th>
+                  <th>Unit</th>
+                  <th>Tax (%)</th>
+                  <th>Sub Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td colspan="8" class="empty-state">
+                    <p>No Items yet</p>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- AMC Routine Services Section -->
+        <div class="mt-8">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="form-section-title">AMC ROUTINE SERVICES</h3>
+            <div class="flex gap-2">
+              <button class="btn btn-primary" onclick="alert('Export functionality coming soon')">EXPORT</button>
+              <a href="{% url 'edit_amc_routine_services' amc.id %}" class="btn btn-primary" target="_blank">EDIT</a>
+            </div>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>No</th>
+                  <th>Lift Code</th>
+                  <th>Slip</th>
+                  <th>Date</th>
+                  <th>Block / Wing</th>
+                  <th>Note</th>
+                  <th>Assign To</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% if routine_services %}
+                  {% for service in routine_services %}
+                  <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>
+                      {% if customer.job_no %}
+                        {{ customer.job_no }}
+                      {% else %}
+                        —
+                      {% endif %}
+                    </td>
+                    <td>
+                      <a href="{% url 'print_routine_service_certificate' service.id %}" target="_blank" class="icon-btn" title="Print Certificate">🖨️</a>
+                      <button class="icon-btn" onclick="alert('Share slip functionality coming soon')" title="Share">📱</button>
+                    </td>
+                    <td>
+                      {{ service.service_date|date:"d/m/Y" }}
+                      <div style="font-size: 0.75rem; color: #6B7280;">
+                        ({{ service.service_date|date:"F" }})
+                      </div>
+                    </td>
+                    <td>{{ service.block_wing|default:"—" }}</td>
+                    <td>{{ service.note|default:"—" }}</td>
+                    <td>
+                      {% if service.employee_assign %}
+                        {{ service.employee_assign.get_full_name|default:service.employee_assign.username }}
+                      {% else %}
+                        <span style="color: #9CA3AF; font-style: italic;">Unassigned</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      <span class="status-badge status-{{ service.status }}">
+                        {{ service.get_status_display }}
+                      </span>
+                      <button class="icon-btn" onclick="alert('Edit status functionality coming soon')" title="Edit">✏️</button>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                {% else %}
+                  <tr>
+                    <td colspan="8" class="empty-state">
+                      <p>No routine services scheduled yet</p>
+                      <p class="text-sm">Click EDIT to set first service date and frequency to generate routine services</p>
+                    </td>
+                  </tr>
+                {% endif %}
+              </tbody>
+            </table>
+            {% if routine_services %}
+            <div style="padding: 1rem; text-align: left; color: #6B7280; font-size: 0.875rem;">
+              Showing 1 to {{ routine_services|length }} of {{ routine_services|length }} records
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
