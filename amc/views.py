@@ -13,14 +13,16 @@ import json
 from .models import AMCRoutineService, AMCExpiringThisMonth, AMCExpiringLastMonth, AMCExpiringNextMonth, AMC, AMCType
 from customer.models import Customer
 from django.utils import timezone
-from datetime import timedelta
+from datetime import timedelta, datetime, date
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
-from .serializers import AMCCreateSerializer, AMCListSerializer
+from rest_framework.permissions import IsAuthenticated
+from django.contrib.auth import get_user_model
+from .serializers import AMCCreateSerializer, AMCListSerializer, AMCRoutineServiceSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -238,6 +240,131 @@ def create_amc_type_mobile(request):
         }, status=status.HTTP_201_CREATED)
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+@csrf_exempt
+def get_employee_routine_services(request):
+    """
+    Mobile API to get routine services assigned to a specific employee/user.
+    
+    Query Parameters:
+    - user_id (optional): User ID to get services for. If not provided, uses authenticated user.
+    - status (optional): Filter by status ('due', 'overdue', 'completed', 'cancelled')
+    - start_date (optional): Filter services from this date (YYYY-MM-DD)
+    - end_date (optional): Filter services until this date (YYYY-MM-DD)
+    - page (optional): Page number for pagination
+    - page_size (optional): Number of items per page
+    
+    Returns:
+    - List of routine services assigned to the employee with full details
+    """
+    try:
+        User = get_user_model()
+        
+        # Get user_id from query params or use authenticated user
+        user_id = request.query_params.get('user_id')
+        if user_id:
+            # Only allow superusers to query other users' services
+            if not request.user.is_superuser:
+                return Response({
+                    'error': 'You do not have permission to view other users\' services'
+                }, status=status.HTTP_403_FORBIDDEN)
+            try:
+                target_user = User.objects.get(id=user_id)
+            except User.DoesNotExist:
+                return Response({
+                    'error': 'User not found'
+                }, status=status.HTTP_404_NOT_FOUND)
+        else:
+            # Use authenticated user
+            target_user = request.user
+        
+        # Get all routine services assigned to this user
+        queryset = AMCRoutineService.objects.filter(
+            employee_assign=target_user
+        ).select_related(
+            'amc__customer',
+            'employee_assign'
+        ).order_by('-service_date')
+        
+        # Apply filters
+        status_filter = request.query_params.get('status')
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        
+        start_date = request.query_params.get('start_date')
+        if start_date:
+            try:
+                start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
+                queryset = queryset.filter(service_date__gte=start_date_obj)
+            except ValueError:
+                return Response({
+                    'error': 'Invalid start_date format. Use YYYY-MM-DD'
+                }, status=status.HTTP_400_BAD_REQUEST)
+        
+        end_date = request.query_params.get('end_date')
+        if end_date:
+            try:
+                end_date_obj = datetime.strptime(end_date, '%Y-%m-%d').date()
+                queryset = queryset.filter(service_date__lte=end_date_obj)
+            except ValueError:
+                return Response({
+                    'error': 'Invalid end_date format. Use YYYY-MM-DD'
+                }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Pagination
+        page = request.query_params.get('page', 1)
+        page_size = request.query_params.get('page_size', 20)
+        
+        try:
+            page = int(page)
+            page_size = int(page_size)
+        except ValueError:
+            return Response({
+                'error': 'Invalid page or page_size. Must be integers.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Calculate pagination
+        total_count = queryset.count()
+        start_index = (page - 1) * page_size
+        end_index = start_index + page_size
+        
+        services = queryset[start_index:end_index]
+        
+        # Serialize the services
+        serializer = AMCRoutineServiceSerializer(services, many=True)
+        
+        # Calculate pagination info
+        total_pages = (total_count + page_size - 1) // page_size if page_size > 0 else 1
+        has_next = page < total_pages
+        has_previous = page > 1
+        
+        response_data = {
+            'count': total_count,
+            'page': page,
+            'page_size': page_size,
+            'total_pages': total_pages,
+            'has_next': has_next,
+            'has_previous': has_previous,
+            'results': serializer.data,
+            'employee': {
+                'id': target_user.id,
+                'username': target_user.username,
+                'email': target_user.email,
+                'full_name': f"{target_user.first_name} {target_user.last_name}".strip() or target_user.username
+            }
+        }
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        logger.error(f"Error retrieving employee routine services: {str(e)}")
+        return Response({
+            'error': 'Failed to retrieve routine services',
+            'detail': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 def export_amc_routine_services_xlsx(request, pk):

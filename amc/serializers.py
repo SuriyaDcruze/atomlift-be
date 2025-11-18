@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import AMC, AMCType, PaymentTerms
+from .models import AMC, AMCType, PaymentTerms, AMCRoutineService
 from customer.models import Customer
 from items.models import Item
 
@@ -82,4 +82,76 @@ class AMCListSerializer(serializers.ModelSerializer):
 
     def get_payment_terms_name(self, obj):
         return getattr(obj.payment_terms, 'name', None)
+
+
+class AMCRoutineServiceSerializer(serializers.ModelSerializer):
+    """Serializer for AMC Routine Service with related data"""
+    amc_reference_id = serializers.SerializerMethodField()
+    amc_id = serializers.SerializerMethodField()
+    customer_name = serializers.SerializerMethodField()
+    customer_site_address = serializers.SerializerMethodField()
+    customer_job_no = serializers.SerializerMethodField()
+    customer_email = serializers.SerializerMethodField()
+    customer_phone = serializers.SerializerMethodField()
+    customer_latitude = serializers.SerializerMethodField()
+    customer_longitude = serializers.SerializerMethodField()
+    employee_name = serializers.SerializerMethodField()
+    employee_id = serializers.SerializerMethodField()
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    is_overdue = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = AMCRoutineService
+        fields = [
+            'id', 'amc_id', 'amc_reference_id', 'service_date', 'block_wing',
+            'status', 'status_display', 'note', 'created_at', 'updated_at',
+            'customer_name', 'customer_site_address', 'customer_job_no',
+            'customer_email', 'customer_phone', 'customer_latitude', 'customer_longitude',
+            'employee_id', 'employee_name', 'is_overdue'
+        ]
+    
+    def get_amc_reference_id(self, obj):
+        return obj.amc.reference_id if obj.amc else None
+    
+    def get_amc_id(self, obj):
+        return obj.amc.id if obj.amc else None
+    
+    def get_customer_name(self, obj):
+        return getattr(obj.amc.customer, 'site_name', None) if obj.amc and obj.amc.customer else None
+    
+    def get_customer_site_address(self, obj):
+        return getattr(obj.amc.customer, 'site_address', None) if obj.amc and obj.amc.customer else None
+    
+    def get_customer_job_no(self, obj):
+        return getattr(obj.amc.customer, 'job_no', None) if obj.amc and obj.amc.customer else None
+    
+    def get_customer_email(self, obj):
+        return getattr(obj.amc.customer, 'email', None) if obj.amc and obj.amc.customer else None
+    
+    def get_customer_phone(self, obj):
+        return getattr(obj.amc.customer, 'phone', None) if obj.amc and obj.amc.customer else None
+    
+    def get_customer_latitude(self, obj):
+        if obj.amc and obj.amc.customer:
+            lat = getattr(obj.amc.customer, 'latitude', None)
+            return str(lat) if lat else None
+        return None
+    
+    def get_customer_longitude(self, obj):
+        if obj.amc and obj.amc.customer:
+            lng = getattr(obj.amc.customer, 'longitude', None)
+            return str(lng) if lng else None
+        return None
+    
+    def get_employee_name(self, obj):
+        if obj.employee_assign:
+            full_name = f"{obj.employee_assign.first_name} {obj.employee_assign.last_name}".strip()
+            return full_name if full_name else obj.employee_assign.username
+        return None
+    
+    def get_employee_id(self, obj):
+        return obj.employee_assign.id if obj.employee_assign else None
+    
+    def get_is_overdue(self, obj):
+        return obj.is_overdue()
 

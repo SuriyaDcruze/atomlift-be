@@ -27,6 +27,7 @@ urlpatterns = [
     path("api/amc/create/", views.create_amc_mobile, name="create_amc_mobile"),
     path("api/amc/types/list/", views.list_amc_types_mobile, name="list_amc_types_mobile"),
     path("api/amc/types/create/", views.create_amc_type_mobile, name="create_amc_type_mobile"),
+    path("api/amc/routine-services/employee/", views.get_employee_routine_services, name="get_employee_routine_services"),
 ]
 
 # Serve media files in development
