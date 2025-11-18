@@ -51,6 +51,7 @@ def global_admin_js():
     
     update_url = reverse('update_routine_service_employee')
     employees_url = reverse('get_employees_list')
+    update_date_url = reverse('update_routine_service_date')
     
     return format_html(
         '''
@@ -176,6 +177,58 @@ def global_admin_js():
         }}
         .download-pdf-link:active {{
             transform: scale(0.95);
+        }}
+        .service-date-display {{
+            display: inline-flex;
+            align-items: center;
+            position: relative;
+        }}
+        .date-edit-btn {{
+            background: none !important;
+            border: none !important;
+            cursor: pointer;
+            padding: 4px 8px !important;
+            margin-left: 6px;
+            opacity: 0.6;
+            transition: opacity 0.2s, transform 0.2s;
+            font-size: 16px;
+            line-height: 1;
+        }}
+        .date-edit-btn:hover {{
+            opacity: 1;
+            transform: scale(1.1);
+        }}
+        .date-edit-container {{
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            background: #ffffff;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            min-width: 280px;
+            position: relative;
+            z-index: 1000;
+        }}
+        .date-edit-input {{
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            min-width: 150px;
+            background: white;
+            color: #374151;
+            cursor: pointer;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }}
+        .date-edit-input:hover {{
+            border-color: #9ca3af;
+        }}
+        .date-edit-input:focus {{
+            outline: none;
+            border-color: #007cba;
+            box-shadow: 0 0 0 3px rgba(0, 124, 186, 0.1);
         }}
         </style>
         <script>
@@ -327,10 +380,137 @@ def global_admin_js():
             }}
             return cookieValue;
         }}
+        
+        function editServiceDate(button, serviceId, serviceType) {{
+            const span = button.closest('.service-date-display');
+            const actualServiceId = span.getAttribute('data-amc-service-id') || serviceId;
+            
+            // Get current date
+            const currentText = span.textContent.trim().replace('✏️', '').trim();
+            let currentDate = '';
+            
+            // Try to parse current date (format: DD/MM/YYYY)
+            if (currentText && currentText !== '—') {{
+                const parts = currentText.split('/');
+                if (parts.length === 3) {{
+                    // Convert DD/MM/YYYY to YYYY-MM-DD
+                    currentDate = `${{parts[2]}}-${{parts[1].padStart(2, '0')}}-${{parts[0].padStart(2, '0')}}`;
+                }}
+            }}
+            
+            // If no current date, use today
+            if (!currentDate) {{
+                const today = new Date();
+                currentDate = today.toISOString().split('T')[0];
+            }}
+            
+            // Create container
+            const container = document.createElement('div');
+            container.className = 'date-edit-container';
+            
+            // Create date input
+            const dateInput = document.createElement('input');
+            dateInput.type = 'date';
+            dateInput.className = 'date-edit-input';
+            dateInput.value = currentDate;
+            dateInput.setAttribute('min', new Date().toISOString().split('T')[0]);
+            
+            // Create button container
+            const btnContainer = document.createElement('div');
+            btnContainer.className = 'employee-edit-btn-container';
+            
+            // Create save button
+            const saveBtn = document.createElement('button');
+            saveBtn.className = 'employee-edit-btn-save';
+            saveBtn.textContent = 'Save';
+            saveBtn.onclick = function(e) {{
+                e.stopPropagation();
+                saveServiceDate(actualServiceId, dateInput.value, serviceType, span, serviceId);
+            }};
+            
+            // Create cancel button
+            const cancelBtn = document.createElement('button');
+            cancelBtn.className = 'employee-edit-btn-cancel';
+            cancelBtn.textContent = 'Cancel';
+            cancelBtn.onclick = function(e) {{
+                e.stopPropagation();
+                span.innerHTML = currentText + ' <button class="date-edit-btn" onclick="editServiceDate(this, ' + serviceId + ', \\'' + serviceType + '\\')" title="Edit Service Date" style="background:none;border:none;cursor:pointer;padding:2px 4px;">✏️</button>';
+            }};
+            
+            btnContainer.appendChild(saveBtn);
+            btnContainer.appendChild(cancelBtn);
+            
+            container.appendChild(dateInput);
+            container.appendChild(btnContainer);
+            
+            // Replace span content
+            const originalContent = span.innerHTML;
+            span.innerHTML = '';
+            span.appendChild(container);
+            
+            // Focus on date input
+            setTimeout(() => dateInput.focus(), 100);
+        }}
+        
+        function saveServiceDate(serviceId, serviceDate, serviceType, parentElement, originalServiceId) {{
+            const url = '{}';
+            const data = {{
+                service_id: serviceId,
+                service_date: serviceDate,
+                service_type: serviceType
+            }};
+            
+            // Show saving state
+            const container = parentElement.querySelector('.date-edit-container');
+            if (container) {{
+                container.style.opacity = '0.6';
+                container.style.pointerEvents = 'none';
+            }}
+            
+            fetch(url, {{
+                method: 'POST',
+                headers: {{
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                }},
+                body: JSON.stringify(data)
+            }})
+            .then(response => response.json())
+            .then(data => {{
+                if (data.success) {{
+                    const serviceDate = data.service_date || '—';
+                    const serviceIdAttr = parentElement.getAttribute('data-service-id');
+                    const serviceTypeAttr = parentElement.getAttribute('data-service-type');
+                    const amcServiceIdAttr = parentElement.getAttribute('data-amc-service-id') || '';
+                    
+                    parentElement.innerHTML = serviceDate + ' <button class="date-edit-btn" onclick="editServiceDate(this, ' + serviceIdAttr + ', \\'' + serviceTypeAttr + '\\')" title="Edit Service Date" style="background:none;border:none;cursor:pointer;padding:2px 4px;">✏️</button>';
+                    parentElement.setAttribute('data-service-id', serviceIdAttr);
+                    parentElement.setAttribute('data-service-type', serviceTypeAttr);
+                    if (amcServiceIdAttr) {{
+                        parentElement.setAttribute('data-amc-service-id', amcServiceIdAttr);
+                    }}
+                }} else {{
+                    if (container) {{
+                        container.style.opacity = '1';
+                        container.style.pointerEvents = 'auto';
+                    }}
+                    alert('Error updating service date: ' + data.error);
+                }}
+            }})
+            .catch(error => {{
+                console.error('Error:', error);
+                if (container) {{
+                    container.style.opacity = '1';
+                    container.style.pointerEvents = 'auto';
+                }}
+                alert('Error updating service date');
+            }});
+        }}
         </script>
         ''',
         employees_url,
-        update_url
+        update_url,
+        update_date_url
     )
 
 
@@ -340,6 +520,7 @@ def register_routine_service_urls():
     return [
         path('api/routine-services/update-employee/', update_routine_service_employee, name='update_routine_service_employee'),
         path('api/routine-services/get-employees/', get_employees_list, name='get_employees_list'),
+        path('api/routine-services/update-service-date/', update_routine_service_date, name='update_routine_service_date'),
     ]
 
 
@@ -361,6 +542,82 @@ def get_employees_list(request):
             'success': True,
             'employees': employees_list
         })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def update_routine_service_date(request):
+    """API endpoint to update service date for routine services"""
+    try:
+        data = json.loads(request.body)
+        service_id = data.get('service_id')
+        service_date = data.get('service_date')
+        service_type = data.get('service_type', 'regular')  # 'regular' or 'amc'
+        
+        if not service_id or not service_date:
+            return JsonResponse({
+                'success': False,
+                'error': 'Service ID and service date are required'
+            }, status=400)
+        
+        from datetime import datetime
+        
+        try:
+            # Parse the date string (expecting YYYY-MM-DD format)
+            parsed_date = datetime.strptime(service_date, '%Y-%m-%d').date()
+        except ValueError:
+            return JsonResponse({
+                'success': False,
+                'error': 'Invalid date format. Expected YYYY-MM-DD'
+            }, status=400)
+        
+        if service_type == 'amc':
+            # Handle AMC routine service
+            if isinstance(service_id, str) and service_id.startswith('amc_'):
+                actual_id = service_id.replace('amc_', '')
+            else:
+                actual_id = service_id
+            
+            try:
+                actual_id = int(actual_id)
+            except (ValueError, TypeError):
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Invalid service ID format'
+                }, status=400)
+            
+            service = get_object_or_404(AMCRoutineService, pk=actual_id)
+            service.service_date = parsed_date
+            service.save()
+            
+            formatted_date = parsed_date.strftime('%d/%m/%Y')
+        else:
+            # Handle regular routine service
+            try:
+                service_id = int(service_id)
+            except (ValueError, TypeError):
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Invalid service ID format'
+                }, status=400)
+            
+            service = get_object_or_404(RoutineService, pk=service_id)
+            service.service_date = parsed_date
+            service.save()
+            
+            formatted_date = parsed_date.strftime('%d/%m/%Y')
+        
+        return JsonResponse({
+            'success': True,
+            'service_date': formatted_date,
+            'message': 'Service date updated successfully'
+        })
+        
     except Exception as e:
         return JsonResponse({
             'success': False,

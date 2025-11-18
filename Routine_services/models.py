@@ -104,6 +104,23 @@ class RoutineService(models.Model):
     employee.short_description = "Employee"
     employee.allow_tags = True
     
+    def service_date_display(self):
+        """Service date with edit button"""
+        from django.utils.html import format_html
+        
+        date_str = self.service_date.strftime('%d/%m/%Y') if self.service_date else "—"
+        
+        return format_html(
+            '<span class="service-date-display" data-service-id="{}" data-service-type="regular">'
+            '{} <button class="date-edit-btn" onclick="editServiceDate(this, {}, \'regular\')" title="Edit Service Date" style="background:none;border:none;cursor:pointer;padding:2px 4px;">✏️</button>'
+            '</span>',
+            self.id,
+            date_str,
+            self.id
+        )
+    service_date_display.short_description = "Service Date"
+    service_date_display.allow_tags = True
+    
     def gmap(self):
         """Google Maps link"""
         if self.customer and self.customer.latitude and self.customer.longitude:
@@ -393,6 +410,28 @@ class UnifiedService:
         )
     employee.short_description = "Employee"
     employee.allow_tags = True
+    
+    def service_date_display(self):
+        """Service date with edit button"""
+        from django.utils.html import format_html
+        
+        amc_service = self._amc_service if hasattr(self, '_amc_service') else None
+        service_date = amc_service.service_date if amc_service and amc_service.service_date else None
+        
+        date_str = service_date.strftime('%d/%m/%Y') if service_date else "—"
+        amc_service_id = amc_service.id if amc_service else None
+        
+        return format_html(
+            '<span class="service-date-display" data-service-id="{}" data-service-type="amc" data-amc-service-id="{}">'
+            '{} <button class="date-edit-btn" onclick="editServiceDate(this, {}, \'amc\')" title="Edit Service Date" style="background:none;border:none;cursor:pointer;padding:2px 4px;">✏️</button>'
+            '</span>',
+            self.id,
+            amc_service_id or '',
+            date_str,
+            amc_service_id or self.id
+        )
+    service_date_display.short_description = "Service Date"
+    service_date_display.allow_tags = True
     
     def gmap(self):
         """Google Maps link"""
@@ -919,7 +958,7 @@ class RoutineServiceViewSet(SnippetViewSet):
         "routes",
         "block_wing",
         "customer",
-        "service_date",
+        "service_date_display",
         "gmap",
         "employee",
         "status",
