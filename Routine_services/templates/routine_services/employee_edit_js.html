@@ -1,0 +1,121 @@
+<script>
+function editEmployee(button, serviceId, serviceType) {
+    // Get the service ID - for AMC services, extract from data attribute
+    const span = button.closest('.employee-display');
+    const actualServiceId = span.getAttribute('data-amc-service-id') || serviceId;
+    
+    // Fetch employees list
+    fetch('{{ employees_url }}')
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                alert('Error loading employees: ' + data.error);
+                return;
+            }
+            
+            // Create modal or dropdown
+            const employees = data.employees;
+            let optionsHtml = '<option value="">Unassign</option>';
+            employees.forEach(emp => {
+                optionsHtml += `<option value="${emp.id}">${emp.name}</option>`;
+            });
+            
+            // Get current employee
+            const currentText = span.textContent.trim().replace('✏️', '').trim();
+            const currentEmployee = employees.find(e => e.name === currentText);
+            const selectedValue = currentEmployee ? currentEmployee.id : '';
+            
+            // Create select dropdown
+            const select = document.createElement('select');
+            select.innerHTML = optionsHtml;
+            select.value = selectedValue;
+            select.style.cssText = 'padding: 4px; border: 1px solid #ccc; border-radius: 4px;';
+            
+            // Replace button with select
+            const parent = button.parentElement;
+            const currentTextNode = parent.childNodes[0];
+            parent.innerHTML = '';
+            parent.appendChild(currentTextNode);
+            parent.appendChild(select);
+            
+            // Add save and cancel buttons
+            const saveBtn = document.createElement('button');
+            saveBtn.textContent = 'Save';
+            saveBtn.style.cssText = 'margin-left: 4px; padding: 4px 8px; background: #007cba; color: white; border: none; border-radius: 4px; cursor: pointer;';
+            saveBtn.onclick = function() {
+                saveEmployee(actualServiceId, select.value, serviceType, parent, currentTextNode);
+            };
+            
+            const cancelBtn = document.createElement('button');
+            cancelBtn.textContent = 'Cancel';
+            cancelBtn.style.cssText = 'margin-left: 4px; padding: 4px 8px; background: #ccc; color: black; border: none; border-radius: 4px; cursor: pointer;';
+            cancelBtn.onclick = function() {
+                parent.innerHTML = currentTextNode.textContent + ' <button class="employee-edit-btn" onclick="editEmployee(this, ' + serviceId + ', \'' + serviceType + '\')" title="Edit Employee" style="background:none;border:none;cursor:pointer;padding:2px 4px;">✏️</button>';
+            };
+            
+            parent.appendChild(saveBtn);
+            parent.appendChild(cancelBtn);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error loading employees');
+        });
+}
+
+function saveEmployee(serviceId, employeeId, serviceType, parentElement, originalTextNode) {
+    const url = '{{ update_url }}';
+    const data = {
+        service_id: serviceId,
+        employee_id: employeeId || null,
+        service_type: serviceType
+    };
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update the display
+            const employeeName = data.employee_name || '—';
+            const serviceIdAttr = parentElement.getAttribute('data-service-id');
+            const serviceTypeAttr = parentElement.getAttribute('data-service-type');
+            const amcServiceIdAttr = parentElement.getAttribute('data-amc-service-id') || '';
+            
+            parentElement.innerHTML = employeeName + ' <button class="employee-edit-btn" onclick="editEmployee(this, ' + serviceIdAttr + ', \'' + serviceTypeAttr + '\')" title="Edit Employee" style="background:none;border:none;cursor:pointer;padding:2px 4px;">✏️</button>';
+            parentElement.setAttribute('data-service-id', serviceIdAttr);
+            parentElement.setAttribute('data-service-type', serviceTypeAttr);
+            if (amcServiceIdAttr) {
+                parentElement.setAttribute('data-amc-service-id', amcServiceIdAttr);
+            }
+        } else {
+            alert('Error updating employee: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error updating employee');
+    });
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+

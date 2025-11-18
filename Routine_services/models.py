@@ -43,6 +43,87 @@ class RoutineService(models.Model):
     def is_overdue(self):
         """Check if service is overdue"""
         return self.service_date < timezone.now().date() and self.status not in ['completed', 'cancelled']
+    
+    def cust_refno(self):
+        """Customer reference number (job_no or reference_id)"""
+        if self.customer:
+            return self.customer.job_no or self.customer.reference_id
+        return "—"
+    cust_refno.short_description = "Cust_refno"
+    
+    def lift_code(self):
+        """Lift code from lift"""
+        if self.lift and self.lift.lift_code:
+            return self.lift.lift_code
+        return "—"
+    lift_code.short_description = "Lift Code"
+    
+    def routes(self):
+        """Routes from customer"""
+        if self.customer and hasattr(self.customer, 'routes'):
+            if self.customer.routes:
+                if hasattr(self.customer.routes, 'all'):
+                    # ManyToMany field
+                    return ", ".join(str(route) for route in self.customer.routes.all())
+                elif hasattr(self.customer.routes, 'value'):
+                    return str(self.customer.routes.value)
+                return str(self.customer.routes)
+        return "—"
+    routes.short_description = "Routes"
+    
+    def block_wing(self):
+        """Block/Wing - not available for regular services"""
+        return "—"
+    block_wing.short_description = "Block/Wing"
+    
+    def employee(self):
+        """Employee/technician name with edit button"""
+        from django.utils.html import format_html
+        from django.urls import reverse
+        
+        employee_name = "—"
+        if self.assigned_technician:
+            if hasattr(self.assigned_technician, 'get_full_name'):
+                full_name = self.assigned_technician.get_full_name()
+                if full_name:
+                    employee_name = full_name
+                else:
+                    employee_name = self.assigned_technician.username
+            else:
+                employee_name = self.assigned_technician.username
+        
+        # Create edit button for regular routine service
+        return format_html(
+            '<span class="employee-display" data-service-id="{}" data-service-type="regular">'
+            '{} <button class="employee-edit-btn" onclick="editEmployee(this, {}, \'regular\')" title="Edit Employee">✏️</button>'
+            '</span>',
+            self.id,
+            employee_name,
+            self.id
+        )
+    employee.short_description = "Employee"
+    employee.allow_tags = True
+    
+    def gmap(self):
+        """Google Maps link"""
+        if self.customer and self.customer.latitude and self.customer.longitude:
+            lat = float(self.customer.latitude)
+            lon = float(self.customer.longitude)
+            return f"https://www.google.com/maps?q={lat},{lon}"
+        return "—"
+    gmap.short_description = "GMAP"
+    
+    def location(self):
+        """Location (site address)"""
+        if self.customer and self.customer.site_address:
+            return self.customer.site_address
+        return "—"
+    location.short_description = "Location"
+    
+    def print_link(self):
+        """Download PDF link - not available for regular services"""
+        return "—"
+    print_link.short_description = "Print"
 
 
 # ======================================================
@@ -226,25 +307,138 @@ class TodayServicesPage(Page):
         return render(request, 'routine_services/routine_services.html', context)
 
 
+class UnifiedService:
+    """Wrapper class to make AMC routine services compatible with Wagtail list display"""
+    def __init__(self, amc_service):
+        self.id = f'amc_{amc_service.id}'
+        self.pk = f'amc_{amc_service.id}'
+        self.service_date = amc_service.service_date
+        self.customer = amc_service.amc.customer
+        self.lift = None  # AMC services don't have direct lift association
+        self.service_type = f"AMC - {amc_service.amc.reference_id}"
+        self.status = amc_service.status
+        self.assigned_technician = amc_service.employee_assign
+        self.description = amc_service.note or f"AMC Routine Service for {amc_service.amc.reference_id}"
+        self.is_amc_service = True
+        self.amc_service = amc_service
+        self.amc = amc_service.amc
+        self.block_wing = amc_service.block_wing
+        self.created_at = amc_service.created_at
+        self.updated_at = amc_service.updated_at
+        self.completed_at = None
+        self.notes = amc_service.note
+        # Store original for reference
+        self._amc_service = amc_service
+    
+    def __str__(self):
+        return f"{self.customer.site_name if self.customer else 'Unknown'} - {self.service_type} ({self.service_date})"
+    
+    def cust_refno(self):
+        """Customer reference number (job_no or reference_id)"""
+        if self.customer:
+            return self.customer.job_no or self.customer.reference_id
+        return "—"
+    cust_refno.short_description = "Cust_refno"
+    
+    def lift_code(self):
+        """Lift code from AMC equipment_no or customer job_no"""
+        if self.amc and self.amc.equipment_no:
+            return self.amc.equipment_no
+        if self.customer and self.customer.job_no:
+            return self.customer.job_no
+        return "—"
+    lift_code.short_description = "Lift Code"
+    
+    def routes(self):
+        """Routes from customer"""
+        if self.customer and hasattr(self.customer, 'routes'):
+            if self.customer.routes:
+                if hasattr(self.customer.routes, 'all'):
+                    # ManyToMany field
+                    return ", ".join(str(route) for route in self.customer.routes.all())
+                elif hasattr(self.customer.routes, 'value'):
+                    return str(self.customer.routes.value)
+                return str(self.customer.routes)
+        return "—"
+    routes.short_description = "Routes"
+    
+    def employee(self):
+        """Employee/technician name with edit button"""
+        from django.utils.html import format_html
+        from django.urls import reverse
+        
+        employee_name = "—"
+        if self.assigned_technician:
+            if hasattr(self.assigned_technician, 'get_full_name'):
+                full_name = self.assigned_technician.get_full_name()
+                if full_name:
+                    employee_name = full_name
+                else:
+                    employee_name = self.assigned_technician.username
+            else:
+                employee_name = self.assigned_technician.username
+        
+        # Extract actual AMC service ID from the unified service ID
+        amc_service_id = self._amc_service.id if hasattr(self, '_amc_service') else None
+        
+        # Create edit button for AMC routine service
+        return format_html(
+            '<span class="employee-display" data-service-id="{}" data-service-type="amc" data-amc-service-id="{}">'
+            '{} <button class="employee-edit-btn" onclick="editEmployee(this, {}, \'amc\')" title="Edit Employee">✏️</button>'
+            '</span>',
+            self.id,
+            amc_service_id or '',
+            employee_name,
+            amc_service_id or self.id
+        )
+    employee.short_description = "Employee"
+    employee.allow_tags = True
+    
+    def gmap(self):
+        """Google Maps link"""
+        if self.customer and self.customer.latitude and self.customer.longitude:
+            lat = float(self.customer.latitude)
+            lon = float(self.customer.longitude)
+            return f"https://www.google.com/maps?q={lat},{lon}"
+        return "—"
+    gmap.short_description = "GMAP"
+    
+    def location(self):
+        """Location (site address)"""
+        if self.customer and self.customer.site_address:
+            return self.customer.site_address
+        return "—"
+    location.short_description = "Location"
+    
+    def print_link(self):
+        """Download PDF link with icon"""
+        from django.utils.html import format_html
+        from django.urls import reverse
+        try:
+            pdf_url = reverse('print_routine_service_certificate', args=[self._amc_service.id])
+            return format_html(
+                '<a href="{}" target="_blank" class="download-pdf-link" title="Download as PDF">'
+                '<svg class="icon icon-download w-icon" aria-hidden="true" focusable="false">'
+                '<use href="#icon-download"></use>'
+                '</svg>'
+                '</a>',
+                pdf_url
+            )
+        except:
+            return "—"
+    print_link.short_description = "Print"
+    print_link.allow_tags = True
+    
+    def __getattr__(self, name):
+        # Fallback for any missing attributes
+        if hasattr(self._amc_service, name):
+            return getattr(self._amc_service, name)
+        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
+
+
 def _create_unified_service_from_amc(amc_service):
     """Helper function to create unified service object from AMC routine service"""
-    return type('UnifiedService', (), {
-        'id': f'amc_{amc_service.id}',
-        'service_date': amc_service.service_date,
-        'customer': amc_service.amc.customer,
-        'lift': None,  # AMC services don't have direct lift association
-        'service_type': f"AMC - {amc_service.amc.reference_id}",
-        'status': amc_service.status,
-        'assigned_technician': amc_service.employee_assign,
-        'description': amc_service.note or f"AMC Routine Service for {amc_service.amc.reference_id}",
-        'is_amc_service': True,
-        'amc_service': amc_service,
-        'amc': amc_service.amc,
-        'created_at': amc_service.created_at,
-        'updated_at': amc_service.updated_at,
-        'completed_at': None,
-        'notes': amc_service.note,
-    })()
+    return UnifiedService(amc_service)
 
 
 class RouteWiseServicesPage(Page):
@@ -720,12 +914,17 @@ class RoutineServiceViewSet(SnippetViewSet):
     inspect_view_enabled = True
 
     list_display = (
+        "cust_refno",
+        "lift_code",
+        "routes",
+        "block_wing",
         "customer",
-        "lift",
-        "service_type",
         "service_date",
+        "gmap",
+        "employee",
         "status",
-        "assigned_technician",
+        "location",
+        "print_link",
     )
 
     list_export = [
@@ -764,13 +963,13 @@ class RoutineServiceViewSet(SnippetViewSet):
     )
 
     def get_queryset(self, request):
-        return RoutineService.objects.all().order_by("-service_date")
+        # Return empty queryset - we'll handle everything in CombinedIndexView
+        return RoutineService.objects.none()
 
     # Custom IndexView to include AMC routine services
     class CombinedIndexView(IndexView):
-        def get_context_data(self, **kwargs):
-            context = super().get_context_data(**kwargs)
-            
+        def get_queryset(self):
+            """Override to return combined queryset-like list"""
             # Get regular routine services
             regular_services = list(RoutineService.objects.select_related(
                 'customer', 'lift', 'assigned_technician'
@@ -783,27 +982,9 @@ class RoutineServiceViewSet(SnippetViewSet):
                     'amc__customer', 'employee_assign'
                 ).all()
                 
-                # Create unified service objects for AMC services
+                # Use the helper function to create unified service objects for AMC services
                 for amc_service in amc_services:
-                    # Create a unified service object that matches RoutineService interface
-                    unified_service = type('UnifiedService', (), {
-                        'id': f'amc_{amc_service.id}',
-                        'pk': f'amc_{amc_service.id}',
-                        'service_date': amc_service.service_date,
-                        'customer': amc_service.amc.customer,
-                        'lift': None,  # AMC services don't have direct lift association
-                        'service_type': f"AMC - {amc_service.amc.reference_id}",
-                        'status': amc_service.status,
-                        'assigned_technician': amc_service.employee_assign,
-                        'description': amc_service.note or f"AMC Routine Service for {amc_service.amc.reference_id}",
-                        'is_amc_service': True,
-                        'amc_service': amc_service,
-                        'amc': amc_service.amc,
-                        'created_at': amc_service.created_at,
-                        'updated_at': amc_service.updated_at,
-                        'completed_at': None,
-                        'notes': amc_service.note,
-                    })()
+                    unified_service = _create_unified_service_from_amc(amc_service)
                     regular_services.append(unified_service)
             except ImportError:
                 pass  # AMC app not available
@@ -811,9 +992,31 @@ class RoutineServiceViewSet(SnippetViewSet):
             # Sort by service date descending
             regular_services.sort(key=lambda x: x.service_date, reverse=True)
             
-            # Update the context with combined services
-            context['object_list'] = regular_services
-            context['page_obj'] = None  # Disable pagination for now since we're combining querysets
+            return regular_services
+        
+        def get_context_data(self, **kwargs):
+            from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+            
+            # Get combined services
+            all_services = self.get_queryset()
+            
+            # Apply pagination
+            paginator = Paginator(all_services, 20)  # 20 items per page
+            page = self.request.GET.get('p', 1)
+            try:
+                page_obj = paginator.page(page)
+            except PageNotAnInteger:
+                page_obj = paginator.page(1)
+            except EmptyPage:
+                page_obj = paginator.page(paginator.num_pages)
+            
+            # Get the base context
+            context = super().get_context_data(**kwargs)
+            
+            # Override with our combined and paginated services
+            # Wagtail's template iterates over object_list, so use the actual list
+            context['object_list'] = list(page_obj)
+            context['page_obj'] = page_obj
             
             return context
     
