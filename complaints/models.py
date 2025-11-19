@@ -112,6 +112,27 @@ class Complaint(models.Model):
         """String version of updated datetime for CSV/XLSX export."""
         return self.updated.strftime("%Y-%m-%d %H:%M") if self.updated else ""
 
+    # Helper methods for export (return string values for ForeignKey fields)
+    def customer_value(self):
+        """Return customer site_name for export"""
+        return self.customer.site_name if self.customer else ""
+    customer_value.short_description = "Customer"
+
+    def complaint_type_value(self):
+        """Return complaint type name for export"""
+        return self.complaint_type.name if self.complaint_type else ""
+    complaint_type_value.short_description = "Complaint Type"
+
+    def assign_to_value(self):
+        """Return assigned employee username for export"""
+        return self.assign_to.username if self.assign_to else ""
+    assign_to_value.short_description = "Assign To"
+
+    def priority_value(self):
+        """Return priority name for export"""
+        return self.priority.name if self.priority else ""
+    priority_value.short_description = "Priority"
+
     complaint_panels = [
         MultiFieldPanel([
             FieldPanel("reference", read_only=True),
@@ -239,16 +260,16 @@ class ComplaintViewSet(SnippetViewSet):
     list_export = [
         "id",
         "reference",
-        "complaint_type",
+        "complaint_type_value",
         "date_str",
-        "customer",
+        "customer_value",
         "contact_person_name",
         "contact_person_mobile",
         "block_wing",
         "lift_info",
         "complaint_templates",
-        "assign_to",
-        "priority",
+        "assign_to_value",
+        "priority_value",
         "status",
         "subject",
         "message",
@@ -347,8 +368,40 @@ class ComplaintStatusHistoryViewSet(SnippetViewSet):
     inspect_view_enabled = True
 
 
+# ---------- Proxy model for Bulk Import ----------
+class BulkImportComplaint(Complaint):
+    """Proxy model used only for menu structure - redirects to bulk import view"""
+    class Meta:
+        proxy = True
+        verbose_name = "Bulk Import"
+        verbose_name_plural = "Bulk Import"
+
+
+# Custom ViewSet for Bulk Import
+class BulkImportComplaintViewSet(SnippetViewSet):
+    """Custom ViewSet for Bulk Import Complaints"""
+    model = BulkImportComplaint
+    menu_label = "Bulk Import"
+    icon = "download"
+    menu_order = 200
+    add_view_enabled = False
+    edit_view_enabled = False
+    delete_view_enabled = False
+    inspect_view_enabled = False
+    
+    # Override the index view to show bulk import page
+    class BulkImportIndexView(IndexView):
+        def dispatch(self, request, *args, **kwargs):
+            # Redirect to bulk import view instead of showing list
+            from django.shortcuts import render
+            from complaints import views
+            return views.bulk_import_view(request)
+    
+    index_view_class = BulkImportIndexView
+
+
 class ComplaintManagementGroup(SnippetViewSetGroup):
-    items = (ComplaintViewSet, ComplaintTypeViewSet, ComplaintPriorityViewSet, ComplaintStatusHistoryViewSet)
+    items = (ComplaintViewSet, BulkImportComplaintViewSet, ComplaintTypeViewSet, ComplaintPriorityViewSet, ComplaintStatusHistoryViewSet)
     menu_icon = "info-circle"
     menu_label = "Complaints"
     menu_name = "complaints"

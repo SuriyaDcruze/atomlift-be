@@ -245,6 +245,32 @@ class Customer(models.Model):
         except Exception:
             return 0
     number_of_invoices.short_description = 'Invoices'
+    
+    # Helper methods for export (return string values for ForeignKey fields)
+    def province_state_value(self):
+        """Return province/state value for export"""
+        return self.province_state.value if self.province_state else ""
+    province_state_value.short_description = "Province/State"
+
+    def city_value(self):
+        """Return city value for export"""
+        return self.city.value if self.city else ""
+    city_value.short_description = "City"
+
+    def routes_value(self):
+        """Return routes value for export"""
+        return self.routes.value if self.routes else ""
+    routes_value.short_description = "Routes"
+
+    def branch_value(self):
+        """Return branch value for export"""
+        return self.branch.value if self.branch else ""
+    branch_value.short_description = "Branch"
+    
+    @property
+    def handover_date_str(self):
+        """String version of handover_date for CSV/XLSX export"""
+        return self.handover_date.strftime("%Y-%m-%d") if self.handover_date else ""
 
 
 # ======================================================
@@ -494,10 +520,23 @@ class CustomerViewSet(SnippetViewSet):
         "job_no",
         "email",
         "phone",
-        "city",     # ForeignKey -> City.__str__ (value)
-        "branch",   # ForeignKey -> Branch.__str__
-        "routes",   # ManyToMany -> stringified list
+        "mobile",
+        "site_address",
+        "office_address",
+        "contact_person_name",
+        "designation",
+        "pin_code",
+        "country",
+        "province_state_value",
+        "city_value",
+        "routes_value",
+        "branch_value",
         "sector",
+        "handover_date_str",
+        "billing_name",
+        "latitude",
+        "longitude",
+        "notes",
     )
 
     search_fields = (
@@ -599,8 +638,40 @@ class CityViewSet(SnippetViewSet):
     menu_label = "Cities"
 
 
+# ---------- Proxy model for Bulk Import ----------
+class BulkImportCustomer(Customer):
+    """Proxy model used only for menu structure - redirects to bulk import view"""
+    class Meta:
+        proxy = True
+        verbose_name = "Bulk Import"
+        verbose_name_plural = "Bulk Import"
+
+
+# Custom ViewSet for Bulk Import
+class BulkImportCustomerViewSet(SnippetViewSet):
+    """Custom ViewSet for Bulk Import Customers"""
+    model = BulkImportCustomer
+    menu_label = "Bulk Import"
+    icon = "download"
+    menu_order = 200
+    add_view_enabled = False
+    edit_view_enabled = False
+    delete_view_enabled = False
+    inspect_view_enabled = False
+    
+    # Override the index view to show bulk import page
+    class BulkImportIndexView(IndexView):
+        def dispatch(self, request, *args, **kwargs):
+            # Redirect to bulk import view instead of showing list
+            from django.shortcuts import render
+            from customer import views
+            return views.bulk_import_view(request)
+    
+    index_view_class = BulkImportIndexView
+
+
 class CustomerGroup(SnippetViewSetGroup):
-    items = (CustomerViewSet, RouteViewSet, BranchViewSet, ProvinceStateViewSet, CityViewSet)
+    items = (CustomerViewSet, BulkImportCustomerViewSet, RouteViewSet, BranchViewSet, ProvinceStateViewSet, CityViewSet)
     menu_icon = "group"
     menu_label = "Customer"
     menu_name = "customer"

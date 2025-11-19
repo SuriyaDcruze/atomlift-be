@@ -299,6 +299,27 @@ class AMC(models.Model):
         """String version of created datetime for CSV/XLSX export."""
         return self.created.strftime("%Y-%m-%d %H:%M") if self.created else ""
 
+    # Helper methods for export (return string values for ForeignKey fields)
+    def customer_value(self):
+        """Return customer site_name for export"""
+        return self.customer.site_name if self.customer else ""
+    customer_value.short_description = "Customer"
+
+    def amc_type_value(self):
+        """Return AMC type name for export"""
+        return self.amc_type.name if self.amc_type else ""
+    amc_type_value.short_description = "AMC Pack Type"
+
+    def payment_terms_value(self):
+        """Return payment terms name for export"""
+        return self.payment_terms.name if self.payment_terms else ""
+    payment_terms_value.short_description = "Payment Terms"
+
+    def amc_service_item_value(self):
+        """Return AMC service item name for export"""
+        return self.amc_service_item.name if self.amc_service_item else ""
+    amc_service_item_value.short_description = "AMC Service Item"
+
     # Wagtail panels
     basic_panels = [
         MultiFieldPanel([
@@ -418,6 +439,15 @@ class AMCRoutineService(models.Model):
         super().save(*args, **kwargs)
 
 
+# ---------- Proxy model for Bulk Import ----------
+class BulkImportAMC(AMC):
+    """Proxy model used only for menu structure - redirects to bulk import view"""
+    class Meta:
+        proxy = True
+        verbose_name = "Bulk Import"
+        verbose_name_plural = "Bulk Import"
+
+
 # ---------- Wagtail admin viewsets ----------
 class AMCTypeViewSet(SnippetViewSet):
     model = AMCType
@@ -478,13 +508,13 @@ class AMCViewSet(SnippetViewSet):
     list_export = [
         "id",
         "reference_id",
-        "customer",
+        "customer_value",
         # "amcname",  # Commented out - not needed
         "latitude",
         "equipment_no",
         "invoice_frequency",
-        "amc_type",
-        "payment_terms",
+        "amc_type_value",
+        "payment_terms_value",
         "start_date_str",
         "end_date_str",
         "notes",
@@ -497,7 +527,7 @@ class AMCViewSet(SnippetViewSet):
         "contract_amount",
         "total_amount_paid",
         "amount_due",
-        "amc_service_item",
+        "amc_service_item_value",
         "status",
         "created_str",
     ]
@@ -561,6 +591,29 @@ class AMCViewSet(SnippetViewSet):
         from django.shortcuts import redirect
         instance = self.model.objects.get(pk=pk)
         return redirect(self.get_edit_url(instance))
+
+
+# Custom ViewSet for Bulk Import
+class BulkImportAMCViewSet(SnippetViewSet):
+    """Custom ViewSet for Bulk Import AMCs"""
+    model = BulkImportAMC
+    menu_label = "Bulk Import"
+    icon = "download"
+    menu_order = 200
+    add_view_enabled = False
+    edit_view_enabled = False
+    delete_view_enabled = False
+    inspect_view_enabled = False
+    
+    # Override the index view to show bulk import page
+    class BulkImportIndexView(IndexView):
+        def dispatch(self, request, *args, **kwargs):
+            # Redirect to bulk import view instead of showing list
+            from django.shortcuts import render
+            from amc import views
+            return views.bulk_import_view(request)
+    
+    index_view_class = BulkImportIndexView
 
 
 class AMCExpiringThisMonth(AMC):
@@ -830,6 +883,7 @@ class AMCExpiringNextMonthViewSet(SnippetViewSet):
 class AMCManagementGroup(SnippetViewSetGroup):
     items = (
         AMCViewSet,
+        BulkImportAMCViewSet,
         AMCExpiringThisMonthViewSet,  # Visible in menu
         AMCExpiringLastMonthViewSet,  # Visible in menu
         AMCExpiringNextMonthViewSet,  # Hidden from menu via wagtail_hooks

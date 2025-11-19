@@ -114,6 +114,17 @@ class PaymentReceived(models.Model):
         """String version of payment date for CSV/XLSX export (avoids Excel ###)."""
         return self.date.strftime("%Y-%m-%d") if self.date else ""
 
+    # Helper methods for export (return string values for ForeignKey fields)
+    def customer_value(self):
+        """Return customer site_name for export"""
+        return self.customer.site_name if self.customer else ""
+    customer_value.short_description = "Customer"
+
+    def invoice_value(self):
+        """Return invoice reference_id for export"""
+        return self.invoice.reference_id if self.invoice else ""
+    invoice_value.short_description = "Invoice"
+
 
 # ---------- SNIPPET VIEWSET ----------
 class PaymentReceivedViewSet(SnippetViewSet):
@@ -125,8 +136,8 @@ class PaymentReceivedViewSet(SnippetViewSet):
     # Export with stringified date so Excel doesn't render as ###
     list_export = [
         "payment_number",
-        "customer",
-        "invoice",
+        "customer_value",
+        "invoice_value",
         "amount",
         "date_str",
         "payment_type",
@@ -188,9 +199,44 @@ class PaymentReceivedViewSet(SnippetViewSet):
     index_view_class = RestrictedIndexView
 
 
+# ---------- Proxy model for Bulk Import ----------
+class BulkImportPaymentReceived(PaymentReceived):
+    """Proxy model used only for menu structure - redirects to bulk import view"""
+    class Meta:
+        proxy = True
+        verbose_name = "Bulk Import"
+        verbose_name_plural = "Bulk Import"
+
+
+# Custom ViewSet for Bulk Import
+class BulkImportPaymentReceivedViewSet(SnippetViewSet):
+    """Custom ViewSet for Bulk Import Payment Received"""
+    model = BulkImportPaymentReceived
+    menu_label = "Bulk Import"
+    icon = "download"
+    menu_order = 200
+    add_view_enabled = False
+    edit_view_enabled = False
+    delete_view_enabled = False
+    inspect_view_enabled = False
+    
+    # Override the index view to show bulk import page
+    class BulkImportIndexView(IndexView):
+        def dispatch(self, request, *args, **kwargs):
+            # Redirect to bulk import view instead of showing list
+            from django.shortcuts import render
+            from PaymentReceived import views
+            return views.bulk_import_view(request)
+    
+    index_view_class = BulkImportIndexView
+
+
 # ---------- SNIPPET GROUP ----------
 class PaymentGroup(SnippetViewSetGroup):
-    items = (PaymentReceivedViewSet,)
+    items = (
+        PaymentReceivedViewSet,
+        BulkImportPaymentReceivedViewSet,
+    )
     menu_icon = "group"
     menu_label = "Payment "
     menu_name = "payment"

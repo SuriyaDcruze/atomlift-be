@@ -83,6 +83,32 @@ class Requisition(models.Model):
 
     def __str__(self):
         return f"{self.reference_id} - {self.item or 'No Item'}"
+    
+    # Helper methods for export (return string values for ForeignKey fields)
+    def item_value(self):
+        """Return item name for export"""
+        return self.item.name if self.item else ""
+    item_value.short_description = "Item"
+
+    def site_value(self):
+        """Return customer site_name for export"""
+        return self.site.site_name if self.site else ""
+    site_value.short_description = "Site"
+
+    def amc_id_value(self):
+        """Return AMC reference for export"""
+        return str(self.amc_id) if self.amc_id else ""
+    amc_id_value.short_description = "AMC"
+
+    def employee_value(self):
+        """Return employee username for export"""
+        return self.employee.username if self.employee else ""
+    employee_value.short_description = "Employee"
+    
+    @property
+    def date_str(self):
+        """String version of date for CSV/XLSX export"""
+        return self.date.strftime("%Y-%m-%d") if self.date else ""
 
 
 # ---------- STOCK REGISTER MODEL ----------
@@ -187,13 +213,13 @@ class RequisitionViewSet(SnippetViewSet):
     list_export = [
         "id",
         "reference_id",
-        "date",
-        "item",
+        "date_str",
+        "item_value",
         "qty",
-        "site",
-        "amc_id",
+        "site_value",
+        "amc_id_value",
         "service",
-        "employee",
+        "employee_value",
         "status",
         "approve_for",
     ]
@@ -299,9 +325,41 @@ class StockRegisterViewSet(SnippetViewSet):
     index_view_class = RestrictedIndexView
 
 
+# ---------- Proxy model for Bulk Import ----------
+class BulkImportRequisition(Requisition):
+    """Proxy model used only for menu structure - redirects to bulk import view"""
+    class Meta:
+        proxy = True
+        verbose_name = "Bulk Import"
+        verbose_name_plural = "Bulk Import"
+
+
+# Custom ViewSet for Bulk Import
+class BulkImportRequisitionViewSet(SnippetViewSet):
+    """Custom ViewSet for Bulk Import Requisitions"""
+    model = BulkImportRequisition
+    menu_label = "Bulk Import"
+    icon = "download"
+    menu_order = 200
+    add_view_enabled = False
+    edit_view_enabled = False
+    delete_view_enabled = False
+    inspect_view_enabled = False
+    
+    # Override the index view to show bulk import page
+    class BulkImportIndexView(IndexView):
+        def dispatch(self, request, *args, **kwargs):
+            # Redirect to bulk import view instead of showing list
+            from django.shortcuts import render
+            from Requisition import views
+            return views.bulk_import_view(request)
+    
+    index_view_class = BulkImportIndexView
+
+
 # ---------- GROUP ----------
 class InventoryGroup(SnippetViewSetGroup):
-    items = (RequisitionViewSet, StockRegisterViewSet)
+    items = (RequisitionViewSet, BulkImportRequisitionViewSet, StockRegisterViewSet)
     icon = "folder-open-inverse"
     menu_label = "Inventory "
     menu_name = "inventory"

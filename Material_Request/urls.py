@@ -10,6 +10,9 @@ urlpatterns = [
     # Frontend view
     path('frontend/', views.frontend_view, name='material_request_frontend'),
 
+    # Bulk import view
+    path('bulk-import/', views.bulk_import_view, name='material_request_bulk_import'),
+
     # API endpoints for Material Request CRUD operations
     path('api/list/', views.material_request_list, name='material_request_list'),
     path('api/create/', views.material_request_create, name='material_request_create'),

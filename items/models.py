@@ -161,6 +161,15 @@ class Item(models.Model):
     get_tax_display.short_description = "Tax"
 
 
+# Proxy model for Bulk Import menu item (not used for actual data)
+class BulkImportItem(Item):
+    """Proxy model used only for menu structure - redirects to bulk import view"""
+    class Meta:
+        proxy = True
+        verbose_name = "Bulk Import"
+        verbose_name_plural = "Bulk Import"
+
+
 # ---------- SNIPPET VIEWSETS ----------
 class TypeViewSet(SnippetViewSet):
     model = Type
@@ -183,7 +192,7 @@ class UnitViewSet(SnippetViewSet):
 class ItemViewSet(SnippetViewSet):
     model = Item
     icon = "clipboard-list"
-    menu_label = "Items"
+    menu_label = "All Items"
     inspect_view_enabled = True
     list_export = (
         'item_number', 'name', 'make', 'model', 'type', 'capacity',
@@ -247,10 +256,34 @@ class ItemViewSet(SnippetViewSet):
     index_view_class = RestrictedIndexView
 
 
+# Custom ViewSet for Bulk Import
+class BulkImportViewSet(SnippetViewSet):
+    """Custom ViewSet for Bulk Import Items"""
+    model = BulkImportItem
+    menu_label = "Bulk Import"
+    icon = "download"
+    menu_order = 200
+    add_view_enabled = False
+    edit_view_enabled = False
+    delete_view_enabled = False
+    inspect_view_enabled = False
+    
+    # Override the index view to show bulk import page
+    class BulkImportIndexView(IndexView):
+        def dispatch(self, request, *args, **kwargs):
+            # Redirect to bulk import view instead of showing list
+            from django.shortcuts import render
+            from items import views
+            return views.bulk_import_view(request)
+    
+    index_view_class = BulkImportIndexView
+
+
 # ---------- GROUP ----------
 class ItemGroup(SnippetViewSetGroup):
     items = (
         ItemViewSet,
+        BulkImportViewSet,
         TypeViewSet,
         MakeViewSet,
         UnitViewSet

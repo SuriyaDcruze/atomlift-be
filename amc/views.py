@@ -9,14 +9,19 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 import logging
 import json
+import csv
+import io
 
 from .models import AMCRoutineService, AMCExpiringThisMonth, AMCExpiringLastMonth, AMCExpiringNextMonth, AMC, AMCType
 from customer.models import Customer
+from items.models import Item
 from django.utils import timezone
 from datetime import timedelta, datetime, date
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+from django.contrib import messages
+from django.core.exceptions import ValidationError
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
@@ -593,3 +598,352 @@ def print_routine_service_certificate(request, pk):
     except Exception as e:
         logger.error(f"Error generating routine service certificate PDF: {str(e)}")
         return HttpResponse(f"Error generating PDF: {str(e)}", status=500)
+
+
+def bulk_import_view(request):
+    """View for bulk importing AMCs from CSV/Excel"""
+    if request.method == 'POST':
+        try:
+            file = request.FILES.get('file')
+            if not file:
+                messages.error(request, 'Please select a file to upload.')
+                return render(request, 'amc/bulk_import.html')
+            
+            # Check file extension
+            file_name = file.name.lower()
+            if not (file_name.endswith('.csv') or file_name.endswith('.xlsx') or file_name.endswith('.xls')):
+                messages.error(request, 'Please upload a CSV or Excel file (.csv, .xlsx, .xls)')
+                return render(request, 'amc/bulk_import.html')
+            
+            # Read file content
+            file_content = file.read()
+            
+            # Parse CSV
+            if file_name.endswith('.csv'):
+                try:
+                    # Try to decode as UTF-8
+                    try:
+                        decoded_file = file_content.decode('utf-8')
+                    except UnicodeDecodeError:
+                        # Try with different encoding
+                        decoded_file = file_content.decode('latin-1')
+                    
+                    csv_reader = csv.DictReader(io.StringIO(decoded_file))
+                    # Normalize headers to lowercase, strip whitespace, and replace spaces with underscores
+                    rows = []
+                    for row in csv_reader:
+                        normalized_row = {}
+                        for key, value in row.items():
+                            # Normalize key: lowercase, strip, and replace spaces/hyphens with underscores
+                            if key:
+                                normalized_key = key.strip().lower().replace(' ', '_').replace('-', '_')
+                            else:
+                                normalized_key = ''
+                            # Handle None values and convert to string
+                            if value is None:
+                                normalized_row[normalized_key] = ''
+                            else:
+                                normalized_row[normalized_key] = str(value) if value else ''
+                        rows.append(normalized_row)
+                except Exception as e:
+                    messages.error(request, f'Error reading CSV file: {str(e)}')
+                    return render(request, 'amc/bulk_import.html')
+            else:
+                # Parse Excel file
+                try:
+                    import openpyxl
+                    workbook = openpyxl.load_workbook(io.BytesIO(file_content))
+                    sheet = workbook.active
+                    
+                    # Get headers from first row, convert to lowercase, strip, and replace spaces with underscores
+                    headers = []
+                    for cell in sheet[1]:
+                        header_value = cell.value
+                        if header_value:
+                            normalized_header = str(header_value).strip().lower().replace(' ', '_').replace('-', '_')
+                            headers.append(normalized_header)
+                        else:
+                            headers.append('')
+                    
+                    rows = []
+                    for row in sheet.iter_rows(min_row=2, values_only=True):
+                        # Check if row has any non-empty values
+                        if any(cell is not None and str(cell).strip() for cell in row if cell is not None):
+                            # Create dict with lowercase keys and handle None values
+                            row_dict = {}
+                            for i, cell_value in enumerate(row):
+                                if i < len(headers) and headers[i]:
+                                    # Convert None to empty string, then to string
+                                    if cell_value is None:
+                                        row_dict[headers[i]] = ''
+                                    else:
+                                        # Handle datetime/date objects from Excel (convert to YYYY-MM-DD format)
+                                        if isinstance(cell_value, (datetime, date)):
+                                            row_dict[headers[i]] = cell_value.strftime('%Y-%m-%d')
+                                        else:
+                                            row_dict[headers[i]] = str(cell_value)
+                            if row_dict:  # Only add if dict is not empty
+                                rows.append(row_dict)
+                except ImportError:
+                    messages.error(request, 'openpyxl library is required for Excel files. Please install it: pip install openpyxl')
+                    return render(request, 'amc/bulk_import.html')
+                except Exception as e:
+                    messages.error(request, f'Error reading Excel file: {str(e)}')
+                    return render(request, 'amc/bulk_import.html')
+            
+            if not rows:
+                messages.error(request, 'The file appears to be empty or has no data rows.')
+                return render(request, 'amc/bulk_import.html')
+            
+            # Process rows and create AMCs
+            success_count = 0
+            error_count = 0
+            errors = []
+            
+            # Helper function to parse dates in various formats
+            def parse_date(date_str):
+                """Parse date string in YYYY-MM-DD format or common Excel formats"""
+                if not date_str or not date_str.strip():
+                    return None
+                date_str = date_str.strip()
+                
+                # Try YYYY-MM-DD format first (expected format)
+                try:
+                    return datetime.strptime(date_str, '%Y-%m-%d').date()
+                except ValueError:
+                    pass
+                
+                # Try other common formats
+                date_formats = [
+                    '%Y/%m/%d',
+                    '%d/%m/%Y',
+                    '%m/%d/%Y',
+                    '%d-%m-%Y',
+                    '%m-%d-%Y',
+                ]
+                for fmt in date_formats:
+                    try:
+                        return datetime.strptime(date_str, fmt).date()
+                    except ValueError:
+                        continue
+                
+                # If all parsing fails, return None (will be caught by error handling)
+                return None
+            
+            # Helper functions for parsing numeric values
+            def parse_int(value, default=None):
+                """Parse integer value, return None if empty/invalid"""
+                if value is None or value == '':
+                    return default
+                try:
+                    return int(value) if str(value).strip() else default
+                except (ValueError, TypeError):
+                    return default
+
+            def parse_decimal(value, default=None):
+                """Parse decimal value, return None if empty/invalid"""
+                if value is None or value == '':
+                    return default
+                try:
+                    return float(value) if str(value).strip() else default
+                except (ValueError, TypeError):
+                    return default
+            
+            for idx, row in enumerate(rows, start=2):  # Start from 2 (1 is header)
+                try:
+                    # Map CSV columns to model fields - handle None values and empty strings
+                    # Headers are normalized to lowercase with underscores
+                    
+                    # Required fields (from add_amc_custom requirements)
+                    customer_value = row.get('customer', '') or row.get('customer_value', '') or ''
+                    customer_value = str(customer_value).strip() if customer_value else ''
+                    
+                    # Handle both 'start_date' and 'start_date_str' column names
+                    start_date_raw = row.get('start_date', '') or row.get('start_date_str', '') or ''
+                    start_date = str(start_date_raw).strip() if start_date_raw else ''
+                    
+                    # Handle both 'end_date' and 'end_date_str' column names
+                    end_date_raw = row.get('end_date', '') or row.get('end_date_str', '') or ''
+                    end_date = str(end_date_raw).strip() if end_date_raw else ''
+                    
+                    # Validate required fields (same as add_amc_custom)
+                    if not customer_value:
+                        errors.append(f'Row {idx}: Customer is required.')
+                        error_count += 1
+                        continue
+                    
+                    if not start_date:
+                        errors.append(f'Row {idx}: Start date is required.')
+                        error_count += 1
+                        continue
+                    
+                    if not end_date:
+                        errors.append(f'Row {idx}: End date is required.')
+                        error_count += 1
+                        continue
+                    
+                    # Get customer by site_name
+                    customer = Customer.objects.filter(site_name=customer_value).first()
+                    if not customer:
+                        errors.append(f'Row {idx}: Customer "{customer_value}" not found. Please use an existing customer site name.')
+                        error_count += 1
+                        continue
+                    
+                    # Parse dates
+                    start_date_parsed = parse_date(start_date)
+                    if start_date_parsed is None:
+                        errors.append(f'Row {idx}: Invalid start date format. Please use YYYY-MM-DD format.')
+                        error_count += 1
+                        continue
+                    
+                    end_date_parsed = parse_date(end_date)
+                    if end_date_parsed is None:
+                        errors.append(f'Row {idx}: Invalid end date format. Please use YYYY-MM-DD format.')
+                        error_count += 1
+                        continue
+                    
+                    # Validate date order
+                    if start_date_parsed >= end_date_parsed:
+                        errors.append(f'Row {idx}: Start date must be before end date.')
+                        error_count += 1
+                        continue
+                    
+                    # Optional fields
+                    amc_type_value = row.get('amc_type', '') or row.get('amc_type_value', '') or ''
+                    amc_type_value = str(amc_type_value).strip() if amc_type_value else ''
+                    
+                    amc_type = None
+                    if amc_type_value:
+                        amc_type = AMCType.objects.filter(name=amc_type_value).first()
+                        if not amc_type:
+                            # Create if doesn't exist
+                            amc_type = AMCType.objects.create(name=amc_type_value)
+                    
+                    payment_terms_value = row.get('payment_terms', '') or row.get('payment_terms_value', '') or ''
+                    payment_terms_value = str(payment_terms_value).strip() if payment_terms_value else ''
+                    
+                    payment_terms = None
+                    if payment_terms_value:
+                        from .models import PaymentTerms
+                        payment_terms, created = PaymentTerms.objects.get_or_create(name=payment_terms_value)
+                    
+                    amc_service_item_value = row.get('amc_service_item', '') or row.get('amc_service_item_value', '') or ''
+                    amc_service_item_value = str(amc_service_item_value).strip() if amc_service_item_value else ''
+                    
+                    amc_service_item = None
+                    if amc_service_item_value:
+                        amc_service_item = Item.objects.filter(name=amc_service_item_value).first()
+                        if not amc_service_item:
+                            errors.append(f'Row {idx}: AMC Service Item "{amc_service_item_value}" not found.')
+                            error_count += 1
+                            continue
+                    
+                    # Validate contract generation (same as add_amc_custom)
+                    generate_contract = row.get('is_generate_contract', '')
+                    if isinstance(generate_contract, str):
+                        generate_contract = generate_contract.lower() in ('true', 'on', '1', 'yes')
+                    else:
+                        generate_contract = bool(generate_contract)
+                    
+                    if generate_contract and not amc_service_item:
+                        errors.append(f'Row {idx}: Please select an AMC Service Item when generating contract.')
+                        error_count += 1
+                        continue
+                    
+                    # Parse numeric fields
+                    invoice_frequency = row.get('invoice_frequency', 'annually') or 'annually'
+                    no_of_services = parse_int(row.get('no_of_services'))
+                    price = parse_decimal(row.get('price'), default=0)
+                    no_of_lifts = parse_int(row.get('no_of_lifts'), default=0)
+                    gst_percentage = parse_decimal(row.get('gst_percentage'), default=0)
+                    total_amount_paid = parse_decimal(row.get('total_amount_paid'), default=0)
+                    geo_latitude = parse_decimal(row.get('geo_latitude'))
+                    geo_longitude = parse_decimal(row.get('geo_longitude'))
+                    
+                    # Text fields
+                    equipment_no = row.get('equipment_no', '') or ''
+                    equipment_no = str(equipment_no).strip() if equipment_no else ''
+                    
+                    latitude = row.get('latitude', '') or ''
+                    latitude = str(latitude).strip() if latitude else ''
+                    
+                    notes = row.get('notes', '') or ''
+                    notes = str(notes).strip() if notes else ''
+                    
+                    # Create AMC (same structure as add_amc_custom)
+                    amc = AMC.objects.create(
+                        customer=customer,
+                        invoice_frequency=invoice_frequency,
+                        amc_type=amc_type,
+                        start_date=start_date_parsed,
+                        end_date=end_date_parsed,
+                        equipment_no=equipment_no,
+                        latitude=latitude,
+                        geo_latitude=geo_latitude,
+                        geo_longitude=geo_longitude,
+                        notes=notes,
+                        is_generate_contract=generate_contract,
+                        no_of_services=no_of_services,
+                        amc_service_item=amc_service_item,
+                        price=price,
+                        no_of_lifts=no_of_lifts,
+                        gst_percentage=gst_percentage,
+                        total_amount_paid=total_amount_paid,
+                        payment_terms=payment_terms,
+                    )
+                    
+                    # Validate and save (uses full_clean which applies all model validations)
+                    try:
+                        amc.full_clean()
+                        amc.save()
+                        success_count += 1
+                    except ValidationError as e:
+                        # Handle validation errors
+                        if e.message_dict:
+                            error_fields = ['customer', 'start_date', 'end_date']
+                            error_msg = None
+                            for field in error_fields:
+                                if field in e.message_dict:
+                                    error_msg = f"Row {idx}: {e.message_dict[field][0]}"
+                                    break
+                            if not error_msg:
+                                error_msg = f"Row {idx}: {list(e.message_dict.values())[0][0]}"
+                        else:
+                            error_msg = f"Row {idx}: {str(e)}"
+                        errors.append(error_msg)
+                        error_count += 1
+                        continue
+                    except Exception as e:
+                        # Handle unique constraint violations and other database errors
+                        error_str = str(e).lower()
+                        if 'unique' in error_str or 'duplicate' in error_str or 'already exists' in error_str:
+                            errors.append(f'Row {idx}: Duplicate entry - {str(e)}')
+                        else:
+                            errors.append(f'Row {idx}: {str(e)}')
+                        error_count += 1
+                        continue
+                        
+                except Exception as e:
+                    errors.append(f'Row {idx}: Unexpected error - {str(e)}')
+                    error_count += 1
+                    continue
+            
+            # Show results
+            if success_count > 0:
+                messages.success(request, f'Successfully imported {success_count} AMC(s).')
+            if error_count > 0:
+                error_message = f'Failed to import {error_count} row(s).'
+                if errors:
+                    error_message += ' Errors: ' + '; '.join(errors[:10])  # Show first 10 errors
+                    if len(errors) > 10:
+                        error_message += f' ... and {len(errors) - 10} more error(s).'
+                messages.error(request, error_message)
+            
+            return render(request, 'amc/bulk_import.html')
+            
+        except Exception as e:
+            messages.error(request, f'Error processing file: {str(e)}')
+            return render(request, 'amc/bulk_import.html')
+    
+    # GET request - render form
+    return render(request, 'amc/bulk_import.html')

@@ -227,6 +227,67 @@ class Lift(models.Model):
         return f"{self.no_of_passengers} Persons"
     passengers_display.short_description = "No. of Passengers"
 
+    # Helper methods for export (return string values for ForeignKey fields)
+    def floor_id_value(self):
+        return self.floor_id.value if self.floor_id else ""
+    floor_id_value.short_description = "Floor ID"
+
+    def brand_value(self):
+        return self.brand.value if self.brand else ""
+    brand_value.short_description = "Brand"
+
+    def lift_type_value(self):
+        return self.lift_type.value if self.lift_type else ""
+    lift_type_value.short_description = "Lift Type"
+
+    def machine_type_value(self):
+        return self.machine_type.value if self.machine_type else ""
+    machine_type_value.short_description = "Machine Type"
+
+    def machine_brand_value(self):
+        return self.machine_brand.value if self.machine_brand else ""
+    machine_brand_value.short_description = "Machine Brand"
+
+    def door_type_value(self):
+        return self.door_type.value if self.door_type else ""
+    door_type_value.short_description = "Door Type"
+
+    def door_brand_value(self):
+        return self.door_brand.value if self.door_brand else ""
+    door_brand_value.short_description = "Door Brand"
+
+    def controller_brand_value(self):
+        return self.controller_brand.value if self.controller_brand else ""
+    controller_brand_value.short_description = "Controller Brand"
+
+    def cabin_value(self):
+        return self.cabin.value if self.cabin else ""
+    cabin_value.short_description = "Cabin"
+
+    # Helper methods for date export (format as YYYY-MM-DD for bulk import compatibility)
+    def license_start_date_str(self):
+        """Return license_start_date as YYYY-MM-DD string for export"""
+        if self.license_start_date:
+            return self.license_start_date.strftime('%Y-%m-%d')
+        return ""
+    license_start_date_str.short_description = "License Start Date"
+
+    def license_end_date_str(self):
+        """Return license_end_date as YYYY-MM-DD string for export"""
+        if self.license_end_date:
+            return self.license_end_date.strftime('%Y-%m-%d')
+        return ""
+    license_end_date_str.short_description = "License End Date"
+
+
+# Proxy model for Bulk Import menu item (not used for actual data)
+class BulkImportLift(Lift):
+    """Proxy model used only for menu structure - redirects to bulk import view"""
+    class Meta:
+        proxy = True
+        verbose_name = "Bulk Import"
+        verbose_name_plural = "Bulk Import"
+
 
 # ======================================================
 #  SNIPPET VIEWSETS
@@ -235,7 +296,7 @@ class Lift(models.Model):
 class LiftViewSet(SnippetViewSet):
     model = Lift
     icon = "cog"
-    menu_label = "Lifts"
+    menu_label = "All Lifts"
     inspect_view_enabled = True
 
     def get_form_class(self):
@@ -260,7 +321,30 @@ class LiftViewSet(SnippetViewSet):
         "floor_id",
     )
 
-    list_export = list_display
+    # Export ALL lift fields for XLSX/CSV download
+    list_export = (
+        'reference_id',
+        'lift_code',
+        'name',
+        'price',
+        'floor_id_value',
+        'brand_value',
+        'model',
+        'no_of_passengers',
+        'load_kg',
+        'speed',
+        'lift_type_value',
+        'machine_type_value',
+        'machine_brand_value',
+        'door_type_value',
+        'door_brand_value',
+        'controller_brand_value',
+        'cabin_value',
+        'block',
+        'license_no',
+        'license_start_date_str',
+        'license_end_date_str',
+    )
     
     export_formats = ["csv", "xlsx"]
 
@@ -320,6 +404,38 @@ class LiftViewSet(SnippetViewSet):
             return super().dispatch(request, *args, **kwargs)
     
     index_view_class = RestrictedIndexView
+
+
+# Custom ViewSet for Bulk Import
+class BulkImportViewSet(SnippetViewSet):
+    """Custom ViewSet for Bulk Import Lifts"""
+    model = BulkImportLift
+    menu_label = "Bulk Import"
+    icon = "download"
+    menu_order = 200
+    add_view_enabled = False
+    edit_view_enabled = False
+    delete_view_enabled = False
+    inspect_view_enabled = False
+    
+    def get_form_class(self, for_update=False):
+        from django.forms import ModelForm
+        # Exclude reference_id as it's non-editable
+        class BulkImportLiftForm(ModelForm):
+            class Meta:
+                model = BulkImportLift
+                exclude = ('reference_id',)
+        return BulkImportLiftForm
+    
+    # Override the index view to show bulk import page
+    class BulkImportIndexView(IndexView):
+        def dispatch(self, request, *args, **kwargs):
+            # Redirect to bulk import view instead of showing list
+            from django.shortcuts import render
+            from lift import views
+            return views.bulk_import_view(request)
+    
+    index_view_class = BulkImportIndexView
 
 
 # ============== Other snippet ViewSets ==============
@@ -385,6 +501,7 @@ class CabinViewSet(SnippetViewSet):
 class LiftGroup(SnippetViewSetGroup):
     items = (
         LiftViewSet,
+        BulkImportViewSet,
         FloorIDViewSet,
         BrandViewSet,
         MachineTypeViewSet,

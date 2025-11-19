@@ -15,6 +15,9 @@ urlpatterns = [
 
     # API endpoint for items list
     path('api/items/', views.manage_items, name='api_manage_items'),
+
+    # Bulk import view
+    path('bulk-import/', views.bulk_import_view, name='item_bulk_import'),
 ]
 
 if settings.DEBUG:

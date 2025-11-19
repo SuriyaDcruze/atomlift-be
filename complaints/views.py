@@ -1,9 +1,14 @@
 # complaints/views.py
+import csv
+import io
+from datetime import datetime, date
 from django.shortcuts import get_object_or_404, render
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.urls import reverse
+from django.contrib import messages
+from django.core.exceptions import ValidationError
 from io import BytesIO
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
@@ -13,7 +18,6 @@ import qrcode
 import base64
 import logging
 import re
-from io import BytesIO
 try:
     from PIL import Image, ImageDraw
 except ImportError:
@@ -859,3 +863,314 @@ def submit_public_complaint(request, customer_id):
     except Exception as e:
         logger.error(f"Error submitting public complaint: {str(e)}")
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+def bulk_import_view(request):
+    """View for bulk importing complaints from CSV/Excel"""
+    if request.method == 'POST':
+        try:
+            file = request.FILES.get('file')
+            if not file:
+                messages.error(request, 'Please select a file to upload.')
+                return render(request, 'complaints/bulk_import.html')
+            
+            # Check file extension
+            file_name = file.name.lower()
+            if not (file_name.endswith('.csv') or file_name.endswith('.xlsx') or file_name.endswith('.xls')):
+                messages.error(request, 'Please upload a CSV or Excel file (.csv, .xlsx, .xls)')
+                return render(request, 'complaints/bulk_import.html')
+            
+            # Read file content
+            file_content = file.read()
+            
+            # Parse CSV
+            if file_name.endswith('.csv'):
+                try:
+                    # Try to decode as UTF-8
+                    try:
+                        decoded_file = file_content.decode('utf-8')
+                    except UnicodeDecodeError:
+                        # Try with different encoding
+                        decoded_file = file_content.decode('latin-1')
+                    
+                    csv_reader = csv.DictReader(io.StringIO(decoded_file))
+                    # Normalize headers to lowercase, strip whitespace, and replace spaces with underscores
+                    rows = []
+                    for row in csv_reader:
+                        normalized_row = {}
+                        for key, value in row.items():
+                            # Normalize key: lowercase, strip, and replace spaces/hyphens with underscores
+                            if key:
+                                normalized_key = key.strip().lower().replace(' ', '_').replace('-', '_')
+                            else:
+                                normalized_key = ''
+                            # Handle None values and convert to string
+                            if value is None:
+                                normalized_row[normalized_key] = ''
+                            else:
+                                normalized_row[normalized_key] = str(value) if value else ''
+                        rows.append(normalized_row)
+                except Exception as e:
+                    messages.error(request, f'Error reading CSV file: {str(e)}')
+                    return render(request, 'complaints/bulk_import.html')
+            else:
+                # Parse Excel file
+                try:
+                    import openpyxl
+                    workbook = openpyxl.load_workbook(io.BytesIO(file_content))
+                    sheet = workbook.active
+                    
+                    # Get headers from first row, convert to lowercase, strip, and replace spaces with underscores
+                    headers = []
+                    for cell in sheet[1]:
+                        header_value = cell.value
+                        if header_value:
+                            normalized_header = str(header_value).strip().lower().replace(' ', '_').replace('-', '_')
+                            headers.append(normalized_header)
+                        else:
+                            headers.append('')
+                    
+                    rows = []
+                    for row in sheet.iter_rows(min_row=2, values_only=True):
+                        # Check if row has any non-empty values
+                        if any(cell is not None and str(cell).strip() for cell in row if cell is not None):
+                            # Create dict with lowercase keys and handle None values
+                            row_dict = {}
+                            for i, cell_value in enumerate(row):
+                                if i < len(headers) and headers[i]:
+                                    # Convert None to empty string, then to string
+                                    if cell_value is None:
+                                        row_dict[headers[i]] = ''
+                                    else:
+                                        # Handle datetime/date objects from Excel (convert to YYYY-MM-DD format)
+                                        if isinstance(cell_value, (datetime, date)):
+                                            row_dict[headers[i]] = cell_value.strftime('%Y-%m-%d')
+                                        else:
+                                            row_dict[headers[i]] = str(cell_value)
+                            if row_dict:  # Only add if dict is not empty
+                                rows.append(row_dict)
+                except ImportError:
+                    messages.error(request, 'openpyxl library is required for Excel files. Please install it: pip install openpyxl')
+                    return render(request, 'complaints/bulk_import.html')
+                except Exception as e:
+                    messages.error(request, f'Error reading Excel file: {str(e)}')
+                    return render(request, 'complaints/bulk_import.html')
+            
+            if not rows:
+                messages.error(request, 'The file appears to be empty or has no data rows.')
+                return render(request, 'complaints/bulk_import.html')
+            
+            # Process rows and create complaints
+            success_count = 0
+            error_count = 0
+            errors = []
+            
+            # Helper function to parse dates in various formats
+            def parse_date(date_str):
+                """Parse date string in YYYY-MM-DD format or common Excel formats"""
+                if not date_str or not date_str.strip():
+                    return None
+                date_str = date_str.strip()
+                
+                # Try YYYY-MM-DD format first (expected format)
+                try:
+                    return datetime.strptime(date_str, '%Y-%m-%d').date()
+                except ValueError:
+                    pass
+                
+                # Try other common formats
+                date_formats = [
+                    '%Y/%m/%d',
+                    '%d/%m/%Y',
+                    '%m/%d/%Y',
+                    '%d-%m-%Y',
+                    '%m-%d-%Y',
+                ]
+                for fmt in date_formats:
+                    try:
+                        return datetime.strptime(date_str, fmt).date()
+                    except ValueError:
+                        continue
+                
+                # If all parsing fails, return None (will be caught by error handling)
+                return None
+            
+            for idx, row in enumerate(rows, start=2):  # Start from 2 (1 is header)
+                try:
+                    # Map CSV columns to model fields - handle None values and empty strings
+                    # Headers are normalized to lowercase with underscores
+                    
+                    # Required fields (from create_complaint requirements)
+                    customer_value = row.get('customer', '') or row.get('customer_value', '') or ''
+                    customer_value = str(customer_value).strip() if customer_value else ''
+                    
+                    subject = row.get('subject', '').strip() if row.get('subject') else ''
+                    message = row.get('message', '').strip() if row.get('message') else ''
+                    
+                    # Validate required fields
+                    if not customer_value:
+                        errors.append(f'Row {idx}: Customer is required.')
+                        error_count += 1
+                        continue
+                    
+                    if not subject:
+                        errors.append(f'Row {idx}: Subject is required.')
+                        error_count += 1
+                        continue
+                    
+                    if not message:
+                        errors.append(f'Row {idx}: Message is required.')
+                        error_count += 1
+                        continue
+                    
+                    # Get customer by site_name
+                    customer = Customer.objects.filter(site_name=customer_value).first()
+                    if not customer:
+                        errors.append(f'Row {idx}: Customer "{customer_value}" not found. Please use an existing customer site name.')
+                        error_count += 1
+                        continue
+                    
+                    # Optional fields
+                    complaint_type_value = row.get('complaint_type', '') or row.get('complaint_type_value', '') or ''
+                    complaint_type_value = str(complaint_type_value).strip() if complaint_type_value else ''
+                    
+                    complaint_type = None
+                    if complaint_type_value:
+                        complaint_type = ComplaintType.objects.filter(name=complaint_type_value).first()
+                        if not complaint_type:
+                            errors.append(f'Row {idx}: Complaint Type "{complaint_type_value}" not found. Please use an existing complaint type name.')
+                            error_count += 1
+                            continue
+                    
+                    # Handle date (optional, defaults to today)
+                    date_value = row.get('date', '') or row.get('date_str', '')
+                    date_parsed = None
+                    if date_value:
+                        date_parsed = parse_date(date_value)
+                        if date_parsed is None:
+                            errors.append(f'Row {idx}: Invalid date format. Please use YYYY-MM-DD format.')
+                            error_count += 1
+                            continue
+                    else:
+                        # Use today's date if not provided
+                        from django.utils import timezone
+                        date_parsed = timezone.now().date()
+                    
+                    # Contact person fields (optional, will be auto-filled from customer if not provided)
+                    contact_person_name = row.get('contact_person_name', '').strip() if row.get('contact_person_name') else ''
+                    contact_person_mobile = row.get('contact_person_mobile', '').strip() if row.get('contact_person_mobile') else ''
+                    block_wing = row.get('block_wing', '').strip() if row.get('block_wing') else ''
+                    
+                    # Assign to employee (optional)
+                    assign_to_value = row.get('assign_to', '') or row.get('assign_to_value', '') or ''
+                    assign_to_value = str(assign_to_value).strip() if assign_to_value else ''
+                    
+                    assign_to = None
+                    if assign_to_value:
+                        assign_to = CustomUser.objects.filter(username=assign_to_value, groups__name='employee').first()
+                        if not assign_to:
+                            errors.append(f'Row {idx}: Employee "{assign_to_value}" not found or is not in employee group. Please use an existing employee username.')
+                            error_count += 1
+                            continue
+                    
+                    # Priority (optional)
+                    priority_value = row.get('priority', '') or row.get('priority_value', '') or ''
+                    priority_value = str(priority_value).strip() if priority_value else ''
+                    
+                    priority = None
+                    if priority_value:
+                        priority = ComplaintPriority.objects.filter(name=priority_value).first()
+                        if not priority:
+                            errors.append(f'Row {idx}: Priority "{priority_value}" not found. Please use an existing priority name.')
+                            error_count += 1
+                            continue
+                    
+                    # Status (optional, default: 'open')
+                    status = row.get('status', 'open') or 'open'
+                    valid_statuses = ['open', 'in_progress', 'closed']
+                    if status not in valid_statuses:
+                        status = 'open'
+                    
+                    # Other optional fields
+                    lift_info = row.get('lift_info', '').strip() if row.get('lift_info') else ''
+                    complaint_templates = row.get('complaint_templates', '').strip() if row.get('complaint_templates') else ''
+                    technician_remark = row.get('technician_remark', '').strip() if row.get('technician_remark') else ''
+                    solution = row.get('solution', '').strip() if row.get('solution') else ''
+                    
+                    # Create complaint (same structure as create_complaint)
+                    complaint = Complaint.objects.create(
+                        complaint_type=complaint_type,
+                        date=date_parsed,
+                        customer=customer,
+                        contact_person_name=contact_person_name or (customer.contact_person_name if customer else ''),
+                        contact_person_mobile=contact_person_mobile or (customer.phone if customer else ''),
+                        block_wing=block_wing or (customer.site_address if customer else ''),
+                        assign_to=assign_to,
+                        priority=priority,
+                        status=status,
+                        subject=subject,
+                        message=message,
+                        lift_info=lift_info,
+                        complaint_templates=complaint_templates,
+                        technician_remark=technician_remark,
+                        solution=solution,
+                    )
+                    
+                    # Note: Signature images (technician_signature, customer_signature) cannot be handled in bulk import
+                    # Users need to upload signature images individually after import
+                    
+                    # Validate and save (uses full_clean which applies all model validations)
+                    try:
+                        complaint.full_clean()
+                        complaint.save()
+                        success_count += 1
+                    except ValidationError as e:
+                        # Handle validation errors
+                        if e.message_dict:
+                            error_fields = ['customer', 'subject', 'message']
+                            error_msg = None
+                            for field in error_fields:
+                                if field in e.message_dict:
+                                    error_msg = f"Row {idx}: {e.message_dict[field][0]}"
+                                    break
+                            if not error_msg:
+                                error_msg = f"Row {idx}: {list(e.message_dict.values())[0][0]}"
+                        else:
+                            error_msg = f"Row {idx}: {str(e)}"
+                        errors.append(error_msg)
+                        error_count += 1
+                        continue
+                    except Exception as e:
+                        # Handle unique constraint violations and other database errors
+                        error_str = str(e).lower()
+                        if 'unique' in error_str or 'duplicate' in error_str or 'already exists' in error_str:
+                            errors.append(f'Row {idx}: Duplicate entry - {str(e)}')
+                        else:
+                            errors.append(f'Row {idx}: {str(e)}')
+                        error_count += 1
+                        continue
+                        
+                except Exception as e:
+                    errors.append(f'Row {idx}: Unexpected error - {str(e)}')
+                    error_count += 1
+                    continue
+            
+            # Show results
+            if success_count > 0:
+                messages.success(request, f'Successfully imported {success_count} complaint(s).')
+            if error_count > 0:
+                error_message = f'Failed to import {error_count} row(s).'
+                if errors:
+                    error_message += ' Errors: ' + '; '.join(errors[:10])  # Show first 10 errors
+                    if len(errors) > 10:
+                        error_message += f' ... and {len(errors) - 10} more error(s).'
+                messages.error(request, error_message)
+            
+            return render(request, 'complaints/bulk_import.html')
+            
+        except Exception as e:
+            messages.error(request, f'Error processing file: {str(e)}')
+            return render(request, 'complaints/bulk_import.html')
+    
+    # GET request - render form
+    return render(request, 'complaints/bulk_import.html')

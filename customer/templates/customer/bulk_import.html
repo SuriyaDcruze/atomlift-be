@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bulk Import Customers - CRM LIFT ATOM</title>
+    <!-- Inter Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+                'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+                sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background-color: #f8f9fa;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .header {
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            color: #243158;
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: #6c757d;
+            font-size: 0.95rem;
+        }
+
+        .upload-area {
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            padding: 3rem 2rem;
+            text-align: center;
+            background-color: #f8f9fa;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .upload-area:hover {
+            border-color: #243158;
+            background-color: #e9ecef;
+        }
+
+        .upload-area.dragover {
+            border-color: #243158;
+            background-color: #e7f3ff;
+        }
+
+        .upload-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 1rem;
+            color: #243158;
+        }
+
+        .upload-text {
+            color: #495057;
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-hint {
+            color: #6c757d;
+            font-size: 0.875rem;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 500;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background-color: #243158;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #1a2540;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+
+        .file-info {
+            margin-top: 1rem;
+            padding: 1rem;
+            background-color: #e7f3ff;
+            border-radius: 6px;
+            display: none;
+        }
+
+        .file-info.show {
+            display: block;
+        }
+
+        .file-name {
+            font-weight: 500;
+            color: #243158;
+            margin-bottom: 0.25rem;
+        }
+
+        .file-size {
+            color: #6c757d;
+            font-size: 0.875rem;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .info-box {
+            background-color: #e7f3ff;
+            border-left: 4px solid #243158;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1.5rem;
+        }
+
+        .info-box h3 {
+            color: #243158;
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .info-box ul {
+            margin-left: 1.5rem;
+            color: #495057;
+            font-size: 0.9rem;
+        }
+
+        .info-box li {
+            margin-bottom: 0.25rem;
+        }
+
+        .messages {
+            margin-bottom: 1.5rem;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .error-list {
+            margin-top: 0.5rem;
+            padding-left: 1.5rem;
+            font-size: 0.875rem;
+        }
+
+        .error-list li {
+            margin-bottom: 0.25rem;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 1rem;
+            color: #243158;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/admin/snippets/customer/customer/" class="back-link">← Back to Customers</a>
+        
+        <div class="card">
+            <div class="header">
+                <h1>Bulk Import Customers</h1>
+                <p>Upload a CSV or Excel file to import multiple customers at once</p>
+            </div>
+
+            {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    {{ message }}
+                    {% if message.tags == 'warning' and errors %}
+                    <ul class="error-list">
+                        {% for error in errors %}
+                        <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="info-box">
+                <h3>File Format Requirements</h3>
+                <ul>
+                    <li>File must be in CSV (.csv) or Excel (.xlsx, .xls) format</li>
+                    <li>First row must contain column headers</li>
+                    <li><strong>Required columns:</strong> site_name, mobile, job_no, city</li>
+                    <li><strong>Optional columns:</strong> email, phone, site_address, office_address, same_as_site_address, contact_person_name, designation, pin_code, country, province_state, routes, branch, sector, handover_date (or handover_date_str), billing_name, latitude, longitude, notes, generate_license_now</li>
+                    <li>Foreign key fields (province_state, city, routes, branch) must match existing records by their value/name</li>
+                    <li><strong>Validation Rules (same as Add Customer form):</strong></li>
+                    <li style="margin-left: 1.5rem;">• <strong>Site Name:</strong> Required</li>
+                    <li style="margin-left: 1.5rem;">• <strong>Mobile:</strong> Required, must be exactly 10 digits, must be unique</li>
+                    <li style="margin-left: 1.5rem;">• <strong>Job No:</strong> Required, must be unique</li>
+                    <li style="margin-left: 1.5rem;">• <strong>City:</strong> Required, must match an existing city name</li>
+                    <li style="margin-left: 1.5rem;">• <strong>Email:</strong> Optional, must be unique if provided</li>
+                    <li style="margin-left: 1.5rem;">• <strong>Phone:</strong> Optional, must be exactly 10 digits if provided, must be unique if provided</li>
+                    <li style="margin-left: 1.5rem;">• <strong>Province/State:</strong> Optional, must match an existing province/state name</li>
+                    <li style="margin-left: 1.5rem;">• <strong>Routes:</strong> Optional, must match an existing route name</li>
+                    <li style="margin-left: 1.5rem;">• <strong>Branch:</strong> Optional, must match an existing branch name</li>
+                    <li style="margin-left: 1.5rem;">• <strong>Sector:</strong> Optional, must be either "government" or "private"</li>
+                    <li style="margin-left: 1.5rem;">• <strong>Handover Date:</strong> Optional, format YYYY-MM-DD (same as export format)</li>
+                    <li style="margin-left: 1.5rem;">• <strong>Latitude:</strong> Optional, must be between -90 and 90 degrees</li>
+                    <li style="margin-left: 1.5rem;">• <strong>Longitude:</strong> Optional, must be between -180 and 180 degrees</li>
+                    <li style="margin-left: 1.5rem;">• <strong>Same as Site Address:</strong> Optional boolean (true/false, yes/no, on/off, 1/0). If true, office_address will be set to site_address</li>
+                    <li style="margin-left: 1.5rem;">• <strong>Generate License Now:</strong> Optional boolean (true/false, yes/no, on/off, 1/0)</li>
+                    <li style="margin-left: 1.5rem;">• <strong>Note:</strong> File uploads (uploads_files) cannot be handled in bulk import. Upload files individually after import.</li>
+                </ul>
+            </div>
+
+            <form method="post" enctype="multipart/form-data" id="uploadForm">
+                {% csrf_token %}
+                <div class="upload-area" id="uploadArea">
+                    <svg class="upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                    </svg>
+                    <div class="upload-text">Click to upload or drag and drop</div>
+                    <div class="upload-hint">CSV or Excel files only (Max 10MB)</div>
+                    <input type="file" name="file" id="fileInput" class="file-input" accept=".csv,.xlsx,.xls" required>
+                </div>
+
+                <div class="file-info" id="fileInfo">
+                    <div class="file-name" id="fileName"></div>
+                    <div class="file-size" id="fileSize"></div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" id="submitBtn" disabled>Import Customers</button>
+                    <a href="/admin/snippets/customer/customer/" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const submitBtn = document.getElementById('submitBtn');
+        const uploadForm = document.getElementById('uploadForm');
+
+        // Click to upload
+        uploadArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                handleFileSelect(files[0]);
+            }
+        });
+
+        // File input change
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+
+        function handleFileSelect(file) {
+            // Validate file type
+            const validTypes = ['.csv', '.xlsx', '.xls'];
+            const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+            
+            if (!validTypes.includes(fileExtension)) {
+                alert('Please select a CSV or Excel file (.csv, .xlsx, .xls)');
+                fileInput.value = '';
+                return;
+            }
+
+            // Validate file size (10MB)
+            if (file.size > 10 * 1024 * 1024) {
+                alert('File size must be less than 10MB');
+                fileInput.value = '';
+                return;
+            }
+
+            // Show file info
+            fileName.textContent = file.name;
+            fileSize.textContent = formatFileSize(file.size);
+            fileInfo.classList.add('show');
+            submitBtn.disabled = false;
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        // Form submission
+        uploadForm.addEventListener('submit', (e) => {
+            if (!fileInput.files.length) {
+                e.preventDefault();
+                alert('Please select a file to upload');
+                return;
+            }
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Importing...';
+        });
+    </script>
+</body>
+</html>
+
+
+

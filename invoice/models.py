@@ -96,6 +96,17 @@ class Invoice(ClusterableModel):
         """String version of due_date for CSV/XLSX export."""
         return self.due_date.strftime("%Y-%m-%d") if self.due_date else ""
 
+    # Helper methods for export (return string values for ForeignKey fields)
+    def customer_value(self):
+        """Return customer site_name for export"""
+        return self.customer.site_name if self.customer else ""
+    customer_value.short_description = "Customer"
+
+    def amc_type_value(self):
+        """Return AMC type name for export"""
+        return self.amc_type.name if self.amc_type else ""
+    amc_type_value.short_description = "AMC Type"
+
 
 class InvoiceItem(models.Model):
     # Relates back to the parent Invoice
@@ -160,7 +171,8 @@ class InvoiceViewSet(SnippetViewSet):
     # Export fields (use stringified dates so Excel doesn't render them as ###)
     list_export = [
         "reference_id",
-        "customer",
+        "customer_value",
+        "amc_type_value",
         "start_date_str",
         "due_date_str",
         "discount",
@@ -213,10 +225,45 @@ class InvoiceViewSet(SnippetViewSet):
     index_view_class = RestrictedIndexView
 
 
+# ---------- Proxy model for Bulk Import ----------
+class BulkImportInvoice(Invoice):
+    """Proxy model used only for menu structure - redirects to bulk import view"""
+    class Meta:
+        proxy = True
+        verbose_name = "Bulk Import"
+        verbose_name_plural = "Bulk Import"
+
+
+# Custom ViewSet for Bulk Import
+class BulkImportInvoiceViewSet(SnippetViewSet):
+    """Custom ViewSet for Bulk Import Invoices"""
+    model = BulkImportInvoice
+    menu_label = "Bulk Import"
+    icon = "download"
+    menu_order = 200
+    add_view_enabled = False
+    edit_view_enabled = False
+    delete_view_enabled = False
+    inspect_view_enabled = False
+    
+    # Override the index view to show bulk import page
+    class BulkImportIndexView(IndexView):
+        def dispatch(self, request, *args, **kwargs):
+            # Redirect to bulk import view instead of showing list
+            from django.shortcuts import render
+            from invoice import views
+            return views.bulk_import_view(request)
+    
+    index_view_class = BulkImportIndexView
+
+
 # ---------- SNIPPET GROUP ----------
 class InvoiceGroup(SnippetViewSetGroup):
     # Only one ViewSet for this group
-    items = (InvoiceViewSet,) 
+    items = (
+        InvoiceViewSet,
+        BulkImportInvoiceViewSet,
+    )
     menu_icon = "group"
     menu_label = "Invoices"
     menu_name = "invoicing"

@@ -1,14 +1,16 @@
 from wagtail.snippets.models import register_snippet
 from wagtail.snippets.views.snippets import SnippetViewSet, SnippetViewSetGroup, IndexView
 from wagtail import hooks
-from wagtail.admin.menu import MenuItem
+from wagtail.admin.menu import MenuItem, SubmenuMenuItem
 from wagtail.permissions import ModelPermissionPolicy
 from django.urls import reverse
 from django.urls import path
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.http import JsonResponse
-from .models import MaterialRequest
+from django.views import View
+from .models import MaterialRequest, BulkImportMaterialRequest
+from . import views
 import json
 
 # Custom permission policy to deny add permission
@@ -23,7 +25,7 @@ class NoAddMaterialRequestPermissionPolicy(ModelPermissionPolicy):
 # Material Request SnippetViewSet
 class MaterialRequestViewSet(SnippetViewSet):
     model = MaterialRequest
-    menu_label = "Material Request"
+    menu_label = "All Material Requests"
     icon = "form"
     menu_order = 100
     inspect_view_enabled = True  # Enable Wagtail default inspect view
@@ -132,9 +134,32 @@ class MaterialRequestViewSet(SnippetViewSet):
         urlpatterns = super().get_urlpatterns()
         return urlpatterns
 
+# Custom ViewSet for Bulk Import
+class BulkImportViewSet(SnippetViewSet):
+    """Custom ViewSet for Bulk Import Material Requests"""
+    model = BulkImportMaterialRequest
+    menu_label = "Bulk Import"
+    icon = "download"
+    menu_order = 200
+    add_view_enabled = False
+    edit_view_enabled = False
+    delete_view_enabled = False
+    inspect_view_enabled = False
+    
+    # Override the index view to show bulk import page
+    class BulkImportIndexView(IndexView):
+        def dispatch(self, request, *args, **kwargs):
+            # Redirect to bulk import view instead of showing list
+            return views.bulk_import_view(request)
+    
+    index_view_class = BulkImportIndexView
+
 # Material Request Group
 class MaterialRequestGroup(SnippetViewSetGroup):
-    items = (MaterialRequestViewSet,)
+    items = (
+        MaterialRequestViewSet,
+        BulkImportViewSet,
+    )
     menu_icon = "form"
     menu_label = "Material Request"
     menu_name = "material_request"
@@ -154,12 +179,4 @@ def remove_material_request_add_buttons(buttons, snippet, user, context=None):
         )]
     return buttons
 
-# # Custom menu item for Material Request frontend
-# @hooks.register('register_admin_menu_item')
-# def register_material_request_menu_item():
-#     return MenuItem(
-#         'Material Request',
-#         reverse('material_request:material_request_frontend'),
-#         icon_name='form',
-#         order=10000
-#     )
+

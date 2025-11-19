@@ -109,6 +109,22 @@ class Quotation(ClusterableModel):
     def lifts_str(self):
         """Comma-separated list of related lifts for safe CSV/XLSX export."""
         return ", ".join(str(lift) for lift in self.lifts.all())
+
+    # Helper methods for export (return string values for ForeignKey fields)
+    def customer_value(self):
+        """Return customer site_name for export"""
+        return self.customer.site_name if self.customer else ""
+    customer_value.short_description = "Customer"
+
+    def amc_type_value(self):
+        """Return AMC type name for export"""
+        return self.amc_type.name if self.amc_type else ""
+    amc_type_value.short_description = "AMC Type"
+
+    def sales_service_executive_value(self):
+        """Return sales/service executive username for export"""
+        return self.sales_service_executive.username if self.sales_service_executive else ""
+    sales_service_executive_value.short_description = "Sales/Service Executive"
     
 
 # quotation/views.py (ViewSet and Grouping)
@@ -136,9 +152,9 @@ class QuotationViewSet(SnippetViewSet):
     list_export = [
         "id",
         "reference_id",
-        "customer",
-        "amc_type",
-        "sales_service_executive",
+        "customer_value",
+        "amc_type_value",
+        "sales_service_executive_value",
         "lifts_str",
         "type",
         "year_of_make",
@@ -193,9 +209,45 @@ class QuotationViewSet(SnippetViewSet):
     
     index_view_class = RestrictedIndexView
 
+
+# ---------- Proxy model for Bulk Import ----------
+class BulkImportQuotation(Quotation):
+    """Proxy model used only for menu structure - redirects to bulk import view"""
+    class Meta:
+        proxy = True
+        verbose_name = "Bulk Import"
+        verbose_name_plural = "Bulk Import"
+
+
+# Custom ViewSet for Bulk Import
+class BulkImportQuotationViewSet(SnippetViewSet):
+    """Custom ViewSet for Bulk Import Quotations"""
+    model = BulkImportQuotation
+    menu_label = "Bulk Import"
+    icon = "download"
+    menu_order = 200
+    add_view_enabled = False
+    edit_view_enabled = False
+    delete_view_enabled = False
+    inspect_view_enabled = False
+    
+    # Override the index view to show bulk import page
+    class BulkImportIndexView(IndexView):
+        def dispatch(self, request, *args, **kwargs):
+            # Redirect to bulk import view instead of showing list
+            from django.shortcuts import render
+            from Quotation import views
+            return views.bulk_import_view(request)
+    
+    index_view_class = BulkImportIndexView
+
+
 # ---------- SNIPPET GROUP ----------
 class QuotationGroup(SnippetViewSetGroup):
-    items = (QuotationViewSet,)
+    items = (
+        QuotationViewSet,
+        BulkImportQuotationViewSet,
+    )
     menu_icon = "group"
     menu_label = "Quotation "
     menu_name = "quotation"

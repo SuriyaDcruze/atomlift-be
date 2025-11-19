@@ -155,6 +155,17 @@ class DeliveryChallan(ClusterableModel):
         """String version of challan date for CSV/XLSX export (avoids Excel ###)."""
         return self.date.strftime("%Y-%m-%d") if self.date else ""
 
+    # Helper methods for export (return string values for ForeignKey fields)
+    def customer_value(self):
+        """Return customer site_name for export"""
+        return self.customer.site_name if self.customer else ""
+    customer_value.short_description = "Customer"
+
+    def place_of_supply_value(self):
+        """Return place of supply value for export"""
+        return self.place_of_supply.value if self.place_of_supply else ""
+    place_of_supply_value.short_description = "Place of Supply"
+
 
 class DeliveryChallanItem(models.Model):
     """Items in a delivery challan"""
@@ -207,11 +218,14 @@ class DeliveryChallanViewSet(SnippetViewSet):
     # Export with stringified date so Excel doesn't render it as ###
     list_export = [
         'reference_id',
-        'customer',
+        'customer_value',
         'date_str',
         'challan_type',
-        'place_of_supply',
+        'place_of_supply_value',
         'currency',
+        'discount_amount',
+        'discount_percentage',
+        'adjustment',
         'total',
         'customer_note',
         'terms_conditions',
@@ -251,8 +265,40 @@ class DeliveryChallanViewSet(SnippetViewSet):
     index_view_class = RestrictedIndexView
 
 
+# ---------- Proxy model for Bulk Import ----------
+class BulkImportDeliveryChallan(DeliveryChallan):
+    """Proxy model used only for menu structure - redirects to bulk import view"""
+    class Meta:
+        proxy = True
+        verbose_name = "Bulk Import"
+        verbose_name_plural = "Bulk Import"
+
+
+# Custom ViewSet for Bulk Import
+class BulkImportDeliveryChallanViewSet(SnippetViewSet):
+    """Custom ViewSet for Bulk Import Delivery Challans"""
+    model = BulkImportDeliveryChallan
+    menu_label = "Bulk Import"
+    icon = "download"
+    menu_order = 200
+    add_view_enabled = False
+    edit_view_enabled = False
+    delete_view_enabled = False
+    inspect_view_enabled = False
+    
+    # Override the index view to show bulk import page
+    class BulkImportIndexView(IndexView):
+        def dispatch(self, request, *args, **kwargs):
+            # Redirect to bulk import view instead of showing list
+            from django.shortcuts import render
+            from delivery import views
+            return views.bulk_import_view(request)
+    
+    index_view_class = BulkImportIndexView
+
+
 class DeliveryChallanGroup(SnippetViewSetGroup):
-    items = (DeliveryChallanViewSet, PlaceOfSupplyViewSet)
+    items = (DeliveryChallanViewSet, BulkImportDeliveryChallanViewSet, PlaceOfSupplyViewSet)
     menu_icon = "doc-full"
     menu_label = "Delivery Challan"
     menu_name = "delivery_challan"

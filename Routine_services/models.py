@@ -951,6 +951,8 @@ class RoutineServiceViewSet(SnippetViewSet):
     icon = "cog"
     menu_label = "All Routine Services"
     inspect_view_enabled = True
+    create_view_enabled = False  # Hide the add button from list view header
+    list_display_add_buttons = None  # Hide the add button from list view header
 
     list_display = (
         "cust_refno",
@@ -1060,6 +1062,20 @@ class RoutineServiceViewSet(SnippetViewSet):
             return context
     
     index_view_class = CombinedIndexView
+    
+    @property
+    def permission_policy(self):
+        """Use custom permission policy to deny add permission only"""
+        from wagtail.permissions import ModelPermissionPolicy
+        
+        class NoAddRoutineServicePermissionPolicy(ModelPermissionPolicy):
+            """Custom permission policy that disallows adding routine service records"""
+            def user_has_permission(self, user, action):
+                if action == "add":
+                    return False
+                return super().user_has_permission(user, action)
+        
+        return NoAddRoutineServicePermissionPolicy(self.model)
 
 
 # ======================================================

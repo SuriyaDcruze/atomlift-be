@@ -16,3 +16,12 @@ class MaterialRequest(models.Model):
 
     class Meta:
         ordering = ['-date']
+
+
+# Proxy model for Bulk Import menu item (not used for actual data)
+class BulkImportMaterialRequest(MaterialRequest):
+    """Proxy model used only for menu structure - redirects to bulk import view"""
+    class Meta:
+        proxy = True
+        verbose_name = "Bulk Import"
+        verbose_name_plural = "Bulk Import"
