@@ -11,6 +11,21 @@ from .models import RoutineService
 from amc.models import AMCRoutineService
 
 
+# Hide Edit, Inspect, and Delete buttons for Routine Services
+@hooks.register('construct_snippet_listing_buttons')
+def hide_routine_service_buttons(buttons, snippet, user, context=None):
+    """Hide Edit, Inspect, and Delete buttons for RoutineService and UnifiedService (AMC services)"""
+    from .models import UnifiedService
+    
+    if isinstance(snippet, RoutineService) or isinstance(snippet, UnifiedService):
+        # Remove all action buttons (Edit, Inspect, Delete)
+        buttons[:] = []
+    # Also check for unified service objects by checking for is_amc_service attribute
+    elif hasattr(snippet, 'is_amc_service') and snippet.is_amc_service:
+        buttons[:] = []
+    return buttons
+
+
 # Hide Routine Service expiring viewsets from main menu (they're in Snippets menu)
 @hooks.register('construct_main_menu')
 def hide_routine_service_expiring_menu_items(request, menu_items):
