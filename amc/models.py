@@ -598,10 +598,12 @@ class AMCExpiringThisMonthViewSet(SnippetViewSet):
         "reference_id",
         "customer",
         "get_amc_type_display",
-        # "amcname",  # Commented out - not needed
+        "equipment_no",
+        "latitude",
         "current_status",
         "contract_period",
         "amount_details",
+        "created",
     )
 
     list_export = [
@@ -678,10 +680,12 @@ class AMCExpiringLastMonthViewSet(SnippetViewSet):
         "reference_id",
         "customer",
         "get_amc_type_display",
-        # "amcname",  # Commented out - not needed
+        "equipment_no",
+        "latitude",
         "current_status",
         "contract_period",
         "amount_details",
+        "created",
     )
 
     list_export = [
@@ -826,8 +830,8 @@ class AMCExpiringNextMonthViewSet(SnippetViewSet):
 class AMCManagementGroup(SnippetViewSetGroup):
     items = (
         AMCViewSet,
-        AMCExpiringThisMonthViewSet,  # Hidden from menu via wagtail_hooks
-        AMCExpiringLastMonthViewSet,  # Hidden from menu via wagtail_hooks
+        AMCExpiringThisMonthViewSet,  # Visible in menu
+        AMCExpiringLastMonthViewSet,  # Visible in menu
         AMCExpiringNextMonthViewSet,  # Hidden from menu via wagtail_hooks
         AMCTypeViewSet,
         PaymentTermsViewSet,

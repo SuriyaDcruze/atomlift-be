@@ -1077,12 +1077,17 @@ class RoutineServiceTodayViewSet(SnippetViewSet):
     list_display_add_buttons = None
 
     list_display = (
+        "cust_refno",
+        "lift_code",
+        "routes",
+        "block_wing",
         "customer",
-        "lift",
-        "service_type",
-        "service_date",
+        "service_date_display",
+        "gmap",
+        "employee",
         "status",
-        "assigned_technician",
+        "location",
+        "print_link",
     )
 
     list_export = [
@@ -1119,8 +1124,66 @@ class RoutineServiceTodayViewSet(SnippetViewSet):
     )
 
     def get_queryset(self, request):
-        today = timezone.now().date()
-        return RoutineService.objects.filter(service_date=today).order_by("service_date")
+        # Return empty queryset - we'll handle everything in CombinedTodayIndexView
+        return RoutineService.objects.none()
+    
+    # Custom IndexView to include AMC routine services
+    class CombinedTodayIndexView(IndexView):
+        def get_queryset(self):
+            """Override to return combined queryset-like list for today's services"""
+            today = timezone.now().date()
+            
+            # Get regular routine services for today
+            regular_services = list(RoutineService.objects.select_related(
+                'customer', 'lift', 'assigned_technician'
+            ).filter(service_date=today))
+            
+            # Get AMC routine services for today and convert to unified format
+            try:
+                from amc.models import AMCRoutineService
+                amc_services = AMCRoutineService.objects.select_related(
+                    'amc__customer', 'employee_assign'
+                ).filter(service_date=today)
+                
+                # Use the helper function to create unified service objects for AMC services
+                for amc_service in amc_services:
+                    unified_service = _create_unified_service_from_amc(amc_service)
+                    regular_services.append(unified_service)
+            except ImportError:
+                pass  # AMC app not available
+            
+            # Sort by service date descending
+            regular_services.sort(key=lambda x: x.service_date, reverse=True)
+            
+            return regular_services
+        
+        def get_context_data(self, **kwargs):
+            from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+            
+            # Get combined services
+            all_services = self.get_queryset()
+            
+            # Apply pagination
+            paginator = Paginator(all_services, 20)  # 20 items per page
+            page = self.request.GET.get('p', 1)
+            try:
+                page_obj = paginator.page(page)
+            except PageNotAnInteger:
+                page_obj = paginator.page(1)
+            except EmptyPage:
+                page_obj = paginator.page(paginator.num_pages)
+            
+            # Get the base context
+            context = super().get_context_data(**kwargs)
+            
+            # Override with our combined and paginated services
+            # Wagtail's template iterates over object_list, so use the actual list
+            context['object_list'] = list(page_obj)
+            context['page_obj'] = page_obj
+            
+            return context
+    
+    index_view_class = CombinedTodayIndexView
     
     @property
     def permission_policy(self):
@@ -1144,12 +1207,17 @@ class RoutineServiceThisMonthViewSet(SnippetViewSet):
     list_display_add_buttons = None
 
     list_display = (
+        "cust_refno",
+        "lift_code",
+        "routes",
+        "block_wing",
         "customer",
-        "lift",
-        "service_type",
-        "service_date",
+        "service_date_display",
+        "gmap",
+        "employee",
         "status",
-        "assigned_technician",
+        "location",
+        "print_link",
     )
 
     list_export = [
@@ -1188,11 +1256,55 @@ class RoutineServiceThisMonthViewSet(SnippetViewSet):
     )
 
     def get_queryset(self, request):
-        today = timezone.now()
-        start_of_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        return RoutineService.objects.filter(
-            service_date__gte=start_of_month.date()
-        ).order_by("service_date")
+        # Return empty queryset - we'll handle everything in CombinedThisMonthIndexView
+        return RoutineService.objects.none()
+    
+    # Custom IndexView to include AMC routine services
+    class CombinedThisMonthIndexView(IndexView):
+        def get_queryset(self):
+            """Override to return combined queryset-like list for this month's services"""
+            today = timezone.now()
+            start_of_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            
+            # Get regular routine services for this month
+            regular_services = list(RoutineService.objects.select_related(
+                'customer', 'lift', 'assigned_technician'
+            ).filter(service_date__gte=start_of_month.date()))
+            
+            # Get AMC routine services for this month and convert to unified format
+            try:
+                from amc.models import AMCRoutineService
+                amc_services = AMCRoutineService.objects.select_related(
+                    'amc__customer', 'employee_assign'
+                ).filter(service_date__gte=start_of_month.date())
+                
+                for amc_service in amc_services:
+                    unified_service = _create_unified_service_from_amc(amc_service)
+                    regular_services.append(unified_service)
+            except ImportError:
+                pass
+            
+            # Sort by service date descending
+            regular_services.sort(key=lambda x: x.service_date, reverse=True)
+            return regular_services
+        
+        def get_context_data(self, **kwargs):
+            from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+            all_services = self.get_queryset()
+            paginator = Paginator(all_services, 20)
+            page = self.request.GET.get('p', 1)
+            try:
+                page_obj = paginator.page(page)
+            except PageNotAnInteger:
+                page_obj = paginator.page(1)
+            except EmptyPage:
+                page_obj = paginator.page(paginator.num_pages)
+            context = super().get_context_data(**kwargs)
+            context['object_list'] = list(page_obj)
+            context['page_obj'] = page_obj
+            return context
+    
+    index_view_class = CombinedThisMonthIndexView
     
     @property
     def permission_policy(self):
@@ -1216,12 +1328,17 @@ class RoutineServiceLastMonthOverdueViewSet(SnippetViewSet):
     list_display_add_buttons = None
 
     list_display = (
+        "cust_refno",
+        "lift_code",
+        "routes",
+        "block_wing",
         "customer",
-        "lift",
-        "service_type",
-        "service_date",
+        "service_date_display",
+        "gmap",
+        "employee",
         "status",
-        "assigned_technician",
+        "location",
+        "print_link",
     )
 
     list_export = [
@@ -1260,14 +1377,62 @@ class RoutineServiceLastMonthOverdueViewSet(SnippetViewSet):
     )
 
     def get_queryset(self, request):
-        today = timezone.now()
-        start_of_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        start_of_last_month = (start_of_month - timedelta(days=1)).replace(day=1)
-        return RoutineService.objects.filter(
-            service_date__gte=start_of_last_month.date(),
-            service_date__lt=start_of_month.date(),
-            status__in=['pending', 'overdue']
-        ).order_by("service_date")
+        # Return empty queryset - we'll handle everything in CombinedLastMonthOverdueIndexView
+        return RoutineService.objects.none()
+    
+    # Custom IndexView to include AMC routine services
+    class CombinedLastMonthOverdueIndexView(IndexView):
+        def get_queryset(self):
+            """Override to return combined queryset-like list for last month's overdue services"""
+            today = timezone.now()
+            start_of_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            start_of_last_month = (start_of_month - timedelta(days=1)).replace(day=1)
+            
+            # Get regular routine services
+            regular_services = list(RoutineService.objects.select_related(
+                'customer', 'lift', 'assigned_technician'
+            ).filter(
+                service_date__gte=start_of_last_month.date(),
+                service_date__lt=start_of_month.date(),
+                status__in=['pending', 'overdue']
+            ))
+            
+            # Get AMC routine services
+            try:
+                from amc.models import AMCRoutineService
+                amc_services = AMCRoutineService.objects.select_related(
+                    'amc__customer', 'employee_assign'
+                ).filter(
+                    service_date__gte=start_of_last_month.date(),
+                    service_date__lt=start_of_month.date(),
+                    status__in=['due', 'overdue']
+                )
+                for amc_service in amc_services:
+                    unified_service = _create_unified_service_from_amc(amc_service)
+                    regular_services.append(unified_service)
+            except ImportError:
+                pass
+            
+            regular_services.sort(key=lambda x: x.service_date, reverse=True)
+            return regular_services
+        
+        def get_context_data(self, **kwargs):
+            from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+            all_services = self.get_queryset()
+            paginator = Paginator(all_services, 20)
+            page = self.request.GET.get('p', 1)
+            try:
+                page_obj = paginator.page(page)
+            except PageNotAnInteger:
+                page_obj = paginator.page(1)
+            except EmptyPage:
+                page_obj = paginator.page(paginator.num_pages)
+            context = super().get_context_data(**kwargs)
+            context['object_list'] = list(page_obj)
+            context['page_obj'] = page_obj
+            return context
+    
+    index_view_class = CombinedLastMonthOverdueIndexView
     
     @property
     def permission_policy(self):
@@ -1291,12 +1456,17 @@ class RoutineServiceThisMonthOverdueViewSet(SnippetViewSet):
     list_display_add_buttons = None
 
     list_display = (
+        "cust_refno",
+        "lift_code",
+        "routes",
+        "block_wing",
         "customer",
-        "lift",
-        "service_type",
-        "service_date",
+        "service_date_display",
+        "gmap",
+        "employee",
         "status",
-        "assigned_technician",
+        "location",
+        "print_link",
     )
 
     list_export = [
@@ -1335,13 +1505,61 @@ class RoutineServiceThisMonthOverdueViewSet(SnippetViewSet):
     )
 
     def get_queryset(self, request):
-        today = timezone.now()
-        start_of_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        return RoutineService.objects.filter(
-            service_date__gte=start_of_month.date(),
-            service_date__lt=today.date(),
-            status__in=['pending', 'overdue']
-        ).order_by("service_date")
+        # Return empty queryset - we'll handle everything in CombinedThisMonthOverdueIndexView
+        return RoutineService.objects.none()
+    
+    # Custom IndexView to include AMC routine services
+    class CombinedThisMonthOverdueIndexView(IndexView):
+        def get_queryset(self):
+            """Override to return combined queryset-like list for this month's overdue services"""
+            today = timezone.now()
+            start_of_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            
+            # Get regular routine services
+            regular_services = list(RoutineService.objects.select_related(
+                'customer', 'lift', 'assigned_technician'
+            ).filter(
+                service_date__gte=start_of_month.date(),
+                service_date__lt=today.date(),
+                status__in=['pending', 'overdue']
+            ))
+            
+            # Get AMC routine services
+            try:
+                from amc.models import AMCRoutineService
+                amc_services = AMCRoutineService.objects.select_related(
+                    'amc__customer', 'employee_assign'
+                ).filter(
+                    service_date__gte=start_of_month.date(),
+                    service_date__lt=today.date(),
+                    status__in=['due', 'overdue']
+                )
+                for amc_service in amc_services:
+                    unified_service = _create_unified_service_from_amc(amc_service)
+                    regular_services.append(unified_service)
+            except ImportError:
+                pass
+            
+            regular_services.sort(key=lambda x: x.service_date, reverse=True)
+            return regular_services
+        
+        def get_context_data(self, **kwargs):
+            from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+            all_services = self.get_queryset()
+            paginator = Paginator(all_services, 20)
+            page = self.request.GET.get('p', 1)
+            try:
+                page_obj = paginator.page(page)
+            except PageNotAnInteger:
+                page_obj = paginator.page(1)
+            except EmptyPage:
+                page_obj = paginator.page(paginator.num_pages)
+            context = super().get_context_data(**kwargs)
+            context['object_list'] = list(page_obj)
+            context['page_obj'] = page_obj
+            return context
+    
+    index_view_class = CombinedThisMonthOverdueIndexView
     
     @property
     def permission_policy(self):
@@ -1365,12 +1583,17 @@ class RoutineServiceThisMonthCompletedViewSet(SnippetViewSet):
     list_display_add_buttons = None
 
     list_display = (
+        "cust_refno",
+        "lift_code",
+        "routes",
+        "block_wing",
         "customer",
-        "lift",
-        "service_type",
-        "service_date",
+        "service_date_display",
+        "gmap",
+        "employee",
         "status",
-        "assigned_technician",
+        "location",
+        "print_link",
     )
 
     list_export = [
@@ -1408,12 +1631,59 @@ class RoutineServiceThisMonthCompletedViewSet(SnippetViewSet):
     )
 
     def get_queryset(self, request):
-        today = timezone.now()
-        start_of_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        return RoutineService.objects.filter(
-            service_date__gte=start_of_month.date(),
-            status='completed'
-        ).order_by("service_date")
+        # Return empty queryset - we'll handle everything in CombinedThisMonthCompletedIndexView
+        return RoutineService.objects.none()
+    
+    # Custom IndexView to include AMC routine services
+    class CombinedThisMonthCompletedIndexView(IndexView):
+        def get_queryset(self):
+            """Override to return combined queryset-like list for this month's completed services"""
+            today = timezone.now()
+            start_of_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            
+            # Get regular routine services
+            regular_services = list(RoutineService.objects.select_related(
+                'customer', 'lift', 'assigned_technician'
+            ).filter(
+                service_date__gte=start_of_month.date(),
+                status='completed'
+            ))
+            
+            # Get AMC routine services
+            try:
+                from amc.models import AMCRoutineService
+                amc_services = AMCRoutineService.objects.select_related(
+                    'amc__customer', 'employee_assign'
+                ).filter(
+                    service_date__gte=start_of_month.date(),
+                    status='completed'
+                )
+                for amc_service in amc_services:
+                    unified_service = _create_unified_service_from_amc(amc_service)
+                    regular_services.append(unified_service)
+            except ImportError:
+                pass
+            
+            regular_services.sort(key=lambda x: x.service_date, reverse=True)
+            return regular_services
+        
+        def get_context_data(self, **kwargs):
+            from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+            all_services = self.get_queryset()
+            paginator = Paginator(all_services, 20)
+            page = self.request.GET.get('p', 1)
+            try:
+                page_obj = paginator.page(page)
+            except PageNotAnInteger:
+                page_obj = paginator.page(1)
+            except EmptyPage:
+                page_obj = paginator.page(paginator.num_pages)
+            context = super().get_context_data(**kwargs)
+            context['object_list'] = list(page_obj)
+            context['page_obj'] = page_obj
+            return context
+    
+    index_view_class = CombinedThisMonthCompletedIndexView
     
     @property
     def permission_policy(self):
@@ -1437,12 +1707,17 @@ class RoutineServiceLastMonthCompletedViewSet(SnippetViewSet):
     list_display_add_buttons = None
 
     list_display = (
+        "cust_refno",
+        "lift_code",
+        "routes",
+        "block_wing",
         "customer",
-        "lift",
-        "service_type",
-        "service_date",
+        "service_date_display",
+        "gmap",
+        "employee",
         "status",
-        "assigned_technician",
+        "location",
+        "print_link",
     )
 
     list_export = [
@@ -1480,14 +1755,62 @@ class RoutineServiceLastMonthCompletedViewSet(SnippetViewSet):
     )
 
     def get_queryset(self, request):
-        today = timezone.now()
-        start_of_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        start_of_last_month = (start_of_month - timedelta(days=1)).replace(day=1)
-        return RoutineService.objects.filter(
-            service_date__gte=start_of_last_month.date(),
-            service_date__lt=start_of_month.date(),
-            status='completed'
-        ).order_by("service_date")
+        # Return empty queryset - we'll handle everything in CombinedLastMonthCompletedIndexView
+        return RoutineService.objects.none()
+    
+    # Custom IndexView to include AMC routine services
+    class CombinedLastMonthCompletedIndexView(IndexView):
+        def get_queryset(self):
+            """Override to return combined queryset-like list for last month's completed services"""
+            today = timezone.now()
+            start_of_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            start_of_last_month = (start_of_month - timedelta(days=1)).replace(day=1)
+            
+            # Get regular routine services
+            regular_services = list(RoutineService.objects.select_related(
+                'customer', 'lift', 'assigned_technician'
+            ).filter(
+                service_date__gte=start_of_last_month.date(),
+                service_date__lt=start_of_month.date(),
+                status='completed'
+            ))
+            
+            # Get AMC routine services
+            try:
+                from amc.models import AMCRoutineService
+                amc_services = AMCRoutineService.objects.select_related(
+                    'amc__customer', 'employee_assign'
+                ).filter(
+                    service_date__gte=start_of_last_month.date(),
+                    service_date__lt=start_of_month.date(),
+                    status='completed'
+                )
+                for amc_service in amc_services:
+                    unified_service = _create_unified_service_from_amc(amc_service)
+                    regular_services.append(unified_service)
+            except ImportError:
+                pass
+            
+            regular_services.sort(key=lambda x: x.service_date, reverse=True)
+            return regular_services
+        
+        def get_context_data(self, **kwargs):
+            from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+            all_services = self.get_queryset()
+            paginator = Paginator(all_services, 20)
+            page = self.request.GET.get('p', 1)
+            try:
+                page_obj = paginator.page(page)
+            except PageNotAnInteger:
+                page_obj = paginator.page(1)
+            except EmptyPage:
+                page_obj = paginator.page(paginator.num_pages)
+            context = super().get_context_data(**kwargs)
+            context['object_list'] = list(page_obj)
+            context['page_obj'] = page_obj
+            return context
+    
+    index_view_class = CombinedLastMonthCompletedIndexView
     
     @property
     def permission_policy(self):
@@ -1511,12 +1834,17 @@ class RoutineServicePendingViewSet(SnippetViewSet):
     list_display_add_buttons = None
 
     list_display = (
+        "cust_refno",
+        "lift_code",
+        "routes",
+        "block_wing",
         "customer",
-        "lift",
-        "service_type",
-        "service_date",
+        "service_date_display",
+        "gmap",
+        "employee",
         "status",
-        "assigned_technician",
+        "location",
+        "print_link",
     )
 
     list_export = [
@@ -1554,7 +1882,50 @@ class RoutineServicePendingViewSet(SnippetViewSet):
     )
 
     def get_queryset(self, request):
-        return RoutineService.objects.filter(status='pending').order_by("service_date")
+        # Return empty queryset - we'll handle everything in CombinedPendingIndexView
+        return RoutineService.objects.none()
+    
+    # Custom IndexView to include AMC routine services
+    class CombinedPendingIndexView(IndexView):
+        def get_queryset(self):
+            """Override to return combined queryset-like list for pending services"""
+            # Get regular routine services
+            regular_services = list(RoutineService.objects.select_related(
+                'customer', 'lift', 'assigned_technician'
+            ).filter(status='pending'))
+            
+            # Get AMC routine services (status='due' is equivalent to pending)
+            try:
+                from amc.models import AMCRoutineService
+                amc_services = AMCRoutineService.objects.select_related(
+                    'amc__customer', 'employee_assign'
+                ).filter(status__in=['due', 'pending'])
+                for amc_service in amc_services:
+                    unified_service = _create_unified_service_from_amc(amc_service)
+                    regular_services.append(unified_service)
+            except ImportError:
+                pass
+            
+            regular_services.sort(key=lambda x: x.service_date, reverse=True)
+            return regular_services
+        
+        def get_context_data(self, **kwargs):
+            from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+            all_services = self.get_queryset()
+            paginator = Paginator(all_services, 20)
+            page = self.request.GET.get('p', 1)
+            try:
+                page_obj = paginator.page(page)
+            except PageNotAnInteger:
+                page_obj = paginator.page(1)
+            except EmptyPage:
+                page_obj = paginator.page(paginator.num_pages)
+            context = super().get_context_data(**kwargs)
+            context['object_list'] = list(page_obj)
+            context['page_obj'] = page_obj
+            return context
+    
+    index_view_class = CombinedPendingIndexView
     
     @property
     def permission_policy(self):

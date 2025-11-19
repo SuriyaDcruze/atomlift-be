@@ -65,14 +65,12 @@ def register_amc_form_url():
 
 # Removed separate submenu; expiry lists are inside AMC group now.
 
-# Hide AMC expiring viewsets from menu (similar to customer licenses)
+# Keep AMC expiring viewsets visible in menu - only hide Next Month Expiring
 @hooks.register('construct_main_menu')
 def hide_amc_expiring_menu_items(request, menu_items):
-    """Hide AMC expiring menu items from the admin menu"""
+    """Hide only Next Month Expiring from the admin menu, keep This Month and Last Month visible"""
     # Hidden menu labels for AMC expiring viewsets
     hidden_labels = [
-        'This Month Expiring',
-        'Last Month Expired',
         'Next Month Expiring'
     ]
     
