@@ -416,7 +416,8 @@ tr:hover {
 const amcId = {{ amc.id }};
 const amcStartDate = '{% if amc.start_date %}{{ amc.start_date|date:"Y-m-d" }}{% else %}{{ "now"|date:"Y-m-d" }}{% endif %}';
 const today = new Date().toISOString().split('T')[0];
-const minDate = amcStartDate > today ? amcStartDate : today;
+// Minimum date should be AMC start date (service dates cannot be before AMC start date)
+const minDate = amcStartDate;
 
 // Set minimum date for first service date input
 document.addEventListener('DOMContentLoaded', function() {
@@ -428,7 +429,7 @@ document.addEventListener('DOMContentLoaded', function() {
     firstDateInput.addEventListener('change', function() {
       const selectedDate = this.value;
       if (selectedDate && selectedDate < minDate) {
-        alert('First service date cannot be in the past. Minimum date is ' + minDate);
+        alert('First service date cannot be before AMC start date (' + minDate + ')');
         this.value = minDate;
       }
     });
@@ -438,12 +439,12 @@ document.addEventListener('DOMContentLoaded', function() {
   const serviceDateInputs = document.querySelectorAll('.service-date');
   serviceDateInputs.forEach(input => {
     input.setAttribute('min', minDate);
-    input.addEventListener('change', function() {
-      const selectedDate = this.value;
-      if (selectedDate && selectedDate < minDate) {
-        alert('Service date cannot be in the past. Minimum date is ' + minDate);
-        this.value = minDate;
-      }
+      input.addEventListener('change', function() {
+        const selectedDate = this.value;
+        if (selectedDate && selectedDate < minDate) {
+          alert('Service date cannot be before AMC start date (' + minDate + ')');
+          this.value = minDate;
+        }
     });
   });
 });
@@ -460,7 +461,7 @@ document.getElementById('set-frequency-btn').addEventListener('click', async fun
   
   // Validate first service date
   if (firstDate < minDate) {
-    alert('First service date cannot be in the past. Minimum date is ' + minDate);
+    alert('First service date cannot be before AMC start date (' + minDate + ')');
     document.getElementById('first_service_date').value = minDate;
     return;
   }
@@ -572,7 +573,7 @@ function addServiceRow(dateValue, monthName) {
   dateInput.addEventListener('change', function() {
     const selectedDate = this.value;
     if (selectedDate && selectedDate < minDate) {
-      alert('Service date cannot be in the past. Minimum date is ' + minDate);
+      alert('Service date cannot be before AMC start date (' + minDate + ')');
       this.value = minDate;
     }
     const date = new Date(this.value);
@@ -619,10 +620,10 @@ document.getElementById('save-btn').addEventListener('click', async function() {
   rows.forEach(row => {
     const date = row.querySelector('.service-date').value;
     if (date) {
-      // Validate date is not in the past
+      // Validate date is not before AMC start date
       if (date < minDate) {
         hasInvalidDate = true;
-        alert('One or more service dates are in the past. Please update them before saving.');
+        alert('One or more service dates are before AMC start date (' + minDate + '). Please update them before saving.');
         return;
       }
       services.push({

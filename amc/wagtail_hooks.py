@@ -740,24 +740,24 @@ def save_amc_routine_services(request):
         
         amc = get_object_or_404(AMC, pk=amc_id)
         
-        # Validate service dates are not in the past
+        # Validate service dates format and ensure they are not before AMC start date
         from django.utils import timezone
         today = timezone.now().date()
-        min_date = amc.start_date if amc.start_date else today
-        # Use the later of AMC start date or today
-        if min_date < today:
-            min_date = today
         
-        # Validate all service dates before processing
+        # Get AMC start date for validation
+        amc_start_date = amc.start_date if amc.start_date else today
+        
+        # Validate all service dates format and check against AMC start date
         for service_data in services:
             service_date_str = service_data.get('date')
             if service_date_str:
                 try:
                     service_date = date.fromisoformat(service_date_str)
-                    if service_date < min_date:
+                    # Validate that service date is not before AMC start date
+                    if service_date < amc_start_date:
                         return JsonResponse({
                             'success': False,
-                            'error': f'Service date {service_date_str} cannot be in the past. Minimum date is {min_date.strftime("%d/%m/%Y")}'
+                            'error': f'Service date {service_date_str} cannot be before AMC start date ({amc_start_date.strftime("%d/%m/%Y")})'
                         }, status=400)
                 except (ValueError, TypeError):
                     return JsonResponse({
@@ -771,12 +771,23 @@ def save_amc_routine_services(request):
         # Create new services
         created_services = []
         for service_data in services:
+            service_date = date.fromisoformat(service_data.get('date'))
+            manual_status = service_data.get('status', 'due')
+            
+            # Determine the final status based on manual change and overdue logic
+            # If status is manually set to 'completed' or 'cancelled', respect that
+            # Otherwise, if service date is in the past, automatically set to 'overdue'
+            final_status = manual_status
+            if manual_status not in ['completed', 'cancelled']:
+                if service_date < today:
+                    final_status = 'overdue'
+            
             service = AMCRoutineService.objects.create(
                 amc=amc,
-                service_date=date.fromisoformat(service_data.get('date')),
+                service_date=service_date,
                 block_wing=service_data.get('block_wing', ''),
                 employee_assign_id=service_data.get('employee_id') if service_data.get('employee_id') else None,
-                status=service_data.get('status', 'due'),
+                status=final_status,
                 note=service_data.get('note', ''),
             )
             created_services.append({
