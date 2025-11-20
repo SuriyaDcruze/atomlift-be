@@ -104,6 +104,7 @@ class Customer(models.Model):
     )
 
     generate_license_now = models.BooleanField(default=False)
+    generate_customer_license_page = models.BooleanField(default=False, help_text="Check to generate custom page for customer license")
 
     panels = [
         MultiFieldPanel([
@@ -142,6 +143,7 @@ class Customer(models.Model):
 
         MultiFieldPanel([
             FieldPanel("generate_license_now"),
+            FieldPanel("generate_customer_license_page"),
         ], heading="License Generation"),
     ]
 
@@ -198,26 +200,26 @@ class Customer(models.Model):
 
         super().save(*args, **kwargs)
 
-        # License auto-generation (Customer added first)
-        if self.generate_license_now and self.job_no:
-            try:
-                from lift.models import Lift
-                lift = Lift.objects.filter(lift_code=self.job_no).first()
-                if lift:
-                    from customer.models import CustomerLicense
-                    if not CustomerLicense.objects.filter(customer=self, lift=lift).exists():
-                        CustomerLicense.objects.create(
-                            customer=self,
-                            lift=lift,
-                            period_start=lift.license_start_date or date.today(),
-                            period_end=lift.license_end_date or one_year_from_today(),
-                        )
-            except Exception:
-                pass
+        # License auto-generation (Customer added first) - COMMENTED OUT: Not working currently
+        # if self.generate_license_now and self.job_no:
+        #     try:
+        #         from lift.models import Lift
+        #         lift = Lift.objects.filter(lift_code=self.job_no).first()
+        #         if lift:
+        #             from customer.models import CustomerLicense
+        #             if not CustomerLicense.objects.filter(customer=self, lift=lift).exists():
+        #                 CustomerLicense.objects.create(
+        #                     customer=self,
+        #                     lift=lift,
+        #                     period_start=lift.license_start_date or date.today(),
+        #                     period_end=lift.license_end_date or one_year_from_today(),
+        #                 )
+        #     except Exception:
+        #         pass
 
-        # Reset checkbox without recursion
-        if self.generate_license_now:
-            Customer.objects.filter(pk=self.pk).update(generate_license_now=False)
+        # Reset checkbox without recursion - COMMENTED OUT: Not working currently
+        # if self.generate_license_now:
+        #     Customer.objects.filter(pk=self.pk).update(generate_license_now=False)
     
     def number_of_lifts(self):
         """Count the number of lifts assigned to this customer through licenses"""
@@ -278,33 +280,46 @@ class Customer(models.Model):
 # ======================================================
 
 class CustomerLicense(models.Model):
-    license_no = models.CharField(max_length=50, unique=True, editable=False)
+    STATUS_CHOICES = [
+        ('active', 'Active'),
+        ('expired', 'Expired'),
+    ]
+    
+    license_ref_no = models.CharField(max_length=50, unique=True, editable=False, help_text="License reference number (auto-generated)")
+    license_no = models.CharField(max_length=100, unique=True, blank=True, null=True, help_text="Government-issued license number (manually entered)")
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name="licenses")
     lift = models.ForeignKey("lift.Lift", on_delete=models.CASCADE, related_name="licenses")
     period_start = models.DateField(default=date.today)
     period_end = models.DateField(default=one_year_from_today)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active', help_text="License status")
 
     panels = [
-        FieldPanel("license_no", read_only=True),
+        FieldPanel("license_ref_no", read_only=True),
+        FieldPanel("license_no"),
         FieldPanel("customer"),
         FieldPanel("lift"),
         FieldPanel("period_start"),
         FieldPanel("period_end"),
+        FieldPanel("status"),
     ]
 
     def save(self, *args, **kwargs):
-        if not self.license_no:
+        # Auto-generate license_ref_no only if not provided
+        if not self.license_ref_no or self.license_ref_no.strip() == '':
             last = CustomerLicense.objects.order_by("id").last()
             next_id = (last.id + 1) if last else 1
-            self.license_no = f"LIC{next_id:04d}"
+            self.license_ref_no = f"LIC{next_id:04d}"
+        
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.license_no} ({self.customer.site_name} - {self.lift.lift_code})"
+        return f"{self.license_ref_no} ({self.customer.site_name} - {self.lift.lift_code})"
 
-    @property
-    def status(self):
-        return "Active" if self.period_end >= date.today() else "Expired"
+    def get_auto_status(self):
+        """Calculate status based on period_end date"""
+        if self.period_end < date.today():
+            return "Expired"
+        return "Active"
 
     @property
     def lift_details(self):
@@ -454,28 +469,29 @@ class CustomerFollowUp(models.Model):
 # ======================================================
 #  AUTO LICENSE GENERATION (LIFT FIRST LOGIC)
 # ======================================================
+# COMMENTED OUT: Not working currently
 
-@receiver(post_save, sender="lift.Lift")
-def auto_create_license_from_lift(sender, instance, created, **kwargs):
-    """If a Lift is added or updated before Customer, generate license when job_no matches."""
-    from customer.models import CustomerLicense
-    customer = Customer.objects.filter(job_no=instance.lift_code).first()
-    if not customer:
-        return
+# @receiver(post_save, sender="lift.Lift")
+# def auto_create_license_from_lift(sender, instance, created, **kwargs):
+#     """If a Lift is added or updated before Customer, generate license when job_no matches."""
+#     from customer.models import CustomerLicense
+#     customer = Customer.objects.filter(job_no=instance.lift_code).first()
+#     if not customer:
+#         return
 
-    existing_license = CustomerLicense.objects.filter(customer=customer, lift=instance).first()
-    if existing_license:
-        # Keep license period in sync with lift
-        existing_license.period_start = instance.license_start_date or existing_license.period_start
-        existing_license.period_end = instance.license_end_date or existing_license.period_end
-        existing_license.save()
-    else:
-        CustomerLicense.objects.create(
-            customer=customer,
-            lift=instance,
-            period_start=instance.license_start_date or date.today(),
-            period_end=instance.license_end_date or one_year_from_today(),
-        )
+#     existing_license = CustomerLicense.objects.filter(customer=customer, lift=instance).first()
+#     if existing_license:
+#         # Keep license period in sync with lift
+#         existing_license.period_start = instance.license_start_date or existing_license.period_start
+#         existing_license.period_end = instance.license_end_date or existing_license.period_end
+#         existing_license.save()
+#     else:
+#         CustomerLicense.objects.create(
+#             customer=customer,
+#             lift=instance,
+#             period_start=instance.license_start_date or date.today(),
+#             period_end=instance.license_end_date or one_year_from_today(),
+#         )
 
 
 # ======================================================
@@ -599,26 +615,52 @@ class CustomerLicenseViewSet(SnippetViewSet):
     icon = "doc-full"
     menu_label = "Customer Licenses"
     inspect_view_enabled = True
-    create_view_enabled = False
-    edit_view_enabled = False
-    delete_view_enabled = False
-    list_display = ("license_no", "customer", "lift_details", "period_start", "period_end", "status")
+    create_view_enabled = False  # Use custom page instead
+    edit_view_enabled = False  # Use custom page instead
+    delete_view_enabled = True
+    list_display = ("license_ref_no", "license_no", "customer", "lift_details", "period_start", "period_end", "status")
     list_export = list_display
-    list_display_add_buttons = None  # Hide the add button from list view header
+    
+    create_template_name = 'customer/add_customer_license_custom.html'
+    
+    search_fields = (
+        "license_ref_no",
+        "license_no",
+        "customer__site_name",
+        "customer__job_no",
+        "lift__lift_code",
+        "lift__name",
+    )
+    
+    list_filter = (
+        "status",
+        "customer",
+        "lift",
+        "period_start",
+        "period_end",
+    )
     
     @property
-    def permission_policy(self):
-        """Use custom permission policy to deny add permission"""
-        from wagtail.permissions import ModelPermissionPolicy
-        
-        class NoAddCustomerLicensePermissionPolicy(ModelPermissionPolicy):
-            """Custom permission policy that disallows adding new customer licenses"""
-            def user_has_permission(self, user, action):
-                if action == "add":
-                    return False
-                return super().user_has_permission(user, action)
-        
-        return NoAddCustomerLicensePermissionPolicy(self.model)
+    def add_url(self):
+        """Override add URL to use custom styled page"""
+        from django.urls import reverse
+        return reverse('add_customer_license_custom')
+    
+    def get_edit_url(self, instance):
+        """Override edit URL to use custom styled page"""
+        from django.urls import reverse
+        return reverse('edit_customer_license_custom', args=(instance.pk,))
+    
+    def add_view(self, request):
+        """Override add view to redirect to custom page"""
+        from django.shortcuts import redirect
+        return redirect(self.add_url)
+    
+    def edit_view(self, request, pk):
+        """Override edit view to redirect to custom page"""
+        from django.shortcuts import redirect
+        instance = self.model.objects.get(pk=pk)
+        return redirect(self.get_edit_url(instance))
 
 
 # ======================================================

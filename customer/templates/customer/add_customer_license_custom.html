@@ -1,0 +1,928 @@
+{% extends "wagtailadmin/base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+/* Modern Tailwind-like styles for Wagtail admin */
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+.w-content-wrapper {
+  background: #f5f5f5;
+  min-height: calc(100vh - 4rem);
+  padding: 2rem;
+}
+
+.w-modal-overlay {
+  position: static;
+  inset: auto;
+  background-color: transparent;
+  display: block;
+  padding: 0;
+}
+
+.w-modal-content {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.15);
+  width: 100%;
+  max-width: 72rem;
+  margin: 2rem auto;
+  max-height: none;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+}
+
+.w-modal-header {
+  background: linear-gradient(to right, #2D3A6B, #243158);
+  padding: 1.5rem;
+}
+
+.w-modal-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: white;
+}
+
+.w-modal-subtitle {
+  margin: 0;
+  color: white;
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
+
+.w-modal-body {
+  padding: 1.5rem;
+  max-height: none;
+  overflow: visible;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.form-section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 2px solid #E5E7EB;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.form-required {
+  color: #EF4444;
+  margin-left: 0.25rem;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.625rem;
+  border: 1px solid #D1D5DB;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-select {
+  width: 100%;
+  padding: 0.625rem;
+  border: 1px solid #D1D5DB;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  background-color: white;
+  cursor: pointer;
+}
+
+.form-select:focus {
+  outline: none;
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-help {
+  font-size: 0.75rem;
+  color: #6B7280;
+  margin-top: 0.25rem;
+}
+
+.form-error {
+  font-size: 0.75rem;
+  color: #EF4444;
+  margin-top: 0.25rem;
+  display: none;
+}
+
+.w-modal-footer {
+  padding: 1.5rem;
+  border-top: 1px solid #E5E7EB;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.btn {
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background-color: #3B82F6;
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: #2563EB;
+}
+
+.btn-primary:disabled {
+  background-color: #9CA3AF;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background-color: #6B7280;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background-color: #4B5563;
+}
+
+.toast-container {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.toast {
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  padding: 1rem;
+  min-width: 20rem;
+  max-width: 24rem;
+}
+
+.toast--success {
+  border-left: 4px solid #10B981;
+}
+
+.toast--error {
+  border-left: 4px solid #EF4444;
+}
+
+.toast-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  color: #6B7280;
+}
+
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 5rem;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+  border-radius: 50%;
+  height: 2rem;
+  width: 2rem;
+  border: 2px solid #3B82F6;
+  border-top-color: transparent;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.licenses-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  background: white;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.licenses-table thead {
+  background: #F3F4F6;
+}
+
+.licenses-table th {
+  padding: 0.75rem;
+  text-align: left;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 2px solid #E5E7EB;
+}
+
+.licenses-table td {
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  color: #6B7280;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.licenses-table tbody tr:hover {
+  background: #F9FAFB;
+}
+
+.licenses-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.status-badge.active {
+  background: #D1FAE5;
+  color: #065F46;
+}
+
+.status-badge.expired {
+  background: #FEE2E2;
+  color: #991B1B;
+}
+
+.no-licenses {
+  text-align: center;
+  padding: 2rem;
+  color: #6B7280;
+  font-size: 0.875rem;
+}
+
+@media (max-width: 768px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .w-modal-content {
+    margin: 1rem auto;
+  }
+
+  .toast {
+    min-width: 17.5rem;
+    max-width: 90vw;
+  }
+
+  .licenses-table {
+    font-size: 0.75rem;
+  }
+
+  .licenses-table th,
+  .licenses-table td {
+    padding: 0.5rem;
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="w-content-wrapper">
+  <div class="w-modal-overlay">
+    <div class="w-modal-content">
+      <!-- Modal Header -->
+      <div class="w-modal-header">
+        <h2 class="w-modal-title">
+          {% if is_edit %}Edit Customer License{% else %}Create New Customer License{% endif %}
+        </h2>
+        <p class="w-modal-subtitle">
+          {% if is_edit %}Update customer license details{% else %}Fill in all required fields (*) to add a customer license{% endif %}
+        </p>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="w-modal-body">
+        <div class="form-grid">
+          <!-- Left Column -->
+          <div class="form-column">
+            <!-- License Information -->
+            <h3 class="form-section-title">License Information</h3>
+
+            <div class="form-group">
+              <label class="form-label">
+                License Reference Number
+              </label>
+              <input
+                type="text"
+                id="license_ref_no"
+                name="license_ref_no"
+                value="{% if is_edit %}{{ license.license_ref_no }}{% else %}{% endif %}"
+                class="form-input"
+                readonly
+              />
+              <p class="form-help">Auto-generated reference number</p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">
+                Government License Number
+              </label>
+              <input
+                type="text"
+                id="license_no"
+                name="license_no"
+                value="{% if is_edit %}{{ license.license_no|default:'' }}{% endif %}"
+                class="form-input"
+                placeholder="Enter government-issued license number"
+                maxlength="100"
+              />
+              <p class="form-help">Government-issued license number (unique, manually entered)</p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">
+                Customer<span class="form-required">*</span>
+              </label>
+              <select id="customer" name="customer" class="form-input form-select" required>
+                <option value="">Select Customer</option>
+                {% for customer in customers %}
+                <option value="{{ customer.id }}" {% if is_edit and license.customer.id == customer.id %}selected{% endif %}>
+                  {{ customer.site_name }} {% if customer.job_no %}({{ customer.job_no }}){% endif %}
+                </option>
+                {% endfor %}
+              </select>
+              <p id="customerError" class="form-error" style="display: none;"></p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">
+                Lift<span class="form-required">*</span>
+              </label>
+              <select id="lift" name="lift" class="form-input form-select" required>
+                <option value="">Select Lift</option>
+                {% for lift in lifts %}
+                <option value="{{ lift.id }}" {% if is_edit and license.lift.id == lift.id %}selected{% endif %}>
+                  {{ lift.lift_code }} - {{ lift.name }}
+                </option>
+                {% endfor %}
+              </select>
+              <p id="liftError" class="form-error" style="display: none;"></p>
+            </div>
+          </div>
+
+          <!-- Right Column -->
+          <div class="form-column">
+            <!-- Period & Status -->
+            <h3 class="form-section-title">Period & Status</h3>
+
+            <div class="form-group">
+              <label class="form-label">
+                Start Date<span class="form-required">*</span>
+              </label>
+              <input
+                type="date"
+                id="period_start"
+                name="period_start"
+                value="{% if is_edit %}{{ license.period_start|date:'Y-m-d' }}{% endif %}"
+                class="form-input"
+                required
+              />
+              <p id="periodStartError" class="form-error" style="display: none;"></p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">
+                End Date<span class="form-required">*</span>
+              </label>
+              <input
+                type="date"
+                id="period_end"
+                name="period_end"
+                value="{% if is_edit %}{{ license.period_end|date:'Y-m-d' }}{% endif %}"
+                class="form-input"
+                required
+              />
+              <p id="periodEndError" class="form-error" style="display: none;"></p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">
+                Status<span class="form-required">*</span>
+              </label>
+              <select id="status" name="status" class="form-input form-select" required>
+                <option value="active" {% if is_edit and license.status == 'active' %}selected{% endif %}>Active</option>
+                <option value="expired" {% if is_edit and license.status == 'expired' %}selected{% endif %}>Expired</option>
+              </select>
+              <p class="form-help">License status</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Existing Licenses List -->
+        <div id="existingLicensesSection" style="display: none; margin-top: 2rem;">
+          <h3 class="form-section-title">Existing Licenses for Selected Customer</h3>
+          <div id="licensesListContainer">
+            <div class="loading-spinner" style="text-align: center; padding: 2rem;">
+              <div class="spinner" style="margin: 0 auto;"></div>
+              <span>Loading licenses...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="w-modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="window.history.back();">Cancel</button>
+        <button
+          type="button"
+          id="submitBtn"
+          class="btn btn-primary"
+          onclick="handleFormSubmit()"
+        >
+          {% if is_edit %}Update License{% else %}Create License{% endif %}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden Form for Django CSRF -->
+  <form id="licenseForm" style="display:none;">
+    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+  </form>
+
+  {% if messages %}
+  <div class="toast-container">
+    {% for message in messages %}
+    <div class="toast toast--{% if message.tags %}{{ message.tags }}{% else %}info{% endif %}">
+      <div class="toast-content">
+        <div class="toast-message">
+          {{ message }}
+        </div>
+        <button class="toast-close" onclick="this.parentElement.parentElement.remove()">×</button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<script>
+var isEditMode = {% if is_edit %}true{% else %}false{% endif %};
+var submitUrl = "{% if is_edit %}{% url 'edit_customer_license_custom' license.id %}{% else %}{% url 'add_customer_license_custom' %}{% endif %}";
+var adminHomeUrl = "/admin/snippets/customer/customerlicense/";
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+  var customerSelect = document.getElementById('customer');
+  var liftSelect = document.getElementById('lift');
+  
+  if (customerSelect && liftSelect) {
+    // Simple customer change handler - similar to AMC pattern
+    customerSelect.addEventListener('change', async function() {
+      var customerId = this.value;
+      var licensesSection = document.getElementById('existingLicensesSection');
+      var licensesContainer = document.getElementById('licensesListContainer');
+      
+      // Reset lift dropdown
+      liftSelect.innerHTML = '<option value="">Select Lift</option>';
+      liftSelect.disabled = true;
+      
+      // Hide licenses section
+      if (licensesSection) {
+        licensesSection.style.display = 'none';
+      }
+      
+      if (!customerId) {
+        return;
+      }
+      
+      try {
+        // Fetch customer data with assigned lift (simple approach like AMC)
+        const resp = await fetch(`/admin/api/customer-license/customer/${customerId}/`);
+        if (!resp.ok) {
+          console.error('Failed to fetch customer data');
+          liftSelect.disabled = false;
+          return;
+        }
+        
+        const customerData = await resp.json();
+        console.log('Customer data:', customerData);
+        
+        // Load all lifts for this customer
+        fetch(`/admin/api/customer/${customerId}/lifts/`)
+          .then(function(response) { return response.json(); })
+          .then(function(result) {
+            if (result.success) {
+              // Populate lift dropdown
+              liftSelect.innerHTML = '<option value="">Select Lift</option>';
+              if (result.lifts && result.lifts.length > 0) {
+                result.lifts.forEach(function(lift) {
+                  var option = document.createElement('option');
+                  option.value = lift.id;
+                  option.textContent = (lift.lift_code || 'N/A') + ' - ' + (lift.name || 'N/A');
+                  liftSelect.appendChild(option);
+                });
+                
+                // Auto-select lift matching customer's job_no (priority)
+                if (result.assigned_lift_id) {
+                  liftSelect.value = result.assigned_lift_id;
+                  console.log('Auto-selected lift matching job_no:', result.assigned_lift_id, 'for job_no:', result.customer_job_no);
+                } else if (customerData.assigned_lift_id) {
+                  // Fallback to assigned lift from customer data
+                  liftSelect.value = customerData.assigned_lift_id;
+                  console.log('Auto-selected assigned lift:', customerData.assigned_lift_id);
+                }
+              }
+              liftSelect.disabled = false;
+            } else {
+              liftSelect.disabled = false;
+            }
+          })
+          .catch(function(error) {
+            console.error('Error fetching lifts:', error);
+            liftSelect.disabled = false;
+          });
+        
+        // Also load existing licenses
+        if (licensesSection && licensesContainer) {
+          licensesSection.style.display = 'block';
+          licensesContainer.innerHTML = '<div class="loading-spinner" style="text-align: center; padding: 2rem;"><div class="spinner" style="margin: 0 auto;"></div><span>Loading...</span></div>';
+          
+          fetch(`/admin/api/customer/${customerId}/licenses/`)
+            .then(function(response) { return response.json(); })
+            .then(function(result) {
+              if (result.success) {
+                displayLicenses(result.licenses);
+              } else {
+                licensesContainer.innerHTML = '<div class="no-licenses">Failed to load licenses</div>';
+              }
+            })
+            .catch(function(error) {
+              console.error('Error fetching licenses:', error);
+              licensesContainer.innerHTML = '<div class="no-licenses">Failed to load licenses</div>';
+            });
+        }
+      } catch (err) {
+        console.error("Failed to fetch customer info:", err);
+        liftSelect.disabled = false;
+      }
+    });
+    
+    // If in edit mode and customer is already selected, trigger change
+    if (isEditMode && customerSelect.value) {
+      customerSelect.dispatchEvent(new Event('change'));
+    }
+  }
+});
+
+function getCsrfToken() {
+  var cookies = document.cookie.split(';');
+  for (var i = 0; i < cookies.length; i++) {
+    var cookie = cookies[i].trim();
+    if (cookie.startsWith('csrftoken=')) {
+      return cookie.substring('csrftoken='.length);
+    }
+  }
+  return '';
+}
+
+function showMessage(type, message) {
+  var toastContainer = document.querySelector('.toast-container');
+  if (!toastContainer) {
+    toastContainer = document.createElement('div');
+    toastContainer.className = 'toast-container';
+    document.body.appendChild(toastContainer);
+  }
+
+  var toast = document.createElement('div');
+  toast.className = 'toast toast--' + type;
+  toast.innerHTML = `
+    <div class="toast-content">
+      <div class="toast-message">${message}</div>
+      <button class="toast-close" onclick="this.parentElement.parentElement.remove()">×</button>
+    </div>
+  `;
+  toastContainer.appendChild(toast);
+
+  setTimeout(function() {
+    toast.remove();
+  }, type === 'success' ? 3000 : 5000);
+}
+
+function createFormData() {
+  var data = {
+    // license_ref_no is auto-generated, don't send it
+    license_no: document.getElementById('license_no').value.trim() || null,  // Government license number (optional)
+    customer: document.getElementById('customer').value,
+    lift: document.getElementById('lift').value,
+    period_start: document.getElementById('period_start').value,
+    period_end: document.getElementById('period_end').value,
+    status: document.getElementById('status').value,
+  };
+  return data;
+}
+
+function validateForm(data) {
+  // Clear previous errors
+  document.querySelectorAll('.form-error').forEach(function(el) {
+    el.style.display = 'none';
+  });
+
+  var hasError = false;
+
+  if (!data.customer) {
+    document.getElementById('customerError').textContent = 'Customer is required';
+    document.getElementById('customerError').style.display = 'block';
+    hasError = true;
+  }
+
+  if (!data.lift) {
+    document.getElementById('liftError').textContent = 'Lift is required';
+    document.getElementById('liftError').style.display = 'block';
+    hasError = true;
+  }
+
+  if (!data.period_start) {
+    document.getElementById('periodStartError').textContent = 'Start date is required';
+    document.getElementById('periodStartError').style.display = 'block';
+    hasError = true;
+  }
+
+  if (!data.period_end) {
+    document.getElementById('periodEndError').textContent = 'End date is required';
+    document.getElementById('periodEndError').style.display = 'block';
+    hasError = true;
+  }
+
+  if (data.period_start && data.period_end) {
+    var startDate = new Date(data.period_start);
+    var endDate = new Date(data.period_end);
+    if (startDate >= endDate) {
+      document.getElementById('periodEndError').textContent = 'End date must be after start date';
+      document.getElementById('periodEndError').style.display = 'block';
+      hasError = true;
+    }
+  }
+
+  return !hasError;
+}
+
+function handleCustomerChange() {
+  var customerId = document.getElementById('customer').value;
+  var liftSelect = document.getElementById('lift');
+  var licensesSection = document.getElementById('existingLicensesSection');
+  var licensesContainer = document.getElementById('licensesListContainer');
+
+  console.log('Customer changed, ID:', customerId);
+
+  // Reset lift dropdown
+  liftSelect.innerHTML = '<option value="">Select Lift</option>';
+  liftSelect.disabled = true;
+
+  // Hide licenses section
+  if (licensesSection) {
+    licensesSection.style.display = 'none';
+  }
+
+  if (!customerId) {
+    console.log('No customer selected');
+    return;
+  }
+
+  // Show loading state
+  liftSelect.disabled = true;
+  if (licensesSection) {
+    licensesSection.style.display = 'block';
+  }
+  if (licensesContainer) {
+    licensesContainer.innerHTML = '<div class="loading-spinner" style="text-align: center; padding: 2rem;"><div class="spinner" style="margin: 0 auto;"></div><span>Loading...</span></div>';
+  }
+
+  // Fetch lifts for this customer
+  var liftsUrl = '/admin/api/customer/' + customerId + '/lifts/';
+  console.log('Fetching lifts from:', liftsUrl);
+  
+  fetch(liftsUrl, {
+    method: 'GET',
+    headers: {
+      'X-CSRFToken': getCsrfToken()
+    }
+  })
+  .then(function(response) {
+    console.log('Lifts response status:', response.status);
+    if (!response.ok) {
+      throw new Error('HTTP error! status: ' + response.status);
+    }
+    return response.json();
+  })
+  .then(function(result) {
+    console.log('Lifts result:', result);
+    if (result.success) {
+      // Populate lift dropdown
+      liftSelect.innerHTML = '<option value="">Select Lift</option>';
+      
+      if (result.lifts && result.lifts.length > 0) {
+        result.lifts.forEach(function(lift) {
+          var option = document.createElement('option');
+          option.value = lift.id;
+          option.textContent = (lift.lift_code || 'N/A') + ' - ' + (lift.name || 'N/A');
+          liftSelect.appendChild(option);
+        });
+        console.log('Populated', result.lifts.length, 'lifts');
+      } else {
+        console.log('No lifts found for customer');
+        var option = document.createElement('option');
+        option.value = '';
+        option.textContent = 'No lifts available';
+        liftSelect.appendChild(option);
+      }
+      
+      liftSelect.disabled = false;
+
+      // Auto-select assigned lift if available (priority: edit mode > assigned lift)
+      {% if is_edit %}
+      var currentLiftId = {{ license.lift.id|default:"null" }};
+      if (currentLiftId) {
+        liftSelect.value = currentLiftId;
+        console.log('Set lift to current:', currentLiftId);
+      }
+      {% else %}
+      // In create mode, auto-select the assigned lift for this customer
+      if (result.assigned_lift_id) {
+        liftSelect.value = result.assigned_lift_id;
+        console.log('Auto-selected assigned lift:', result.assigned_lift_id);
+      }
+      {% endif %}
+    } else {
+      console.error('Failed to load lifts:', result.error);
+      showMessage('error', 'Failed to load lifts: ' + (result.error || 'Unknown error'));
+      liftSelect.disabled = false;
+    }
+  })
+  .catch(function(error) {
+    console.error('Error fetching lifts:', error);
+    showMessage('error', 'Failed to load lifts: ' + error.message);
+    liftSelect.disabled = false;
+  });
+
+  // Fetch existing licenses for this customer
+  fetch('/admin/api/customer/' + customerId + '/licenses/', {
+    method: 'GET',
+    headers: {
+      'X-CSRFToken': getCsrfToken()
+    }
+  })
+  .then(function(response) {
+    return response.json();
+  })
+  .then(function(result) {
+    if (result.success) {
+      displayLicenses(result.licenses);
+    } else {
+      licensesContainer.innerHTML = '<div class="no-licenses">Failed to load licenses</div>';
+    }
+  })
+  .catch(function(error) {
+    console.error('Error fetching licenses:', error);
+    licensesContainer.innerHTML = '<div class="no-licenses">Failed to load licenses</div>';
+  });
+}
+
+function displayLicenses(licenses) {
+  var container = document.getElementById('licensesListContainer');
+
+  if (!licenses || licenses.length === 0) {
+    container.innerHTML = '<div class="no-licenses">No existing licenses found for this customer</div>';
+    return;
+  }
+
+  var html = '<table class="licenses-table">';
+  html += '<thead><tr>';
+  html += '<th>Ref No</th>';
+  html += '<th>Govt License No</th>';
+  html += '<th>Lift Code</th>';
+  html += '<th>Lift Name</th>';
+  html += '<th>Start Date</th>';
+  html += '<th>End Date</th>';
+  html += '<th>Status</th>';
+  html += '</tr></thead>';
+  html += '<tbody>';
+
+  licenses.forEach(function(license) {
+    html += '<tr>';
+    html += '<td>' + (license.license_ref_no || 'N/A') + '</td>';
+    html += '<td>' + (license.license_no || '-') + '</td>';
+    html += '<td>' + (license.lift_code || 'N/A') + '</td>';
+    html += '<td>' + (license.lift_name || 'N/A') + '</td>';
+    html += '<td>' + (license.period_start || 'N/A') + '</td>';
+    html += '<td>' + (license.period_end || 'N/A') + '</td>';
+    html += '<td><span class="status-badge ' + license.status + '">' + license.status_display + '</span></td>';
+    html += '</tr>';
+  });
+
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+function handleFormSubmit() {
+  var data = createFormData();
+
+  if (!validateForm(data)) {
+    showMessage('error', 'Please fill in all required fields correctly');
+    return;
+  }
+
+  var submitButton = document.getElementById('submitBtn');
+  var originalText = submitButton.textContent;
+  submitButton.textContent = 'Saving...';
+  submitButton.disabled = true;
+
+  fetch(submitUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCsrfToken()
+    },
+    body: JSON.stringify(data)
+  })
+  .then(function(response) {
+    return response.json();
+  })
+  .then(function(result) {
+    submitButton.textContent = originalText;
+    submitButton.disabled = false;
+
+    if (result.success) {
+      // Display auto-generated license reference number (like customer reference ID)
+      if (result.license && result.license.license_ref_no) {
+        var licenseRefNoField = document.getElementById('license_ref_no');
+        if (licenseRefNoField) {
+          licenseRefNoField.value = result.license.license_ref_no;
+          console.log('License reference number set to:', result.license.license_ref_no);
+        }
+      }
+      showMessage('success', result.message || 'License saved successfully');
+      setTimeout(function() {
+        window.location.href = adminHomeUrl;
+      }, 1500);
+    } else {
+      showMessage('error', result.error || 'An error occurred');
+    }
+  })
+  .catch(function(error) {
+    submitButton.textContent = originalText;
+    submitButton.disabled = false;
+    showMessage('error', 'Network error. Please try again.');
+    console.error('Error:', error);
+  });
+}
+</script>
+{% endblock %}
+

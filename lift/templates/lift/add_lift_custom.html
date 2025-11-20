@@ -491,7 +491,6 @@ body {
                 class="form-input"
                 placeholder="Enter lift code"
                 required
-                maxlength="10"
               />
               <p id="liftCodeError" class="form-error" style="display: none;"></p>
               <p class="form-help">{% if job_no %}Pre-filled with customer job number{% else %}Custom code for the lift{% endif %}</p>
@@ -590,7 +589,8 @@ body {
               <p class="form-help">Enter speed value (e.g., "1.5 m/s", "2.0 m/s"). Max 50 characters.</p>
             </div>
 
-            <!-- License Details -->
+            <!-- License Details - commented out for now, will be used in future -->
+            {% comment %}
             <h3 class="form-section-title">License Details</h3>
 
             <div class="form-group">
@@ -628,6 +628,7 @@ body {
                 class="form-input"
               />
             </div>
+            {% endcomment %}
           </div>
 
           <!-- Right Column -->
@@ -1027,11 +1028,12 @@ function validateLiftCode() {
     return false;
   }
   
-  if (liftCode.length > 10) {
-    liftCodeError.textContent = 'Lift Code must not exceed 10 characters.';
-    liftCodeError.style.display = 'block';
-    return false;
-  }
+  // 10 character validation removed
+  // if (liftCode.length > 10) {
+  //   liftCodeError.textContent = 'Lift Code must not exceed 10 characters.';
+  //   liftCodeError.style.display = 'block';
+  //   return false;
+  // }
   
   liftCodeError.style.display = 'none';
   return true;
@@ -1192,9 +1194,11 @@ function validateForm() {
   
   if (!liftCode) {
     errors.liftCode = 'Lift Code is required. Please enter a lift code.';
-  } else if (liftCode.length > 10) {
-    errors.liftCode = 'Lift Code must not exceed 10 characters.';
   }
+  // 10 character validation removed
+  // else if (liftCode.length > 10) {
+  //   errors.liftCode = 'Lift Code must not exceed 10 characters.';
+  // }
   
   if (!floorId) {
     errors.floorId = 'Floor ID is required. Please select a floor ID.';

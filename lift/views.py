@@ -1479,9 +1479,10 @@ def add_lift_custom(request, job_no=None):
                 controller_brand=controller_brand,
                 cabin=cabin,
                 block=data.get('block', ''),
-                license_no=data.get('license_no', ''),
-                license_start_date=license_start_date,
-                license_end_date=license_end_date,
+                # License details - commented out for now, will be used in future
+                # license_no=data.get('license_no', ''),
+                # license_start_date=license_start_date,
+                # license_end_date=license_end_date,
             )
             lift.full_clean()
             lift.save()

@@ -743,6 +743,8 @@ body {
             </div>
 
             {% if not is_edit %}
+            {% comment %}
+            <!-- Generate Customer License checkbox - commented out for now, will be used in future -->
             <div class="form-group">
               <div class="form-checkbox-wrapper">
                 <input
@@ -757,6 +759,7 @@ body {
               </div>
               <p class="form-help">Enable this to automatically generate a license for this customer</p>
             </div>
+            {% endcomment %}
             {% endif %}
           </div>
         </div>
@@ -1206,7 +1209,8 @@ function createFormData() {
     }
   }
   data.same_as_site_address = data.same_as_site_address || false;
-  data.generate_customer_license = data.generate_customer_license || false;
+  // Generate customer license - commented out for now, will be used in future
+  // data.generate_customer_license = data.generate_customer_license || false;
   return data;
 }
 

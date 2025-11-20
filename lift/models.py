@@ -82,7 +82,7 @@ class Cabin(models.Model):
 
 class Lift(models.Model):
     reference_id = models.CharField(max_length=20, unique=True, editable=False, null=False, blank=False)
-    lift_code = models.CharField(max_length=10, unique=True, blank=True, null=True)
+    lift_code = models.CharField(max_length=100, unique=True, blank=True, null=True)
     name = models.CharField(max_length=100)
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     floor_id = models.ForeignKey(FloorID, on_delete=models.SET_NULL, null=True)
@@ -122,9 +122,10 @@ class Lift(models.Model):
         FieldPanel("controller_brand"),
         FieldPanel("cabin"),
         FieldPanel("block"),
-        FieldPanel("license_no"),
-        FieldPanel("license_start_date"),
-        FieldPanel("license_end_date"),
+        # License details - commented out for now, will be used in future
+        # FieldPanel("license_no"),
+        # FieldPanel("license_start_date"),
+        # FieldPanel("license_end_date"),
     ]
 
     def clean(self):

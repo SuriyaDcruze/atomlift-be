@@ -9,6 +9,7 @@ from wagtail.admin.menu import MenuItem
 from wagtail.admin.panels import FieldPanel, MultiFieldPanel
 from wagtail.snippets.widgets import SnippetListingButton
 import json
+from datetime import datetime
 
 from .models import Customer, Route, Branch, ProvinceState, City, CustomerLicense, CustomerContact, CustomerFeedback, CustomerFollowUp
 
@@ -32,6 +33,13 @@ def register_customer_form_url():
         path('api/customer/<int:customer_id>/notes/', update_customer_notes, name='update_customer_notes'),
         path('api/customer/feedback/create/', create_customer_feedback, name='create_customer_feedback'),
         path('api/customer/followup/create/', create_customer_followup, name='create_customer_followup'),
+        # Customer License custom pages
+        path('customer-license/add-custom/', add_customer_license_custom, name='add_customer_license_custom'),
+        path('customer-license/edit-custom/<int:pk>/', edit_customer_license_custom, name='edit_customer_license_custom'),
+        # API endpoints for customer license
+        path('api/customer/<int:customer_id>/lifts/', get_customer_lifts, name='get_customer_lifts'),
+        path('api/customer/<int:customer_id>/licenses/', get_customer_licenses, name='get_customer_licenses'),
+        path('api/customer-license/customer/<int:customer_id>/', get_customer_for_license, name='get_customer_for_license'),
     ]
 
 
@@ -61,9 +69,10 @@ def customize_customer_listing_buttons(buttons, snippet, user, context=None):
             priority=90,
             icon_name='view',
         ))
-    elif isinstance(snippet, CustomerLicense):
-        # Remove all action buttons (Edit, Delete) for CustomerLicense
-        buttons[:] = []
+    # CustomerLicense buttons are now enabled for manual editing
+    # elif isinstance(snippet, CustomerLicense):
+    #     # Remove all action buttons (Edit, Delete) for CustomerLicense
+    #     buttons[:] = []
     
     return buttons
 
@@ -134,9 +143,11 @@ def add_customer_custom(request):
             if same_as_site:
                 office_address = data.get('site_address', '')
 
-            generate_license = data.get('generate_customer_license')
-            if isinstance(generate_license, str):
-                generate_license = generate_license.lower() in ('true', 'on', '1')
+            # Generate customer license - commented out for now, will be used in future
+            # generate_license = data.get('generate_customer_license')
+            # if isinstance(generate_license, str):
+            #     generate_license = generate_license.lower() in ('true', 'on', '1')
+            generate_license = False
 
             # Handle latitude and longitude
             latitude = data.get('latitude')
@@ -178,7 +189,8 @@ def add_customer_custom(request):
                 branch=branch,
                 handover_date=data.get('handover_date') if data.get('handover_date') else None,
                 billing_name=data.get('billing_name', ''),
-                generate_license_now=generate_license,
+                # Generate license now - commented out for now, will be used in future
+                # generate_license_now=generate_license,
                 latitude=latitude,
                 longitude=longitude,
             )
@@ -833,4 +845,371 @@ def create_customer_followup(request):
             'success': False,
             'error': str(e),
             'traceback': error_details
+        }, status=500)
+
+
+# ======================================================
+#  CUSTOMER LICENSE CUSTOM VIEWS
+# ======================================================
+
+def add_customer_license_custom(request):
+    """Custom view for adding a customer license"""
+    from datetime import date, timedelta
+    
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            
+            # Validate required fields
+            required_fields = ['customer', 'lift', 'period_start', 'period_end']
+            for field in required_fields:
+                if not data.get(field):
+                    return JsonResponse({
+                        'success': False,
+                        'error': f'{field.replace("_", " ").title()} is required'
+                    }, status=400)
+            
+            # Get foreign key objects
+            customer = None
+            if data.get('customer'):
+                customer = Customer.objects.filter(id=data['customer']).first()
+                if not customer:
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'Invalid customer selected'
+                    }, status=400)
+            
+            lift = None
+            if data.get('lift'):
+                from lift.models import Lift
+                lift = Lift.objects.filter(id=data['lift']).first()
+                if not lift:
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'Invalid lift selected'
+                    }, status=400)
+            
+            # Validate dates
+            period_start = data.get('period_start')
+            period_end = data.get('period_end')
+            
+            if period_start and period_end:
+                try:
+                    start_date = datetime.strptime(period_start, '%Y-%m-%d').date()
+                    end_date = datetime.strptime(period_end, '%Y-%m-%d').date()
+                    if start_date >= end_date:
+                        return JsonResponse({
+                            'success': False,
+                            'error': 'Start date must be before end date.'
+                        }, status=400)
+                except ValueError:
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'Invalid date format. Please use YYYY-MM-DD format.'
+                    }, status=400)
+            
+            # Get government license number (optional, unique)
+            government_license_no = data.get('license_no', '').strip() or None
+            
+            # Validate government license number uniqueness if provided
+            if government_license_no:
+                if CustomerLicense.objects.filter(license_no=government_license_no).exists():
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'Government license number already exists. Please enter a different number.'
+                    }, status=400)
+            
+            # Get status
+            status = data.get('status', 'active')
+            if status not in ['active', 'expired']:
+                status = 'active'
+            
+            # Create customer license (license_ref_no will be auto-generated by model)
+            license_obj = CustomerLicense.objects.create(
+                license_ref_no='',  # Empty string - will be auto-generated by model's save() method
+                license_no=government_license_no,  # Government-issued license number
+                customer=customer,
+                lift=lift,
+                period_start=period_start,
+                period_end=period_end,
+                status=status,
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Customer license created successfully',
+                'license': {
+                    'id': license_obj.id,
+                    'license_ref_no': license_obj.license_ref_no,
+                    'license_no': license_obj.license_no or '',
+                    'customer': license_obj.customer.site_name,
+                    'lift': license_obj.lift.lift_code
+                }
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            }, status=500)
+    
+    # GET request - render form
+    customers = Customer.objects.all().order_by('site_name')
+    from lift.models import Lift
+    lifts = Lift.objects.all().order_by('lift_code')
+    
+    context = {
+        'is_edit': False,
+        'customers': customers,
+        'lifts': lifts,
+    }
+    return render(request, 'customer/add_customer_license_custom.html', context)
+
+
+def edit_customer_license_custom(request, pk):
+    """Custom view for editing a customer license"""
+    license_obj = get_object_or_404(CustomerLicense, pk=pk)
+    
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            
+            # Validate required fields
+            required_fields = ['customer', 'lift', 'period_start', 'period_end']
+            for field in required_fields:
+                if not data.get(field):
+                    return JsonResponse({
+                        'success': False,
+                        'error': f'{field.replace("_", " ").title()} is required'
+                    }, status=400)
+            
+            # Get foreign key objects
+            customer = None
+            if data.get('customer'):
+                customer = Customer.objects.filter(id=data['customer']).first()
+                if not customer:
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'Invalid customer selected'
+                    }, status=400)
+            
+            lift = None
+            if data.get('lift'):
+                from lift.models import Lift
+                lift = Lift.objects.filter(id=data['lift']).first()
+                if not lift:
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'Invalid lift selected'
+                    }, status=400)
+            
+            # Validate dates
+            period_start = data.get('period_start')
+            period_end = data.get('period_end')
+            
+            if period_start and period_end:
+                try:
+                    start_date = datetime.strptime(period_start, '%Y-%m-%d').date()
+                    end_date = datetime.strptime(period_end, '%Y-%m-%d').date()
+                    if start_date >= end_date:
+                        return JsonResponse({
+                            'success': False,
+                            'error': 'Start date must be before end date.'
+                        }, status=400)
+                except ValueError:
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'Invalid date format. Please use YYYY-MM-DD format.'
+                    }, status=400)
+            
+            # Get government license number
+            government_license_no = data.get('license_no', '').strip() or None
+            
+            # Validate government license number uniqueness if changed
+            if government_license_no and government_license_no != (license_obj.license_no or ''):
+                if CustomerLicense.objects.filter(license_no=government_license_no).exclude(pk=license_obj.pk).exists():
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'Government license number already exists. Please enter a different number.'
+                    }, status=400)
+            
+            # Get status
+            status = data.get('status', license_obj.status)
+            if status not in ['active', 'expired']:
+                status = license_obj.status
+            
+            # Update license (license_ref_no is read-only, don't change it)
+            license_obj.license_no = government_license_no
+            license_obj.customer = customer
+            license_obj.lift = lift
+            license_obj.period_start = period_start
+            license_obj.period_end = period_end
+            license_obj.status = status
+            license_obj.save()
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Customer license updated successfully'
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            }, status=500)
+    
+    # GET request - render form with existing data
+    customers = Customer.objects.all().order_by('site_name')
+    from lift.models import Lift
+    lifts = Lift.objects.all().order_by('lift_code')
+    
+    context = {
+        'is_edit': True,
+        'license': license_obj,
+        'customers': customers,
+        'lifts': lifts,
+    }
+    return render(request, 'customer/add_customer_license_custom.html', context)
+
+
+# ======================================================
+#  CUSTOMER LICENSE API ENDPOINTS
+# ======================================================
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_customer_lifts(request, customer_id):
+    """Get lifts associated with a customer through licenses"""
+    try:
+        customer = get_object_or_404(Customer, pk=customer_id)
+        from lift.models import Lift
+        
+        lifts_data = []
+        lift_ids = set()
+        assigned_lift_id = None
+        
+        # Priority 1: Find lift matching customer's job_no (this is the primary assigned lift)
+        if customer.job_no:
+            matching_lift = Lift.objects.filter(lift_code=customer.job_no).first()
+            if matching_lift:
+                assigned_lift_id = matching_lift.id
+                lift_ids.add(matching_lift.id)
+                # Add matching lift first (at the beginning of the list)
+                lifts_data.insert(0, {
+                    'id': matching_lift.id,
+                    'lift_code': matching_lift.lift_code or '',
+                    'name': matching_lift.name or '',
+                    'reference_id': matching_lift.reference_id or '',
+                })
+        
+        # Priority 2: Get lifts that have licenses for this customer
+        licenses = CustomerLicense.objects.filter(customer=customer).select_related('lift')
+        for license_obj in licenses:
+            if license_obj.lift and license_obj.lift.id not in lift_ids:
+                lift = license_obj.lift
+                lift_ids.add(lift.id)
+                lifts_data.append({
+                    'id': lift.id,
+                    'lift_code': lift.lift_code or '',
+                    'name': lift.name or '',
+                    'reference_id': lift.reference_id or '',
+                })
+        
+        # If no lifts found, return all lifts (so user can still select)
+        if not lifts_data:
+            all_lifts = Lift.objects.all().order_by('lift_code')
+            for lift in all_lifts:
+                lifts_data.append({
+                    'id': lift.id,
+                    'lift_code': lift.lift_code or '',
+                    'name': lift.name or '',
+                    'reference_id': lift.reference_id or '',
+                })
+        
+        return JsonResponse({
+            'success': True,
+            'lifts': lifts_data,
+            'assigned_lift_id': assigned_lift_id,  # The lift matching job_no
+            'customer_job_no': customer.job_no or ''  # Customer's job_no for reference
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_customer_licenses(request, customer_id):
+    """Get all licenses for a customer"""
+    try:
+        customer = get_object_or_404(Customer, pk=customer_id)
+        licenses = CustomerLicense.objects.filter(customer=customer).select_related('lift').order_by('-period_start')
+        
+        licenses_data = []
+        for license_obj in licenses:
+            licenses_data.append({
+                'id': license_obj.id,
+                'license_ref_no': license_obj.license_ref_no,
+                'license_no': license_obj.license_no or '',
+                'lift_code': license_obj.lift.lift_code if license_obj.lift else 'N/A',
+                'lift_name': license_obj.lift.name if license_obj.lift else 'N/A',
+                'period_start': license_obj.period_start.strftime('%Y-%m-%d') if license_obj.period_start else '',
+                'period_end': license_obj.period_end.strftime('%Y-%m-%d') if license_obj.period_end else '',
+                'status': license_obj.status,
+                'status_display': license_obj.get_status_display(),
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'licenses': licenses_data
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_customer_for_license(request, customer_id):
+    """Get customer details with assigned lift for license form (similar to AMC pattern)"""
+    try:
+        customer = get_object_or_404(Customer, pk=customer_id)
+        from lift.models import Lift
+        
+        # Find assigned lift - priority: 1) Lift matching job_no, 2) First lift from licenses
+        assigned_lift_id = None
+        assigned_lift_code = None
+        assigned_lift_name = None
+        
+        if customer.job_no:
+            matching_lift = Lift.objects.filter(lift_code=customer.job_no).first()
+            if matching_lift:
+                assigned_lift_id = matching_lift.id
+                assigned_lift_code = matching_lift.lift_code
+                assigned_lift_name = matching_lift.name
+        
+        # If no matching lift by job_no, use first lift from licenses
+        if not assigned_lift_id:
+            licenses = CustomerLicense.objects.filter(customer=customer).select_related('lift').first()
+            if licenses and licenses.lift:
+                assigned_lift_id = licenses.lift.id
+                assigned_lift_code = licenses.lift.lift_code
+                assigned_lift_name = licenses.lift.name
+        
+        return JsonResponse({
+            'id': customer.id,
+            'reference_id': customer.reference_id,
+            'site_name': customer.site_name,
+            'job_no': customer.job_no or '',
+            'assigned_lift_id': assigned_lift_id,
+            'assigned_lift_code': assigned_lift_code or '',
+            'assigned_lift_name': assigned_lift_name or '',
+        })
+    except Exception as e:
+        return JsonResponse({
+            'error': str(e)
         }, status=500)
