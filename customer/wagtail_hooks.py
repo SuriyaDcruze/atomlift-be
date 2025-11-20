@@ -40,6 +40,7 @@ def register_customer_form_url():
         path('api/customer/<int:customer_id>/lifts/', get_customer_lifts, name='get_customer_lifts'),
         path('api/customer/<int:customer_id>/licenses/', get_customer_licenses, name='get_customer_licenses'),
         path('api/customer-license/customer/<int:customer_id>/', get_customer_for_license, name='get_customer_for_license'),
+        path('api/customer-license/next-reference/', get_next_license_reference, name='get_next_license_reference'),
     ]
 
 
@@ -1213,3 +1214,37 @@ def get_customer_for_license(request, customer_id):
         return JsonResponse({
             'error': str(e)
         }, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_next_license_reference(request):
+    """Get the next license reference ID (e.g., LIC0001, LIC0002)"""
+    try:
+        # Get all licenses with license_ref_no starting with "LIC"
+        licenses = CustomerLicense.objects.filter(license_ref_no__startswith="LIC").exclude(license_ref_no="")
+        
+        if licenses.exists():
+            # Extract numbers from all license_ref_no values and find the maximum
+            max_id = 0
+            for license_obj in licenses:
+                if license_obj.license_ref_no and license_obj.license_ref_no.startswith("LIC"):
+                    try:
+                        # Extract number from "LIC0001" -> 1
+                        num_str = license_obj.license_ref_no.replace("LIC", "").lstrip("0")
+                        if num_str:  # If there's a number after removing zeros
+                            num = int(num_str)
+                            max_id = max(max_id, num)
+                        else:
+                            # Handle case like "LIC0000" -> 0
+                            max_id = max(max_id, 0)
+                    except (ValueError, AttributeError):
+                        continue
+            next_id = max_id + 1
+        else:
+            next_id = 1
+        
+        next_ref = f"LIC{next_id:04d}"
+        return JsonResponse({"reference_id": next_ref})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)

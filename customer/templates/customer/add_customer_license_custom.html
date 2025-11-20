@@ -520,6 +520,23 @@ var adminHomeUrl = "/admin/snippets/customer/customerlicense/";
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
+  // Fetch and display next license reference ID if not in edit mode
+  if (!isEditMode) {
+    fetch('/admin/api/customer-license/next-reference/')
+      .then(function(response) { return response.json(); })
+      .then(function(data) {
+        if (data && data.reference_id) {
+          var licenseRefField = document.getElementById('license_ref_no');
+          if (licenseRefField) {
+            licenseRefField.value = data.reference_id;
+          }
+        }
+      })
+      .catch(function(error) {
+        console.error('Error fetching next license reference ID:', error);
+      });
+  }
+  
   var customerSelect = document.getElementById('customer');
   var liftSelect = document.getElementById('lift');
   

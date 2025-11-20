@@ -306,8 +306,29 @@ class CustomerLicense(models.Model):
     def save(self, *args, **kwargs):
         # Auto-generate license_ref_no only if not provided
         if not self.license_ref_no or self.license_ref_no.strip() == '':
-            last = CustomerLicense.objects.order_by("id").last()
-            next_id = (last.id + 1) if last else 1
+            # Get all licenses with license_ref_no starting with "LIC" and find the max number
+            licenses = CustomerLicense.objects.filter(license_ref_no__startswith="LIC").exclude(license_ref_no="")
+            
+            if licenses.exists():
+                # Extract numbers from all license_ref_no values and find the maximum
+                max_id = 0
+                for license_obj in licenses:
+                    if license_obj.license_ref_no and license_obj.license_ref_no.startswith("LIC"):
+                        try:
+                            # Extract number from "LIC0001" -> 1
+                            num_str = license_obj.license_ref_no.replace("LIC", "").lstrip("0")
+                            if num_str:  # If there's a number after removing zeros
+                                num = int(num_str)
+                                max_id = max(max_id, num)
+                            else:
+                                # Handle case like "LIC0000" -> 0
+                                max_id = max(max_id, 0)
+                        except (ValueError, AttributeError):
+                            continue
+                next_id = max_id + 1
+            else:
+                next_id = 1
+            
             self.license_ref_no = f"LIC{next_id:04d}"
         
         super().save(*args, **kwargs)
