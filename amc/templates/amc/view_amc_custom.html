@@ -324,12 +324,13 @@ textarea.form-input {
 }
 
 .btn-secondary {
-  background: #6B7280;
-  color: white;
+  background: #F3F4F6;
+  color: #374151;
+  border: 1px solid #D1D5DB;
 }
 
 .btn-secondary:hover {
-  background: #4B5563;
+  background: #E5E7EB;
 }
 
 @media (max-width: 1024px) {
@@ -357,6 +358,11 @@ textarea.form-input {
       <!-- Modal Header -->
       <div class="w-modal-header">
         <div>
+          <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
+            <a href="/admin/snippets/amc/amc/" class="btn btn-secondary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem;">
+              ← Back
+            </a>
+          </div>
           <h2 class="w-modal-title">AMC DETAILS (AMC ID: {{ amc.reference_id }})</h2>
           <div style="display: flex; align-items: center; gap: 1rem; margin-top: 0.5rem;">
             <span class="status-badge status-{{ amc.status }}">
@@ -368,7 +374,6 @@ textarea.form-input {
           </div>
         </div>
         <div class="flex gap-2">
-          <button class="btn btn-primary" onclick="alert('Change Status functionality coming soon')">CHANGE STATUS</button>
           <a href="{% url 'edit_amc_custom' amc.id %}" class="btn btn-primary">EDIT AMC</a>
         </div>
       </div>
