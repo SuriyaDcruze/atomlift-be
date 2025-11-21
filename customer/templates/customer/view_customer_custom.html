@@ -368,6 +368,9 @@ tr {
     const contactEmailInput = document.getElementById('contact-email');
     const contactPhoneInput = document.getElementById('contact-phone');
     const contactMobileInput = document.getElementById('contact-mobile');
+    const contactAddressInput = document.getElementById('contact-address');
+    const contactPinCodeInput = document.getElementById('contact-pin-code');
+    const contactCityInput = document.getElementById('contact-city');
 
     if (openContactModal && contactModal && closeContactModal) {
       openContactModal.addEventListener('click', () => {
@@ -375,6 +378,16 @@ tr {
         contactEmailInput.value = '{{ customer.email|default:"" }}';
         contactPhoneInput.value = '{{ customer.phone|default:"" }}';
         contactMobileInput.value = '{{ customer.mobile|default:"" }}';
+        // Auto-fill address, pin code, city from customer
+        if (contactAddressInput) {
+          contactAddressInput.value = '{{ customer.site_address|default:"" }}';
+        }
+        if (contactPinCodeInput) {
+          contactPinCodeInput.value = '{{ customer.pin_code|default:"" }}';
+        }
+        if (contactCityInput) {
+          contactCityInput.value = '{% if customer.city %}{{ customer.city.value }}{% else %}{% endif %}';
+        }
         contactModal.style.display = 'block';
       });
       closeContactModal.addEventListener('click', () => {
@@ -1554,15 +1567,15 @@ tr {
           </div>
           <div class="form-group">
             <label class="form-label">Address</label>
-            <input type="text" name="address" class="form-value" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #E5E7EB; border-radius: 0.375rem; font-size: 0.875rem;">
+            <input type="text" name="address" id="contact-address" class="form-value" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #E5E7EB; border-radius: 0.375rem; font-size: 0.875rem;">
           </div>
           <div class="form-group">
             <label class="form-label">Pin Code</label>
-            <input type="text" name="pin_code" class="form-value" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #E5E7EB; border-radius: 0.375rem; font-size: 0.875rem;">
+            <input type="text" name="pin_code" id="contact-pin-code" class="form-value" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #E5E7EB; border-radius: 0.375rem; font-size: 0.875rem;">
           </div>
           <div class="form-group">
             <label class="form-label">City</label>
-            <input type="text" name="city" class="form-value" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #E5E7EB; border-radius: 0.375rem; font-size: 0.875rem;">
+            <input type="text" name="city" id="contact-city" class="form-value" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #E5E7EB; border-radius: 0.375rem; font-size: 0.875rem;">
           </div>
         </div>
         <div class="flex gap-2 justify-end" style="margin-top: 1.5rem;">
