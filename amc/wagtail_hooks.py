@@ -32,6 +32,7 @@ def register_amc_form_url():
         path('amc/export-routine-services/<int:pk>/', views.export_amc_routine_services_xlsx, name='export_amc_routine_services_xlsx'),
         path('api/amc/routine-services/generate/', generate_amc_routine_services, name='generate_amc_routine_services'),
         path('api/amc/routine-services/save/', save_amc_routine_services, name='save_amc_routine_services'),
+        path('api/amc/routine-services/<int:service_id>/update/', update_amc_routine_service, name='update_amc_routine_service'),
         # API endpoints for dropdown management (payment terms removed for now)
         path('api/amc/amc-types/', manage_amc_types, name='api_manage_amc_types'),
         path('api/amc/amc-types/<int:pk>/', manage_amc_types_detail, name='api_manage_amc_types_detail'),
@@ -800,6 +801,121 @@ def save_amc_routine_services(request):
             'message': f'{len(created_services)} routine services saved successfully',
             'count': len(created_services)
         })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST", "GET"])
+def update_amc_routine_service(request, service_id):
+    """API to get or update a single AMC routine service"""
+    try:
+        service = get_object_or_404(AMCRoutineService, pk=service_id)
+        
+        if request.method == 'GET':
+            # Return service data for editing
+            User = get_user_model()
+            employees = User.objects.filter(is_active=True).order_by('username')
+            employees_list = [
+                {
+                    'id': emp.id,
+                    'name': emp.get_full_name() if emp.get_full_name() else emp.username
+                }
+                for emp in employees
+            ]
+            
+            return JsonResponse({
+                'success': True,
+                'service': {
+                    'id': service.id,
+                    'service_date': service.service_date.strftime('%Y-%m-%d'),
+                    'block_wing': service.block_wing or '',
+                    'employee_assign_id': service.employee_assign_id,
+                    'status': service.status,
+                    'note': service.note or '',
+                },
+                'employees': employees_list,
+                'status_choices': [
+                    {'value': 'due', 'label': 'Due'},
+                    {'value': 'overdue', 'label': 'Overdue'},
+                    {'value': 'completed', 'label': 'Completed'},
+                    {'value': 'cancelled', 'label': 'Cancelled'},
+                ]
+            })
+        
+        elif request.method == 'POST':
+            # Update service
+            data = json.loads(request.body)
+            
+            # Validate service date
+            service_date_str = data.get('service_date')
+            if service_date_str:
+                try:
+                    service_date = date.fromisoformat(service_date_str)
+                    # Validate that service date is not before AMC start date
+                    if service_date < service.amc.start_date:
+                        return JsonResponse({
+                            'success': False,
+                            'error': f'Service date cannot be before AMC start date ({service.amc.start_date.strftime("%d/%m/%Y")})'
+                        }, status=400)
+                    service.service_date = service_date
+                except (ValueError, TypeError):
+                    return JsonResponse({
+                        'success': False,
+                        'error': f'Invalid date format: {service_date_str}'
+                    }, status=400)
+            
+            # Update other fields
+            if 'block_wing' in data:
+                service.block_wing = data.get('block_wing', '')
+            
+            if 'employee_assign_id' in data:
+                employee_id = data.get('employee_assign_id')
+                if employee_id:
+                    User = get_user_model()
+                    try:
+                        employee = User.objects.get(pk=employee_id, is_active=True)
+                        service.employee_assign = employee
+                    except User.DoesNotExist:
+                        return JsonResponse({
+                            'success': False,
+                            'error': 'Invalid employee ID'
+                        }, status=400)
+                else:
+                    service.employee_assign = None
+            
+            if 'status' in data:
+                status = data.get('status')
+                if status in dict(AMCRoutineService.STATUS_CHOICES):
+                    service.status = status
+                else:
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'Invalid status'
+                    }, status=400)
+            
+            if 'note' in data:
+                service.note = data.get('note', '')
+            
+            service.save()
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Routine service updated successfully',
+                'service': {
+                    'id': service.id,
+                    'service_date': service.service_date.strftime('%Y-%m-%d'),
+                    'block_wing': service.block_wing or '',
+                    'employee_assign_id': service.employee_assign_id,
+                    'employee_name': service.employee_assign.get_full_name() if service.employee_assign and service.employee_assign.get_full_name() else (service.employee_assign.username if service.employee_assign else ''),
+                    'status': service.status,
+                    'note': service.note or '',
+                }
+            })
         
     except Exception as e:
         return JsonResponse({

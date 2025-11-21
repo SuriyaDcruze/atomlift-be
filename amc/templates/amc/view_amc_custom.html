@@ -288,6 +288,50 @@ tr:hover {
   color: #2563EB;
 }
 
+.form-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  border: 1px solid #D1D5DB;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  font-size: 0.875rem;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.75rem center;
+  background-repeat: no-repeat;
+  background-size: 1rem;
+  padding-right: 2.5rem;
+}
+
+textarea.form-input {
+  resize: vertical;
+}
+
+.form-required {
+  color: #EF4444;
+  margin-left: 0.25rem;
+}
+
+.btn-secondary {
+  background: #6B7280;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: #4B5563;
+}
+
 @media (max-width: 1024px) {
   .form-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -341,7 +385,6 @@ tr:hover {
                 <div class="badge-yellow" style="display: inline-block; margin-top: 0.5rem;">
                   {{ amc.amc_type.name }}
                 </div>
-                <button class="icon-btn" style="margin-left: 0.5rem;" onclick="alert('Edit AMC Type functionality coming soon')">✏️</button>
               {% else %}
                 <div class="form-value empty">Not set</div>
               {% endif %}
@@ -353,7 +396,6 @@ tr:hover {
             <div class="form-group">
               <label class="form-label">NEXT PAYMENT:</label>
               <div class="form-value empty">Not set</div>
-              <button class="icon-btn" style="margin-left: 0.5rem;" onclick="alert('Edit Next Payment functionality coming soon')">✏️</button>
             </div>
           </div>
 
@@ -478,7 +520,7 @@ tr:hover {
                       <span class="status-badge status-{{ service.status }}">
                         {{ service.get_status_display }}
                       </span>
-                      <button class="icon-btn" onclick="alert('Edit status functionality coming soon')" title="Edit">✏️</button>
+                      <button class="icon-btn" onclick="openEditServiceModal({{ service.id }})" title="Edit">✏️</button>
                     </td>
                   </tr>
                   {% endfor %}
@@ -503,5 +545,186 @@ tr:hover {
     </div>
   </div>
 </div>
+
+<!-- Edit Service Modal -->
+<div id="editServiceModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 1000; align-items: center; justify-content: center;">
+  <div style="background: white; border-radius: 0.75rem; padding: 2rem; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+      <h3 style="margin: 0; font-size: 1.25rem; font-weight: 600; color: #374151;">Edit Routine Service</h3>
+      <button onclick="closeEditServiceModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #6B7280;">×</button>
+    </div>
+    <form id="editServiceForm">
+      <div class="form-group">
+        <label class="form-label">Service Date <span class="form-required">*</span></label>
+        <input type="date" id="edit-service-date" class="form-input" required />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Block / Wing</label>
+        <input type="text" id="edit-block-wing" class="form-input" placeholder="Block / Wing" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Assign To</label>
+        <select id="edit-employee" class="form-input form-select">
+          <option value="">Select Employee</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Status <span class="form-required">*</span></label>
+        <select id="edit-status" class="form-input form-select" required>
+          <option value="due">Due</option>
+          <option value="overdue">Overdue</option>
+          <option value="completed">Completed</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Note</label>
+        <textarea id="edit-note" class="form-input" rows="3" placeholder="Note"></textarea>
+      </div>
+      <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1.5rem;">
+        <button type="button" class="btn btn-secondary" onclick="closeEditServiceModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+let currentServiceId = null;
+const amcStartDate = '{% if amc.start_date %}{{ amc.start_date|date:"Y-m-d" }}{% else %}{{ "now"|date:"Y-m-d" }}{% endif %}';
+
+function openEditServiceModal(serviceId) {
+  currentServiceId = serviceId;
+  const modal = document.getElementById('editServiceModal');
+  modal.style.display = 'flex';
+  
+  // Load service data
+  loadServiceData(serviceId);
+}
+
+function closeEditServiceModal() {
+  const modal = document.getElementById('editServiceModal');
+  modal.style.display = 'none';
+  currentServiceId = null;
+  document.getElementById('editServiceForm').reset();
+}
+
+async function loadServiceData(serviceId) {
+  try {
+    const response = await fetch(`/admin/api/amc/routine-services/${serviceId}/update/`, {
+      method: 'GET',
+      headers: {
+        'X-CSRFToken': getCookie('csrftoken'),
+      },
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      const service = result.service;
+      
+      // Set form values
+      document.getElementById('edit-service-date').value = service.service_date;
+      document.getElementById('edit-service-date').setAttribute('min', amcStartDate);
+      document.getElementById('edit-block-wing').value = service.block_wing;
+      document.getElementById('edit-status').value = service.status;
+      document.getElementById('edit-note').value = service.note;
+      
+      // Populate employee dropdown
+      const employeeSelect = document.getElementById('edit-employee');
+      employeeSelect.innerHTML = '<option value="">Select Employee</option>';
+      result.employees.forEach(emp => {
+        const option = document.createElement('option');
+        option.value = emp.id;
+        option.textContent = emp.name;
+        if (emp.id === service.employee_assign_id) {
+          option.selected = true;
+        }
+        employeeSelect.appendChild(option);
+      });
+    } else {
+      alert('Error loading service data: ' + result.error);
+      closeEditServiceModal();
+    }
+  } catch (error) {
+    alert('Network error. Please try again.');
+    closeEditServiceModal();
+  }
+}
+
+document.getElementById('editServiceForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  
+  if (!currentServiceId) return;
+  
+  const serviceDate = document.getElementById('edit-service-date').value;
+  if (serviceDate < amcStartDate) {
+    alert('Service date cannot be before AMC start date (' + amcStartDate + ')');
+    return;
+  }
+  
+  const formData = {
+    service_date: serviceDate,
+    block_wing: document.getElementById('edit-block-wing').value,
+    employee_assign_id: document.getElementById('edit-employee').value || null,
+    status: document.getElementById('edit-status').value,
+    note: document.getElementById('edit-note').value,
+  };
+  
+  const submitBtn = this.querySelector('button[type="submit"]');
+  const originalText = submitBtn.textContent;
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Saving...';
+  
+  try {
+    const response = await fetch(`/admin/api/amc/routine-services/${currentServiceId}/update/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken'),
+      },
+      body: JSON.stringify(formData),
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      alert('Service updated successfully');
+      closeEditServiceModal();
+      // Reload the page to show updated data
+      window.location.reload();
+    } else {
+      alert('Error: ' + result.error);
+    }
+  } catch (error) {
+    alert('Network error. Please try again.');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = originalText;
+  }
+});
+
+// Close modal when clicking outside
+document.getElementById('editServiceModal').addEventListener('click', function(e) {
+  if (e.target === this) {
+    closeEditServiceModal();
+  }
+});
+
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+</script>
 {% endblock %}
 
