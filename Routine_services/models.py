@@ -123,12 +123,37 @@ class RoutineService(models.Model):
     
     def gmap(self):
         """Google Maps link"""
-        if self.customer and self.customer.latitude and self.customer.longitude:
+        from django.utils.html import format_html
+        from urllib.parse import quote_plus
+        
+        if not self.customer:
+            return "—"
+        
+        # First priority: Use latitude and longitude if available
+        if self.customer.latitude and self.customer.longitude:
             lat = float(self.customer.latitude)
             lon = float(self.customer.longitude)
-            return f"https://www.google.com/maps?q={lat},{lon}"
+            map_url = f"https://www.google.com/maps?q={lat},{lon}"
+            return format_html(
+                '<a href="{}" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: none;">📍 View Map</a>',
+                map_url
+            )
+        
+        # Second priority: Use site address if available
+        if self.customer.site_address:
+            site_address = str(self.customer.site_address).strip()
+            if site_address:
+                # URL encode the address for Google Maps
+                encoded_address = quote_plus(site_address)
+                map_url = f"https://www.google.com/maps?q={encoded_address}"
+                return format_html(
+                    '<a href="{}" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: none;">📍 View Map</a>',
+                    map_url
+                )
+        
         return "—"
     gmap.short_description = "GMAP"
+    gmap.allow_tags = True
     
     def location(self):
         """Location (site address)"""
@@ -435,12 +460,37 @@ class UnifiedService:
     
     def gmap(self):
         """Google Maps link"""
-        if self.customer and self.customer.latitude and self.customer.longitude:
+        from django.utils.html import format_html
+        from urllib.parse import quote_plus
+        
+        if not self.customer:
+            return "—"
+        
+        # First priority: Use latitude and longitude if available
+        if self.customer.latitude and self.customer.longitude:
             lat = float(self.customer.latitude)
             lon = float(self.customer.longitude)
-            return f"https://www.google.com/maps?q={lat},{lon}"
+            map_url = f"https://www.google.com/maps?q={lat},{lon}"
+            return format_html(
+                '<a href="{}" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: none;">📍 View Map</a>',
+                map_url
+            )
+        
+        # Second priority: Use site address if available
+        if self.customer.site_address:
+            site_address = str(self.customer.site_address).strip()
+            if site_address:
+                # URL encode the address for Google Maps
+                encoded_address = quote_plus(site_address)
+                map_url = f"https://www.google.com/maps?q={encoded_address}"
+                return format_html(
+                    '<a href="{}" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: none;">📍 View Map</a>',
+                    map_url
+                )
+        
         return "—"
     gmap.short_description = "GMAP"
+    gmap.allow_tags = True
     
     def location(self):
         """Location (site address)"""
