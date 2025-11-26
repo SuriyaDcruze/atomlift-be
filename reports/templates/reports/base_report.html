@@ -13,75 +13,77 @@
         justify-content: space-between;
         align-items: center;
         margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #e5e7eb;
     }
     .report-title {
         font-size: 1.5rem;
         font-weight: bold;
         color: #1f2937;
+        margin: 0;
     }
-    .filter-section {
-        background: white;
-        border: 1px solid #e5e7eb;
-        border-radius: 0.5rem;
-        padding: 1rem;
-        margin-bottom: 1rem;
+    .header-actions {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
     }
-    .filter-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1rem;
-        margin-bottom: 1rem;
-    }
-    .filter-field label {
-        display: block;
-        font-size: 0.875rem;
-        color: #6b7280;
-        margin-bottom: 0.25rem;
-        font-weight: 500;
-    }
-    .filter-field select,
-    .filter-field input {
-        width: 100%;
-        padding: 0.5rem 0.75rem;
-        border: 1px solid #d1d5db;
-        border-radius: 0.375rem;
-        font-size: 0.875rem;
-    }
-    .filter-field select:focus,
-    .filter-field input:focus {
-        outline: none;
-        border-color: #243158;
-        box-shadow: 0 0 0 3px rgba(36, 49, 88, 0.1);
-    }
-    .btn-search {
-        background-color: #243158;
-        color: white;
-        padding: 0.5rem 1rem;
-        border: none;
-        border-radius: 0.375rem;
-        font-size: 0.875rem;
-        cursor: pointer;
+    /* Django Admin Style Search Bar */
+    .search-bar {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        margin-bottom: 1rem;
+        padding: 0.5rem 0;
     }
-    .btn-search:hover {
-        background-color: #1b2545;
+    .search-bar form {
+        display: flex;
+        width: 100%;
+        max-width: 300px;
+        margin-left: auto;
+    }
+    .search-bar input[type="text"] {
+        flex: 1;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.25rem 0 0 0.25rem;
+        font-size: 0.875rem;
+        border-right: none;
+    }
+    .search-bar input[type="text"]:focus {
+        outline: none;
+        border-color: #417690;
+        box-shadow: 0 0 0 2px rgba(65, 118, 144, 0.1);
+    }
+    .search-bar button {
+        padding: 0.5rem 1rem;
+        background-color: #417690;
+        color: white;
+        border: 1px solid #417690;
+        border-radius: 0 0.25rem 0.25rem 0;
+        cursor: pointer;
+        font-size: 0.875rem;
+    }
+    .search-bar button:hover {
+        background-color: #205067;
+        border-color: #205067;
+    }
+    .report-content {
+        width: 100%;
     }
     .btn-export {
         background: white;
-        border: 1px solid #243158;
-        color: #243158;
+        border: 1px solid #417690;
+        color: #417690;
         padding: 0.5rem 0.75rem;
-        border-radius: 0.375rem;
+        border-radius: 0.25rem;
         font-size: 0.875rem;
         cursor: pointer;
         display: flex;
         align-items: center;
         gap: 0.5rem;
+        text-decoration: none;
     }
     .btn-export:hover {
-        background-color: #f9fafb;
+        background-color: #f8f9fa;
     }
     .export-dropdown {
         position: relative;
@@ -93,7 +95,7 @@
         right: 0;
         background: white;
         border: 1px solid #e5e7eb;
-        border-radius: 0.375rem;
+        border-radius: 0.25rem;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         min-width: 12rem;
         z-index: 10;
@@ -116,8 +118,8 @@
     }
     .data-table {
         background: white;
-        border-radius: 0.5rem;
-        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        border: 1px solid #e5e7eb;
+        border-radius: 0.25rem;
         overflow: hidden;
     }
     .table-responsive {
@@ -128,15 +130,15 @@
         border-collapse: collapse;
     }
     thead {
-        background-color: #f3f4f6;
+        background-color: #417690;
     }
     thead th {
         padding: 0.75rem;
         text-align: left;
         font-size: 0.875rem;
         font-weight: 600;
-        color: #374151;
-        border-bottom: 1px solid #e5e7eb;
+        color: white;
+        border-bottom: 1px solid #205067;
     }
     tbody td {
         padding: 0.75rem;
@@ -145,12 +147,15 @@
         border-bottom: 1px solid #e5e7eb;
     }
     tbody tr:hover {
-        background-color: #f9fafb;
+        background-color: #f8f9fa;
+    }
+    tbody tr:last-child td {
+        border-bottom: none;
     }
     .badge {
         display: inline-block;
         padding: 0.25rem 0.5rem;
-        border-radius: 9999px;
+        border-radius: 0.25rem;
         font-size: 0.75rem;
         font-weight: 500;
     }
@@ -179,10 +184,11 @@
         color: #374151;
     }
     .pagination-info {
-        padding: 0.75rem;
+        padding: 0.75rem 1rem;
         font-size: 0.875rem;
         color: #6b7280;
         border-top: 1px solid #e5e7eb;
+        background-color: #f8f9fa;
     }
     .icon {
         width: 1rem;
@@ -193,6 +199,10 @@
         padding: 2rem;
         color: #6b7280;
     }
+    .filter-toggle {
+        font-size: 0.75rem;
+        color: #417690;
+    }
 </style>
 {% endblock %}
 
@@ -200,47 +210,47 @@
 <div class="report-container">
     <div class="report-header">
         <h1 class="report-title">{% block report_title %}{% endblock %}</h1>
-        <div style="display:flex; gap:0.5rem; align-items:center;">
+        <div class="header-actions">
             <a id="graphToggle" class="btn-export" href="#" onclick="toggleGraphView(event)">
                 <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3v18m-4-6v6m8-12v12m4-9v9" />
                 </svg>
                 Graph View
             </a>
+            {% if user.is_superuser %}
             <div class="export-dropdown" id="exportDropdown">
-            <button class="btn-export" onclick="toggleExportMenu()">
-                <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                </svg>
-                Export
-            </button>
-            <div class="export-menu" id="exportMenu">
-                {% block export_links %}{% endblock %}
+                <button class="btn-export" onclick="toggleExportMenu()">
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                    </svg>
+                    Export
+                </button>
+                <div class="export-menu" id="exportMenu">
+                    {% block export_links %}{% endblock %}
+                </div>
             </div>
-            </div>
+            {% endif %}
         </div>
     </div>
 
-    <div class="filter-section">
-        <form method="get" action="">
-            {% block filters %}{% endblock %}
-            <div style="display: flex; justify-content: flex-end;">
-                <button type="submit" class="btn-search">
-                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                    Search
-                </button>
-            </div>
+    <!-- Django Admin Style Search Bar -->
+    <div class="search-bar">
+        <form method="get" action="" id="searchForm">
+            {% block search_hidden_fields_top %}{% endblock %}
+            <input type="text" name="q" value="{{ request.GET.q|default:'' }}" placeholder="Search..." />
+            <button type="submit">Search</button>
         </form>
     </div>
 
-    <div class="data-table">
-        <div class="table-responsive">
-            {% block table_content %}{% endblock %}
-        </div>
-        <div class="pagination-info">
-            {% block pagination %}{% endblock %}
+    <!-- Main Content Area -->
+    <div class="report-content">
+        <div class="data-table">
+            <div class="table-responsive">
+                {% block table_content %}{% endblock %}
+            </div>
+            <div class="pagination-info">
+                {% block pagination %}{% endblock %}
+            </div>
         </div>
     </div>
 </div>
@@ -255,6 +265,7 @@ document.addEventListener('DOMContentLoaded', function() {
             exportDropdown.style.display = 'none';
         }
     }
+    
 });
 
 function toggleExportMenu() {

@@ -18,9 +18,9 @@
 {% endblock %}
 
 {% block filters %}
-<div class="filter-grid">
-    <div class="filter-field">
-        <label>Period</label>
+<div class="filter-group">
+    <h3>Period</h3>
+    <div class="filter-group-content">
         <select name="period">
             <option value="ALL TIME" {% if selected_period == 'ALL TIME' %}selected{% endif %}>ALL TIME</option>
             <option value="Today" {% if selected_period == 'Today' %}selected{% endif %}>Today</option>
@@ -28,16 +28,10 @@
             <option value="This Month" {% if selected_period == 'This Month' %}selected{% endif %}>This Month</option>
         </select>
     </div>
-    <div class="filter-field">
-        <label>By</label>
-        <select name="by">
-            <option value="ALL" {% if selected_by == 'ALL' %}selected{% endif %}>ALL</option>
-            <option value="Customer" {% if selected_by == 'Customer' %}selected{% endif %}>Customer</option>
-            <option value="Admin" {% if selected_by == 'Admin' %}selected{% endif %}>Admin</option>
-        </select>
-    </div>
-    <div class="filter-field">
-        <label>Customer</label>
+</div>
+<div class="filter-group">
+    <h3>Customer</h3>
+    <div class="filter-group-content">
         <select name="customer">
             <option value="ALL" {% if selected_customer == 'ALL' %}selected{% endif %}>ALL</option>
             {% for customer in customers %}
@@ -45,8 +39,10 @@
             {% endfor %}
         </select>
     </div>
-    <div class="filter-field">
-        <label>Type</label>
+</div>
+<div class="filter-group">
+    <h3>Type</h3>
+    <div class="filter-group-content">
         <select name="status">
             <option value="ALL" {% if selected_status == 'ALL' %}selected{% endif %}>ALL</option>
             <option value="Parts/Peripheral Quotation" {% if selected_status == 'Parts/Peripheral Quotation' %}selected{% endif %}>Parts/Peripheral Quotation</option>

@@ -18,17 +18,19 @@
 {% endblock %}
 
 {% block filters %}
-<div class="filter-grid">
-    <div class="filter-field">
-        <label>Period</label>
+<div class="filter-group">
+    <h3>Period</h3>
+    <div class="filter-group-content">
         <select name="period">
             <option value="ALL TIME" {% if selected_period == 'ALL TIME' %}selected{% endif %}>ALL TIME</option>
             <option value="CURRENT MONTH" {% if selected_period == 'CURRENT MONTH' %}selected{% endif %}>CURRENT MONTH</option>
             <option value="LAST 90 DAYS" {% if selected_period == 'LAST 90 DAYS' %}selected{% endif %}>LAST 90 DAYS</option>
         </select>
     </div>
-    <div class="filter-field">
-        <label>Customer</label>
+</div>
+<div class="filter-group">
+    <h3>Customer</h3>
+    <div class="filter-group-content">
         <select name="customer">
             <option value="ALL" {% if selected_customer == 'ALL' %}selected{% endif %}>ALL</option>
             {% for c in customers %}
@@ -36,8 +38,10 @@
             {% endfor %}
         </select>
     </div>
-    <div class="filter-field">
-        <label>Status</label>
+</div>
+<div class="filter-group">
+    <h3>Status</h3>
+    <div class="filter-group-content">
         <select name="status">
             <option value="ALL" {% if selected_status == 'ALL' %}selected{% endif %}>ALL</option>
             <option value="active" {% if selected_status == 'active' %}selected{% endif %}>Active</option>
@@ -46,8 +50,10 @@
             <option value="on_hold" {% if selected_status == 'on_hold' %}selected{% endif %}>On Hold</option>
         </select>
     </div>
-    <div class="filter-field">
-        <label>AMC Pack Type</label>
+</div>
+<div class="filter-group">
+    <h3>AMC Pack Type</h3>
+    <div class="filter-group-content">
         <select name="amc_type">
             <option value="ALL" {% if selected_amc_type == 'ALL' %}selected{% endif %}>ALL</option>
             {% for t in amc_types %}
@@ -55,7 +61,7 @@
             {% endfor %}
         </select>
     </div>
- </div>
+</div>
 {% endblock %}
 
 {% block table_content %}

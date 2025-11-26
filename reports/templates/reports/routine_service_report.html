@@ -18,74 +18,37 @@
 {% endblock %}
 
 {% block filters %}
-<div class="filter-grid">
-    <div class="filter-field">
-        <label>Customer</label>
+<div class="filter-group">
+    <h3>Period</h3>
+    <div class="filter-group-content">
+        <select name="period">
+            <option value="ALL TIME" {% if selected_period == 'ALL TIME' %}selected{% endif %}>ALL TIME</option>
+            <option value="LAST_WEEK" {% if selected_period == 'LAST_WEEK' %}selected{% endif %}>LAST WEEK</option>
+            <option value="LAST_MONTH" {% if selected_period == 'LAST_MONTH' %}selected{% endif %}>LAST MONTH</option>
+        </select>
+    </div>
+</div>
+<div class="filter-group">
+    <h3>Customer</h3>
+    <div class="filter-group-content">
         <select name="customer">
-            <option value="">SELECT</option>
+            <option value="ALL" {% if selected_customer == 'ALL' %}selected{% endif %}>ALL</option>
             {% for customer in customers %}
             <option value="{{ customer }}" {% if selected_customer == customer %}selected{% endif %}>{{ customer }}</option>
             {% endfor %}
         </select>
     </div>
-    <div class="filter-field">
-        <label>By</label>
-        <select name="by">
-            <option value="DATE" {% if selected_by == 'DATE' %}selected{% endif %}>DATE</option>
-            <option value="AMC TYPE">AMC TYPE</option>
-            <option value="CUSTOMER">CUSTOMER</option>
-        </select>
-    </div>
-    <div class="filter-field">
-        <label>Routes</label>
-        <select name="routes">
-            <option value="">SELECT</option>
-            <option value="Route 1">Route 1</option>
-            <option value="Route 2">Route 2</option>
-        </select>
-    </div>
-    <div class="filter-field">
-        <label>Status</label>
+</div>
+<div class="filter-group">
+    <h3>Status</h3>
+    <div class="filter-group-content">
         <select name="status">
             <option value="ALL" {% if selected_status == 'ALL' %}selected{% endif %}>ALL</option>
-            <option value="Active">Active</option>
-            <option value="Completed">Completed</option>
+            <option value="due" {% if selected_status == 'due' %}selected{% endif %}>Due</option>
+            <option value="overdue" {% if selected_status == 'overdue' %}selected{% endif %}>Overdue</option>
+            <option value="completed" {% if selected_status == 'completed' %}selected{% endif %}>Completed</option>
+            <option value="cancelled" {% if selected_status == 'cancelled' %}selected{% endif %}>Cancelled</option>
         </select>
-    </div>
-    <div class="filter-field">
-        <label>AMC Pack Types</label>
-        <select name="amc_types">
-            <option value="">SELECT</option>
-            <option value="Comprehensive">Comprehensive</option>
-            <option value="Basic">Basic</option>
-        </select>
-    </div>
-    <div class="filter-field">
-        <label>Period</label>
-        <select name="period">
-            <option value="MONTH" {% if selected_period == 'MONTH' %}selected{% endif %}>MONTH</option>
-            <option value="WEEK">WEEK</option>
-            <option value="QUARTER">QUARTER</option>
-        </select>
-    </div>
-    <div class="filter-field">
-        <label>Month</label>
-        <select name="month">
-            <option value="July" {% if selected_month == 'July' %}selected{% endif %}>July, 2025</option>
-            <option value="August">August, 2025</option>
-            <option value="September">September, 2025</option>
-            <option value="October">October, 2025</option>
-            <option value="November">November, 2025</option>
-            <option value="December">December, 2025</option>
-        </select>
-    </div>
-    <div class="filter-field">
-        <label>Start Date</label>
-        <input type="date" name="start_date" value="{{ start_date }}" placeholder="01.07.2025">
-    </div>
-    <div class="filter-field">
-        <label>End Date</label>
-        <input type="date" name="end_date" value="{{ end_date }}" placeholder="31.07.2025">
     </div>
 </div>
 {% endblock %}
@@ -94,35 +57,47 @@
 <table>
     <thead>
         <tr>
-            <th>DATE</th>
-            <th>AMC ID</th>
-            <th>START DATE</th>
-            <th>END DATE</th>
-            <th>AMC TYPE</th>
-            <th>CONTRACT AMOUNT</th>
-            <th>PAID AMOUNT</th>
-            <th>DUE AMOUNT</th>
+            <th>SERVICE NO</th>
+            <th>SERVICE DATE</th>
+            <th>AMC NO</th>
             <th>CUSTOMER</th>
-            <th>SITE ADDRESS</th>
+            <th>AMC TYPE</th>
+            <th>BLOCK/WING</th>
+            <th>ASSIGNED TO</th>
+            <th>STATUS</th>
+            <th>NOTE</th>
         </tr>
     </thead>
     <tbody>
-        {% for amc in amc_records %}
+        {% for service in routine_services %}
         <tr>
-            <td>{{ amc.contract_start_date|date:"d.m.Y" }}</td>
-            <td>{{ amc.amc_id|default:"N/A" }}</td>
-            <td>{{ amc.contract_start_date|date:"d.m.Y" }}</td>
-            <td>{{ amc.contract_end_date|date:"d.m.Y" }}</td>
-            <td>{{ amc.amctype.amc_type_name|default:"N/A" }}</td>
-            <td>{{ amc.contract_amount|floatformat:2 }}</td>
-            <td>{{ amc.total_paid|floatformat:2|default:"0.00" }}</td>
-            <td>{{ amc.amount_due|floatformat:2|default:"0.00" }}</td>
-            <td>{{ amc.customer.site_name|default:"Unknown" }}</td>
-            <td>{{ amc.site_address|default:"N/A" }}</td>
+            <td>{{ service.id }}</td>
+            <td>{{ service.service_date|date:"d.m.Y" }}</td>
+            <td>{{ service.amc.reference_id|default:"N/A" }}</td>
+            <td>{{ service.amc.customer.site_name|default:"Unknown" }}</td>
+            <td>
+                <span class="badge badge-blue">{{ service.amc.amc_type.name|default:"N/A" }}</span>
+            </td>
+            <td>{{ service.block_wing|default:"N/A" }}</td>
+            <td>{{ service.employee_assign.get_full_name|default:"Unassigned" }}</td>
+            <td>
+                {% if service.status == 'completed' %}
+                    <span class="badge badge-green">Completed</span>
+                {% elif service.status == 'overdue' %}
+                    <span class="badge badge-red">Overdue</span>
+                {% elif service.status == 'due' %}
+                    <span class="badge badge-yellow">Due</span>
+                {% elif service.status == 'cancelled' %}
+                    <span class="badge badge-gray">Cancelled</span>
+                {% else %}
+                    <span class="badge badge-gray">{{ service.get_status_display|default:"Due" }}</span>
+                {% endif %}
+            </td>
+            <td>{{ service.note|default:"N/A"|truncatewords:10 }}</td>
         </tr>
         {% empty %}
         <tr>
-            <td colspan="10" class="no-data">No service reports found for the selected filters</td>
+            <td colspan="9" class="no-data">No routine service reports found for the selected period</td>
         </tr>
         {% endfor %}
     </tbody>
@@ -130,5 +105,5 @@
 {% endblock %}
 
 {% block pagination %}
-Showing 1-{{ amc_records|length }} of {{ amc_records|length }}
+Showing 0 to {{ routine_services|length }} of {{ routine_services|length }} entries
 {% endblock %}

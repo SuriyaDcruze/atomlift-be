@@ -18,9 +18,9 @@
 {% endblock %}
 
 {% block filters %}
-<div class="filter-grid">
-    <div class="filter-field">
-        <label>Customer</label>
+<div class="filter-group">
+    <h3>Customer</h3>
+    <div class="filter-group-content">
         <select name="customer">
             <option value="">SELECT</option>
             {% for customer in customers %}
@@ -28,48 +28,24 @@
             {% endfor %}
         </select>
     </div>
-    <div class="filter-field">
-        <label>Status</label>
+</div>
+<div class="filter-group">
+    <h3>Status</h3>
+    <div class="filter-group-content">
         <select name="status">
             <option value="ALL" {% if selected_status == 'ALL' %}selected{% endif %}>ALL</option>
             <option value="Paid">Paid</option>
             <option value="Pending">Pending</option>
         </select>
     </div>
-    <div class="filter-field">
-        <label>Payment Mode</label>
-        <select name="payment_mode">
-            <option value="MONTH" {% if selected_payment_mode == 'MONTH' %}selected{% endif %}>MONTH</option>
-            <option value="Cheque">Cheque</option>
-            <option value="Online">Online</option>
-        </select>
-    </div>
-    <div class="filter-field">
-        <label>Period</label>
-        <select name="period">
-            <option value="ALL" {% if selected_period == 'ALL' %}selected{% endif %}>ALL</option>
-            <option value="This Month">This Month</option>
-            <option value="Last Quarter">Last Quarter</option>
-        </select>
-    </div>
-    <div class="filter-field">
-        <label>Month</label>
-        <select name="month">
-            <option value="July" {% if selected_month == 'July' %}selected{% endif %}>July, 2025</option>
-            <option value="August">August, 2025</option>
-            <option value="September">September, 2025</option>
-            <option value="October">October, 2025</option>
-            <option value="November">November, 2025</option>
-            <option value="December">December, 2025</option>
-        </select>
-    </div>
-    <div class="filter-field">
+</div>
+<div class="filter-group">
+    <h3>Date Range</h3>
+    <div class="filter-group-content">
         <label>Start Date</label>
-        <input type="date" name="start_date" value="{{ start_date }}" placeholder="01.07.2025">
-    </div>
-    <div class="filter-field">
+        <input type="date" name="start_date" value="{{ start_date }}">
         <label>End Date</label>
-        <input type="date" name="end_date" value="{{ end_date }}" placeholder="31.07.2025">
+        <input type="date" name="end_date" value="{{ end_date }}">
     </div>
 </div>
 {% endblock %}

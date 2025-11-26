@@ -12,7 +12,7 @@ from complaints.models import Complaint
 from invoice.models import Invoice
 from PaymentReceived.models import PaymentReceived
 from Quotation.models import Quotation
-from amc.models import AMC
+from amc.models import AMC, AMCRoutineService
 from customer.models import Customer
 
 
@@ -25,9 +25,24 @@ def complaints_report(request):
     customer_filter = request.GET.get('customer', 'ALL')
     by_filter = request.GET.get('by', 'ALL')
     status_filter = request.GET.get('status', 'ALL')
+    search_query = request.GET.get('q', '').strip()
     
     # Base queryset
     complaints = Complaint.objects.all().select_related('customer', 'assign_to', 'complaint_type', 'priority')
+    
+    # Apply search query
+    if search_query:
+        complaints = complaints.filter(
+            Q(reference__icontains=search_query) |
+            Q(subject__icontains=search_query) |
+            Q(message__icontains=search_query) |
+            Q(customer__site_name__icontains=search_query) |
+            Q(contact_person_name__icontains=search_query) |
+            Q(contact_person_mobile__icontains=search_query) |
+            Q(assign_to__first_name__icontains=search_query) |
+            Q(assign_to__last_name__icontains=search_query) |
+            Q(solution__icontains=search_query)
+        )
     
     # Apply filters
     if period == 'LAST_WEEK':
@@ -84,6 +99,7 @@ def complaints_report(request):
         'selected_customer': customer_filter,
         'selected_by': by_filter,
         'selected_status': status_filter,
+        'search_query': search_query,
     }
     return render(request, 'reports/complaints_report.html', context)
 
@@ -97,9 +113,20 @@ def invoice_report(request):
     customer_filter = request.GET.get('customer', 'ALL')
     by_filter = request.GET.get('by', 'ALL')
     status_filter = request.GET.get('status', 'ALL')
+    search_query = request.GET.get('q', '').strip()
     
     # Base queryset
     invoices = Invoice.objects.all().select_related('customer', 'amc_type')
+    
+    # Apply search query
+    if search_query:
+        invoices = invoices.filter(
+            Q(reference_id__icontains=search_query) |
+            Q(customer__site_name__icontains=search_query) |
+            Q(customer__site_id__icontains=search_query) |
+            Q(amc_type__name__icontains=search_query) |
+            Q(status__icontains=search_query)
+        )
     
     # Apply filters
     if period == 'CURRENT MONTH':
@@ -142,6 +169,7 @@ def invoice_report(request):
         'selected_customer': customer_filter,
         'selected_by': by_filter,
         'selected_status': status_filter,
+        'search_query': search_query,
     }
     return render(request, 'reports/invoice_report.html', context)
 
@@ -158,9 +186,20 @@ def payment_report(request):
     month = request.GET.get('month', datetime.now().strftime('%B'))
     start_date = request.GET.get('start_date', '')
     end_date = request.GET.get('end_date', '')
+    search_query = request.GET.get('q', '').strip()
     
     # Base queryset
     payments = PaymentReceived.objects.all().select_related('customer', 'invoice')
+    
+    # Apply search query
+    if search_query:
+        payments = payments.filter(
+            Q(payment_number__icontains=search_query) |
+            Q(customer__site_name__icontains=search_query) |
+            Q(invoice__reference_id__icontains=search_query) |
+            Q(payment_type__icontains=search_query) |
+            Q(cheque_no__icontains=search_query)
+        )
     
     # Apply filters
     if customer_filter:
@@ -219,6 +258,7 @@ def payment_report(request):
         'selected_month': month,
         'start_date': start_date,
         'end_date': end_date,
+        'search_query': search_query,
     }
     return render(request, 'reports/payment_report.html', context)
 
@@ -232,9 +272,21 @@ def quotation_report(request):
     customer_filter = request.GET.get('customer', 'ALL')
     by_filter = request.GET.get('by', 'ALL')
     status_filter = request.GET.get('status', 'ALL')
+    search_query = request.GET.get('q', '').strip()
     
     # Base queryset
     quotations = Quotation.objects.all().select_related('customer', 'amc_type', 'sales_service_executive')
+    
+    # Apply search query
+    if search_query:
+        quotations = quotations.filter(
+            Q(reference_id__icontains=search_query) |
+            Q(customer__site_name__icontains=search_query) |
+            Q(amc_type__name__icontains=search_query) |
+            Q(type__icontains=search_query) |
+            Q(sales_service_executive__first_name__icontains=search_query) |
+            Q(sales_service_executive__last_name__icontains=search_query)
+        )
     
     # Apply filters
     if period == 'Today':
@@ -282,6 +334,7 @@ def quotation_report(request):
         'selected_customer': customer_filter,
         'selected_by': by_filter,
         'selected_status': status_filter,
+        'search_query': search_query,
     }
     return render(request, 'reports/quotation_report.html', context)
 
@@ -291,43 +344,61 @@ def routine_service_report(request):
     """Routine Service Report View"""
     view_mode = request.GET.get('view')
     # Get filter parameters
-    customer_filter = request.GET.get('customer', '')
-    by_filter = request.GET.get('by', 'DATE')
+    period = request.GET.get('period', 'ALL TIME')
+    customer_filter = request.GET.get('customer', 'ALL')
     status_filter = request.GET.get('status', 'ALL')
-    amc_type_filter = request.GET.get('amc_types', '')
-    period = request.GET.get('period', 'MONTH')
-    month = request.GET.get('month', datetime.now().strftime('%B'))
-    start_date = request.GET.get('start_date', '')
-    end_date = request.GET.get('end_date', '')
+    search_query = request.GET.get('q', '').strip()
     
-    # Base queryset
-    amc_records = AMC.objects.all().select_related('customer', 'amctype')
+    # Base queryset - Use AMCRoutineService instead of AMC
+    routine_services = AMCRoutineService.objects.all().select_related(
+        'amc__customer', 
+        'amc__amc_type',
+        'employee_assign'
+    )
+    
+    # Apply search query
+    if search_query:
+        routine_services = routine_services.filter(
+            Q(amc__reference_id__icontains=search_query) |
+            Q(amc__customer__site_name__icontains=search_query) |
+            Q(amc__amc_type__name__icontains=search_query) |
+            Q(status__icontains=search_query) |
+            Q(block_wing__icontains=search_query) |
+            Q(employee_assign__first_name__icontains=search_query) |
+            Q(employee_assign__last_name__icontains=search_query) |
+            Q(note__icontains=search_query)
+        )
     
     # Apply filters
-    if customer_filter:
-        amc_records = amc_records.filter(customer__site_name=customer_filter)
+    if period == 'LAST_WEEK':
+        week_ago = datetime.now() - timedelta(days=7)
+        routine_services = routine_services.filter(service_date__gte=week_ago)
+    elif period == 'LAST_MONTH':
+        month_ago = datetime.now() - timedelta(days=30)
+        routine_services = routine_services.filter(service_date__gte=month_ago)
     
-    if amc_type_filter:
-        amc_records = amc_records.filter(amctype__amc_type_name=amc_type_filter)
+    if customer_filter != 'ALL':
+        routine_services = routine_services.filter(amc__customer__site_name=customer_filter)
     
     if status_filter != 'ALL':
-        amc_records = amc_records.filter(status=status_filter)
-    
-    if start_date and end_date:
-        amc_records = amc_records.filter(
-            contract_start_date__gte=start_date,
-            contract_start_date__lte=end_date
-        )
+        routine_services = routine_services.filter(status=status_filter)
     
     # Get customer list for filter dropdown
     customers = Customer.objects.all().values_list('site_name', flat=True).distinct()
     
     if view_mode == 'graph':
-        by_type = amc_records.values('amctype__amc_type_name').annotate(count=Count('id')).order_by()
-        labels = [row['amctype__amc_type_name'] or 'Unknown' for row in by_type]
-        data = [row['count'] for row in by_type]
+        by_status = routine_services.values('status').annotate(count=Count('id')).order_by()
+        # Map status values to display names
+        status_display_map = {
+            'due': 'Due',
+            'overdue': 'Overdue',
+            'completed': 'Completed',
+            'cancelled': 'Cancelled',
+        }
+        labels = [status_display_map.get(row['status'], row['status'] or 'Unknown') for row in by_status]
+        data = [row['count'] for row in by_status]
         context = {
-            'graph_title': 'Routine Services by AMC Type',
+            'graph_title': 'Routine Services by Status',
             'labels_json': json.dumps(labels),
             'datasets_json': json.dumps([
                 {
@@ -341,16 +412,12 @@ def routine_service_report(request):
         return render(request, 'reports/graph_report.html', context)
 
     context = {
-        'amc_records': amc_records,
+        'routine_services': routine_services,
         'customers': customers,
-        'selected_customer': customer_filter,
-        'selected_by': by_filter,
-        'selected_status': status_filter,
-        'selected_amc_type': amc_type_filter,
         'selected_period': period,
-        'selected_month': month,
-        'start_date': start_date,
-        'end_date': end_date,
+        'selected_customer': customer_filter,
+        'selected_status': status_filter,
+        'search_query': search_query,
     }
     return render(request, 'reports/routine_service_report.html', context)
 
@@ -365,9 +432,19 @@ def amc_report(request):
     customer_filter = request.GET.get('customer', 'ALL')
     status_filter = request.GET.get('status', 'ALL')
     amc_type_filter = request.GET.get('amc_type', 'ALL')
+    search_query = request.GET.get('q', '').strip()
 
     # Base queryset
     amcs = AMC.objects.all().select_related('customer', 'amc_type')
+
+    # Apply search query
+    if search_query:
+        amcs = amcs.filter(
+            Q(reference_id__icontains=search_query) |
+            Q(customer__site_name__icontains=search_query) |
+            Q(amc_type__name__icontains=search_query) |
+            Q(status__icontains=search_query)
+        )
 
     # Apply period filter
     if period == 'CURRENT MONTH':
@@ -482,6 +559,7 @@ def amc_report(request):
         'selected_customer': customer_filter,
         'selected_status': status_filter,
         'selected_amc_type': amc_type_filter,
+        'search_query': search_query,
     }
     return render(request, 'reports/amc_report.html', context)
 
@@ -489,6 +567,13 @@ def amc_report(request):
 @login_required
 def export_complaints_csv(request):
     """Export Complaints to CSV"""
+    # Only allow superusers to export
+    if not request.user.is_superuser:
+        from django.contrib import messages
+        messages.error(request, "You do not have permission to export complaints.")
+        from django.shortcuts import redirect
+        return redirect('reports:complaints_report')
+    
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="complaints_report.csv"'
     
@@ -520,6 +605,13 @@ def export_complaints_csv(request):
 @login_required
 def export_invoices_csv(request):
     """Export Invoices to CSV"""
+    # Only allow superusers to export
+    if not request.user.is_superuser:
+        from django.contrib import messages
+        messages.error(request, "You do not have permission to export invoices.")
+        from django.shortcuts import redirect
+        return redirect('reports:invoice_report')
+    
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="invoice_report.csv"'
     
@@ -548,6 +640,13 @@ def export_invoices_csv(request):
 @login_required
 def export_quotations_csv(request):
     """Export Quotations to CSV"""
+    # Only allow superusers to export
+    if not request.user.is_superuser:
+        from django.contrib import messages
+        messages.error(request, "You do not have permission to export quotations.")
+        from django.shortcuts import redirect
+        return redirect('reports:quotation_report')
+    
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="quotation_report.csv"'
     
@@ -575,6 +674,13 @@ def export_quotations_csv(request):
 @login_required
 def export_complaints_xlsx(request):
     """Export Complaints to XLSX"""
+    # Only allow superusers to export
+    if not request.user.is_superuser:
+        from django.contrib import messages
+        messages.error(request, "You do not have permission to export complaints.")
+        from django.shortcuts import redirect
+        return redirect('reports:complaints_report')
+    
     workbook = Workbook()
     worksheet = workbook.active
     worksheet.title = "Complaints Report"
@@ -640,6 +746,13 @@ def export_complaints_xlsx(request):
 @login_required
 def export_invoices_xlsx(request):
     """Export Invoices to XLSX"""
+    # Only allow superusers to export
+    if not request.user.is_superuser:
+        from django.contrib import messages
+        messages.error(request, "You do not have permission to export invoices.")
+        from django.shortcuts import redirect
+        return redirect('reports:invoice_report')
+    
     workbook = Workbook()
     worksheet = workbook.active
     worksheet.title = "Invoice Report"
@@ -708,6 +821,13 @@ def export_invoices_xlsx(request):
 @login_required
 def export_quotations_xlsx(request):
     """Export Quotations to XLSX"""
+    # Only allow superusers to export
+    if not request.user.is_superuser:
+        from django.contrib import messages
+        messages.error(request, "You do not have permission to export quotations.")
+        from django.shortcuts import redirect
+        return redirect('reports:quotation_report')
+    
     workbook = Workbook()
     worksheet = workbook.active
     worksheet.title = "Quotation Report"
@@ -770,6 +890,13 @@ def export_quotations_xlsx(request):
 @login_required
 def export_payments_csv(request):
     """Export Payments to CSV"""
+    # Only allow superusers to export
+    if not request.user.is_superuser:
+        from django.contrib import messages
+        messages.error(request, "You do not have permission to export payments.")
+        from django.shortcuts import redirect
+        return redirect('reports:payment_report')
+    
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="payment_report.csv"'
     
@@ -797,6 +924,13 @@ def export_payments_csv(request):
 @login_required
 def export_payments_xlsx(request):
     """Export Payments to XLSX"""
+    # Only allow superusers to export
+    if not request.user.is_superuser:
+        from django.contrib import messages
+        messages.error(request, "You do not have permission to export payments.")
+        from django.shortcuts import redirect
+        return redirect('reports:payment_report')
+    
     workbook = Workbook()
     worksheet = workbook.active
     worksheet.title = "Payment Report"
@@ -859,6 +993,13 @@ def export_payments_xlsx(request):
 @login_required
 def export_amc_csv(request):
     """Export AMC to CSV"""
+    # Only allow superusers to export
+    if not request.user.is_superuser:
+        from django.contrib import messages
+        messages.error(request, "You do not have permission to export AMC.")
+        from django.shortcuts import redirect
+        return redirect('reports:amc_report')
+    
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="amc_report.csv"'
     
@@ -888,6 +1029,13 @@ def export_amc_csv(request):
 @login_required
 def export_amc_xlsx(request):
     """Export AMC to XLSX"""
+    # Only allow superusers to export
+    if not request.user.is_superuser:
+        from django.contrib import messages
+        messages.error(request, "You do not have permission to export AMC.")
+        from django.shortcuts import redirect
+        return redirect('reports:amc_report')
+    
     workbook = Workbook()
     worksheet = workbook.active
     worksheet.title = "AMC Report"
@@ -957,25 +1105,38 @@ def export_amc_xlsx(request):
 @login_required
 def export_routine_service_csv(request):
     """Export Routine Services to CSV"""
+    # Only allow superusers to export
+    if not request.user.is_superuser:
+        from django.contrib import messages
+        messages.error(request, "You do not have permission to export routine services.")
+        from django.shortcuts import redirect
+        return redirect('reports:routine_service_report')
+    
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="routine_service_report.csv"'
     
     writer = csv.writer(response)
     writer.writerow([
-        'Reference ID', 'Customer', 'AMC Type', 'Created', 
-        'Start Date', 'End Date', 'Status'
+        'Service No', 'Service Date', 'AMC No', 'Customer', 'AMC Type', 
+        'Block/Wing', 'Assigned To', 'Status', 'Note'
     ])
     
-    amc_records = AMC.objects.all().select_related('customer', 'amc_type')
-    for amc in amc_records:
+    routine_services = AMCRoutineService.objects.all().select_related(
+        'amc__customer', 
+        'amc__amc_type',
+        'employee_assign'
+    )
+    for service in routine_services:
         writer.writerow([
-            amc.reference_id or amc.id,
-            amc.customer.site_name if amc.customer else 'N/A',
-            amc.amc_type.name if amc.amc_type else 'N/A',
-            amc.created.strftime('%Y-%m-%d %H:%M') if amc.created else '',
-            amc.start_date.strftime('%Y-%m-%d') if amc.start_date else '',
-            amc.end_date.strftime('%Y-%m-%d') if amc.end_date else '',
-            amc.get_status_display() if amc.status else 'Active',
+            service.id,
+            service.service_date.strftime('%Y-%m-%d') if service.service_date else '',
+            service.amc.reference_id if service.amc else 'N/A',
+            service.amc.customer.site_name if service.amc and service.amc.customer else 'N/A',
+            service.amc.amc_type.name if service.amc and service.amc.amc_type else 'N/A',
+            service.block_wing or 'N/A',
+            service.employee_assign.get_full_name() if service.employee_assign else 'Unassigned',
+            service.get_status_display() if service.status else 'Due',
+            service.note or 'N/A',
         ])
     
     return response
@@ -984,6 +1145,13 @@ def export_routine_service_csv(request):
 @login_required
 def export_routine_service_xlsx(request):
     """Export Routine Services to XLSX"""
+    # Only allow superusers to export
+    if not request.user.is_superuser:
+        from django.contrib import messages
+        messages.error(request, "You do not have permission to export routine services.")
+        from django.shortcuts import redirect
+        return redirect('reports:routine_service_report')
+    
     workbook = Workbook()
     worksheet = workbook.active
     worksheet.title = "Routine Service Report"
@@ -995,8 +1163,8 @@ def export_routine_service_xlsx(request):
     
     # Headers
     headers = [
-        'Reference ID', 'Customer', 'AMC Type', 'Created', 
-        'Start Date', 'End Date', 'Status'
+        'Service No', 'Service Date', 'AMC No', 'Customer', 'AMC Type', 
+        'Block/Wing', 'Assigned To', 'Status', 'Note'
     ]
     
     for col_num, header in enumerate(headers, 1):
@@ -1007,30 +1175,26 @@ def export_routine_service_xlsx(request):
         cell.alignment = header_alignment
     
     # Data
-    amc_records = AMC.objects.all().select_related('customer', 'amc_type')
-    for row_num, amc in enumerate(amc_records, 2):
-        worksheet.cell(row=row_num, column=1, value=amc.reference_id or str(amc.id))
-        worksheet.cell(row=row_num, column=2, value=amc.customer.site_name if amc.customer else 'N/A')
-        worksheet.cell(row=row_num, column=3, value=amc.amc_type.name if amc.amc_type else 'N/A')
-        created_cell = worksheet.cell(row=row_num, column=4)
-        if amc.created:
-            created_cell.value = amc.created
-            created_cell.number_format = 'DD-MM-YYYY HH:MM'
+    routine_services = AMCRoutineService.objects.all().select_related(
+        'amc__customer', 
+        'amc__amc_type',
+        'employee_assign'
+    )
+    for row_num, service in enumerate(routine_services, 2):
+        worksheet.cell(row=row_num, column=1, value=service.id)
+        service_date_cell = worksheet.cell(row=row_num, column=2)
+        if service.service_date:
+            service_date_cell.value = service.service_date
+            service_date_cell.number_format = 'DD-MM-YYYY'
         else:
-            created_cell.value = ''
-        start_cell = worksheet.cell(row=row_num, column=5)
-        if amc.start_date:
-            start_cell.value = amc.start_date
-            start_cell.number_format = 'DD-MM-YYYY'
-        else:
-            start_cell.value = ''
-        end_cell = worksheet.cell(row=row_num, column=6)
-        if amc.end_date:
-            end_cell.value = amc.end_date
-            end_cell.number_format = 'DD-MM-YYYY'
-        else:
-            end_cell.value = ''
-        worksheet.cell(row=row_num, column=7, value=amc.get_status_display() if amc.status else 'Active')
+            service_date_cell.value = ''
+        worksheet.cell(row=row_num, column=3, value=service.amc.reference_id if service.amc else 'N/A')
+        worksheet.cell(row=row_num, column=4, value=service.amc.customer.site_name if service.amc and service.amc.customer else 'N/A')
+        worksheet.cell(row=row_num, column=5, value=service.amc.amc_type.name if service.amc and service.amc.amc_type else 'N/A')
+        worksheet.cell(row=row_num, column=6, value=service.block_wing or 'N/A')
+        worksheet.cell(row=row_num, column=7, value=service.employee_assign.get_full_name() if service.employee_assign else 'Unassigned')
+        worksheet.cell(row=row_num, column=8, value=service.get_status_display() if service.status else 'Due')
+        worksheet.cell(row=row_num, column=9, value=service.note or 'N/A')
     
     # Adjust column widths
     for col in worksheet.columns:
