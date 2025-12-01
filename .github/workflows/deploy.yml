@@ -1,38 +1,37 @@
 name: Deploy Django (Production - Gunicorn + PM2)
 
 on:
-push:
-branches:
-- main
+ push:
+  branches: [main]
 
 jobs:
-deploy:
-runs-on: self-hosted
-timeout-minutes: 60
+ deploy:
+  runs-on: self-hosted
+  timeout-minutes: 60
 
-steps:
-  - name: Checkout repository
-    uses: actions/checkout@v4
+  steps:
+   - name: Checkout repository
+     uses: actions/checkout@v4
 
   # SETUP PYTHON + CREATE VENV
-  - name: Setup Python 3.11 & Create Virtual Environment
-    run: |
+   - name: Setup Python 3.11 & Create Virtual Environment
+     run: |
       sudo dnf install -y python3.11 python3.11-devel gcc make
       python3.11 -m venv venv
       source venv/bin/activate
       pip install --upgrade pip setuptools wheel
-    shell: bash
+     shell: bash
 
   # INSTALL REQUIREMENTS
-  - name: Install requirements.txt
-    run: |
+   - name: Install requirements.txt
+     run: |
       source venv/bin/activate
       pip install -r requirements.txt
-    shell: bash
+     shell: bash
 
   # CREATE .env FILE
-  - name: Create .env file
-    run: |
+   - name: Create .env file
+     run: |
       echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" > .env
       echo "DJANGO_ALLOWED_HOSTS=${{ secrets.DJANGO_ALLOWED_HOSTS }}" >> .env
       echo "DATABASE_NAME=${{ secrets.DB_NAME }}" >> .env
@@ -40,35 +39,35 @@ steps:
       echo "DATABASE_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
       echo "DATABASE_HOST=${{ secrets.DB_HOST }}" >> .env
       echo "DATABASE_PORT=${{ secrets.DB_PORT }}" >> .env
-    shell: bash
+     shell: bash
 
   # DJANGO MIGRATIONS
-  - name: Run Django Migrations
-    run: |
+   - name: Run Django Migrations
+     run: |
       source venv/bin/activate
       python manage.py makemigrations --noinput
       python manage.py migrate --noinput
-    shell: bash
+     shell: bash
 
   # COLLECT STATIC FILES
-  - name: Collect Static Files
-    run: |
+   - name: Collect Static Files
+     run: |
       source venv/bin/activate
       python manage.py collectstatic --noinput
-    shell: bash
+     shell: bash
 
   # ENSURE PM2 INSTALLED
-  - name: Ensure PM2 is installed
-    run: |
+   - name: Ensure PM2 is installed
+     run: |
       if ! command -v pm2 >/dev/null 2>&1; then
         sudo npm install -g pm2
       fi
       pm2 -v
-    shell: bash
+     shell: bash
 
   # START/RESTART GUNICORN USING PM2
-  - name: Restart Gunicorn using PM2
-    run: |
+   - name: Restart Gunicorn using PM2
+     run: |
       source venv/bin/activate
       export PYTHONPATH=$(pwd)
 
@@ -82,5 +81,5 @@ steps:
 
       pm2 save
       pm2 status
-    shell: bash
+     shell: bash
 
