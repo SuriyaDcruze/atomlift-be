@@ -1,4 +1,4 @@
-name: Deploy Django to EC2 Runner
+name: Deploy Django to EC2
 
 on:
   push:
@@ -12,12 +12,10 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.9"
+      - name: Verify Python
+        run: python3 --version
 
-      - name: Install dependencies
+      - name: Install Python Dependencies
         run: |
           python3 -m pip install --upgrade pip
           pip3 install -r requirements.txt
@@ -30,7 +28,7 @@ jobs:
         run: |
           python3 manage.py collectstatic --noinput
 
-      - name: Restart Backend with PM2
+      - name: Restart Django using PM2
         run: |
           pm2 delete atom-backend || true
           pm2 start python3 --name atom-backend -- manage.py runserver 0.0.0.0:8000
