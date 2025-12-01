@@ -10,13 +10,12 @@ deploy:
 runs-on: self-hosted
 timeout-minutes: 60
 
+```
 steps:
   - name: Checkout repository
     uses: actions/checkout@v4
 
-  ###############################################
   # SETUP PYTHON + CREATE VENV
-  ###############################################
   - name: Setup Python 3.11 & Create Virtual Environment
     run: |
       sudo dnf install -y python3.11 python3.11-devel gcc make
@@ -25,18 +24,14 @@ steps:
       pip install --upgrade pip setuptools wheel
     shell: bash
 
-  ###############################################
   # INSTALL REQUIREMENTS
-  ###############################################
   - name: Install requirements.txt
     run: |
       source venv/bin/activate
       pip install -r requirements.txt
     shell: bash
 
-  ###############################################
   # CREATE .env FILE
-  ###############################################
   - name: Create .env file
     run: |
       echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" > .env
@@ -48,9 +43,7 @@ steps:
       echo "DATABASE_PORT=${{ secrets.DB_PORT }}" >> .env
     shell: bash
 
-  ###############################################
   # DJANGO MIGRATIONS
-  ###############################################
   - name: Run Django Migrations
     run: |
       source venv/bin/activate
@@ -58,18 +51,14 @@ steps:
       python manage.py migrate --noinput
     shell: bash
 
-  ###############################################
   # COLLECT STATIC FILES
-  ###############################################
   - name: Collect Static Files
     run: |
       source venv/bin/activate
       python manage.py collectstatic --noinput
     shell: bash
 
-  ###############################################
   # ENSURE PM2 INSTALLED
-  ###############################################
   - name: Ensure PM2 is installed
     run: |
       if ! command -v pm2 >/dev/null 2>&1; then
@@ -78,28 +67,21 @@ steps:
       pm2 -v
     shell: bash
 
-  ###############################################
   # START/RESTART GUNICORN USING PM2
-  ###############################################
   - name: Restart Gunicorn using PM2
     run: |
       source venv/bin/activate
-
-      # Add project root to PYTHONPATH to avoid ModuleNotFoundError
       export PYTHONPATH=$(pwd)
 
-      # Stop old PM2 process if exists
       pm2 delete atom-backend || true
 
-      # Start Gunicorn in PM2 with venv Python interpreter and correct cwd
       pm2 start venv/bin/gunicorn \
         --name atom-backend \
         --interpreter venv/bin/python \
         --cwd $(pwd) \
         -- passenger_wsgi:application --bind 0.0.0.0:8000 --workers 3
 
-      # Save PM2 process list
       pm2 save
       pm2 status
     shell: bash
-
+```
