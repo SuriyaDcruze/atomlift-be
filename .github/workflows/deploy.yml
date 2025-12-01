@@ -4,34 +4,110 @@ on:
   push:
     branches: [ main ]
 
+permissions:
+  contents: read
+
 jobs:
   deploy:
     runs-on: self-hosted
+    timeout-minutes: 60
 
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Create venv & install deps
+      - name: Show runner info
         run: |
-          # ensure correct python available on runner
-          python3.11 --version || python3 --version
-          python3.11 -m venv .venv || python3 -m venv .venv
+          echo "Runner: $(uname -a)"
+          echo "User: $(id)"
+          command -v python3.11 || command -v python3 || true
+          node -v || true
+          pm2 -v || true
+
+      - name: Ensure system build deps (may require sudo)
+        run: |
+          # install common build deps for wheels (avoid libpq-devel to prevent conflicts)
+          sudo dnf update -y
+          sudo dnf install -y gcc gcc-c++ make \
+            libffi-devel openssl-devel zlib-devel bzip2-devel xz-devel \
+            libjpeg-turbo-devel libpng-devel freetype-devel libwebp-devel \
+            lcms2-devel sqlite-devel patch || true
+        shell: bash
+
+      - name: Create / activate venv & upgrade pip
+        run: |
+          # pick python3.11 if available, otherwise python3
+          PY_BIN=$(command -v python3.11 || command -v python3)
+          echo "Using python: $PY_BIN"
+          $PY_BIN -m venv .venv
+          source .venv/bin/activate
+
+          # ensure pip/setuptools/wheel up-to-date
+          python -m pip install --upgrade pip setuptools wheel
+        shell: bash
+
+      - name: Prepare requirements (convert psycopg2 -> psycopg2-binary if present)
+        run: |
+          source .venv/bin/activate
+
+          if grep -qE '^psycopg2([<>=]|$)' requirements.txt; then
+            echo "psycopg2 detected in requirements.txt — creating tmp_requirements.txt replacing with psycopg2-binary"
+            sed -E 's/^psycopg2([<>=].*)?/psycopg2-binary\1/' requirements.txt > tmp_requirements.txt
+            REQFILE=tmp_requirements.txt
+          else
+            REQFILE=requirements.txt
+          fi
+          echo "Using requirements file: $REQFILE"
+        shell: bash
+
+      - name: Install Python dependencies into venv
+        run: |
           source .venv/bin/activate
           python -m pip install --upgrade pip setuptools wheel
-          python -m pip install -r requirements.txt
+          python -m pip install -r "${REQFILE}"
+        shell: bash
 
-      - name: Migrate & collectstatic
-        env:
-          SECRET_KEY: ${{ secrets.SECRET_KEY }}
-          DJANGO_ALLOWED_HOSTS: ${{ secrets.DJANGO_ALLOWED_HOSTS }}
-          DATABASE_NAME: ${{ secrets.DB_NAME }}
-          DATABASE_USER: ${{ secrets.DB_USER }}
-          DATABASE_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DATABASE_HOST: ${{ secrets.DB_HOST }}
-          DATABASE_PORT: ${{ secrets.DB_PORT }}
+      - name: Persist requirements (optional)
         run: |
           source .venv/bin/activate
+          python -m pip freeze > requirements.txt
+          git status --porcelain
+        shell: bash
+
+      - name: Write runtime env (.env) from secrets
+        run: |
+          # Write a .env file for the runner session (this file is NOT committed).
+          cat > .env <<EOF
+          SECRET_KEY=${{ secrets.SECRET_KEY }}
+          DJANGO_ALLOWED_HOSTS=${{ secrets.DJANGO_ALLOWED_HOSTS }}
+          DATABASE_NAME=${{ secrets.DB_NAME }}
+          DATABASE_USER=${{ secrets.DB_USER }}
+          DATABASE_PASSWORD=${{ secrets.DB_PASSWORD }}
+          DATABASE_HOST=${{ secrets.DB_HOST }}
+          DATABASE_PORT=${{ secrets.DB_PORT }}
+          EOF
+
+          # Export for this workflow run (so manage.py picks them up)
+          set -o allexport
+          source .env
+          set +o allexport
+
+          echo ".env written and env vars exported (not committed)."
+        shell: bash
+        env:
+          # ensure secrets exist or are empty strings
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          DJANGO_ALLOWED_HOSTS: ${{ secrets.DJANGO_ALLOWED_HOSTS }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+
+      - name: Run migrations and collectstatic
+        run: |
+          source .venv/bin/activate
+          # export env again in case subshell
           export SECRET_KEY="${{ secrets.SECRET_KEY }}"
           export DJANGO_ALLOWED_HOSTS="${{ secrets.DJANGO_ALLOWED_HOSTS }}"
           export DATABASE_NAME="${{ secrets.DB_NAME }}"
@@ -40,17 +116,43 @@ jobs:
           export DATABASE_HOST="${{ secrets.DB_HOST }}"
           export DATABASE_PORT="${{ secrets.DB_PORT }}"
 
+          # migrate & collectstatic
           python manage.py migrate --noinput
           python manage.py collectstatic --noinput
+        shell: bash
+
+      - name: Ensure pm2 installed globally (sudo may be required)
+        run: |
+          if ! command -v pm2 >/dev/null 2>&1; then
+            sudo npm install -g pm2
+          fi
+          pm2 -v
+        shell: bash
 
       - name: Restart Gunicorn via PM2
         run: |
           source .venv/bin/activate
+          # stop existing process, ignore errors
           pm2 delete atom-backend || true
-          DJANGO_WSGI_MODULE="crm_lift_atom.wsgi"   # edit if different
+
+          # Set your WSGI module name below
+          DJANGO_WSGI_MODULE="crm_lift_atom.wsgi"
+
+          # Start Gunicorn using venv binary
           pm2 start ".venv/bin/gunicorn" --name atom-backend --interpreter bash -- \
             --bind 127.0.0.1:8000 ${DJANGO_WSGI_MODULE}:application --workers 3
-          pm2 save
 
-      - name: Show pm2 status
-        run: pm2 status
+          pm2 save
+          pm2 status
+        shell: bash
+
+      - name: Health checks & logs
+        run: |
+          # quick smoke-test
+          ss -ltnp | grep 8000 || true
+          sleep 1
+          curl -I --max-time 10 http://127.0.0.1:8000/ || true
+
+          # show recent pm2 logs
+          pm2 logs atom-backend --lines 200 || true
+        shell: bash
