@@ -16,13 +16,17 @@ jobs:
 
       - name: Setup Python 3.11 & Create Virtual Environment
         run: |
-          sudo dnf install -y python3.11 python3.11-venv python3.11-devel gcc make
+          sudo dnf install -y python3.11 python3.11-devel gcc make
+          
+          # Create virtual environment
           python3.11 -m venv venv
+
+          # Activate and upgrade pip
           source venv/bin/activate
           pip install --upgrade pip setuptools wheel
         shell: bash
 
-      - name: Install Python Dependencies
+      - name: Install Requirements
         run: |
           source venv/bin/activate
           pip install -r requirements.txt
@@ -39,7 +43,7 @@ jobs:
           echo "DATABASE_PORT=${{ secrets.DB_PORT }}" >> .env
         shell: bash
 
-      - name: Run Django Migrations
+      - name: Run Migrations
         run: |
           source venv/bin/activate
           python manage.py makemigrations --noinput
@@ -52,25 +56,26 @@ jobs:
           python manage.py collectstatic --noinput
         shell: bash
 
-      - name: Ensure PM2 is Installed
+      - name: Ensure PM2 Exists
         run: |
           if ! command -v pm2 >/dev/null 2>&1; then
             sudo npm install -g pm2
           fi
+          pm2 -v
         shell: bash
 
-      - name: Restart Gunicorn using PM2
+      - name: Restart Gunicorn via PM2
         run: |
           source venv/bin/activate
-          
-          # Stop old process if exists
+
+          # Stop old Gunicorn process if running
           pm2 delete atom-backend || true
-          
-          # Start gunicorn using PM2
+
+          # Start Gunicorn using PM2
           pm2 start venv/bin/gunicorn --name atom-backend --interpreter bash -- \
             --bind 127.0.0.1:8000 crm_lift_atom.wsgi:application --workers 3
-          
-          # Save PM2 state
+
+          # Save PM2 process
           pm2 save
           pm2 status
         shell: bash
