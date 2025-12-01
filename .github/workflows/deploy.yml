@@ -1,70 +1,51 @@
-name: Deploy Django (self-hosted runner)
+name: Deploy Django App
 
 on:
-  push:
-    branches: [ main ]
+push:
+branches:
+- main
 
 jobs:
-  deploy:
-    runs-on: self-hosted
-    timeout-minutes: 60
+deploy:
+runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+```
+steps:
+- name: Checkout code
+  uses: actions/checkout@v3
 
-      - name: Setup Python 3.11
-        run: |
-          sudo dnf install -y python3.11 python3.11-venv python3.11-devel gcc make
-          python3.11 -m venv .venv
-          source .venv/bin/activate
-          python -m pip install --upgrade pip setuptools wheel
-          python -m pip --version
-        shell: bash
+- name: Set up Python 3.11
+  uses: actions/setup-python@v4
+  with:
+    python-version: '3.11'
 
-      - name: Install dependencies
-        run: |
-          source .venv/bin/activate
-          if [ -f requirements.txt ]; then
-            python -m pip install -r requirements.txt
-          else
-            echo "Error: requirements.txt not found!" >&2
-            exit 1
-          fi
-        shell: bash
+- name: Install system dependencies
+  run: |
+    sudo dnf install -y python3.11 python3.11-devel gcc make
 
-      - name: Write .env file
-        run: |
-          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" > .env
-          echo "DJANGO_ALLOWED_HOSTS=${{ secrets.DJANGO_ALLOWED_HOSTS }}" >> .env
-          echo "DATABASE_NAME=${{ secrets.DB_NAME }}" >> .env
-          echo "DATABASE_USER=${{ secrets.DB_USER }}" >> .env
-          echo "DATABASE_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
-          echo "DATABASE_HOST=${{ secrets.DB_HOST }}" >> .env
-          echo "DATABASE_PORT=${{ secrets.DB_PORT }}" >> .env
-        shell: bash
+- name: Create virtual environment
+  run: |
+    python3.11 -m venv .venv
+    source .venv/bin/activate
+    python -m pip install --upgrade pip setuptools wheel
 
-      - name: Run migrations and collectstatic
-        run: |
-          source .venv/bin/activate
-          python manage.py migrate --noinput
-          python manage.py collectstatic --noinput
-        shell: bash
+- name: Install Python dependencies
+  run: |
+    source .venv/bin/activate
+    pip install -r requirements.txt
+    pip install python-dateutil reportlab  # ensure missing modules installed
 
-      - name: Ensure pm2 installed
-        run: |
-          if ! command -v pm2 >/dev/null 2>&1; then
-            sudo npm install -g pm2
-          fi
-          pm2 -v
-        shell: bash
+- name: Run Django migrations
+  run: |
+    source .venv/bin/activate
+    python manage.py migrate --noinput
 
-      - name: Restart Gunicorn via PM2
-        run: |
-          source .venv/bin/activate
-          pm2 delete atom-backend || true
-          pm2 start .venv/bin/gunicorn --name atom-backend --interpreter bash -- \
-            --bind 127.0.0.1:8000 crm_lift_atom.wsgi:application --workers 3
-          pm2 save
-          pm2 status
-        shell: bash
+- name: Collect static files
+  run: |
+    source .venv/bin/activate
+    python manage.py collectstatic --noinput
+
+- name: Restart server (example using systemd)
+  run: |
+    sudo systemctl restart my-django-app
+```
