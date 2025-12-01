@@ -1,4 +1,4 @@
-name: Deploy Django to EC2
+name: Deploy Django to EC2 Runner
 
 on:
   push:
@@ -9,27 +9,48 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Verify Python
-        run: python3 --version
-
-      - name: Install Python Dependencies
+      - name: Create venv & install deps
         run: |
-          python3 -m pip install --upgrade pip
-          pip3 install -r requirements.txt
+          # ensure correct python available on runner
+          python3.11 --version || python3 --version
+          python3.11 -m venv .venv || python3 -m venv .venv
+          source .venv/bin/activate
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install -r requirements.txt
 
-      - name: Django Migrate
+      - name: Migrate & collectstatic
+        env:
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          DJANGO_ALLOWED_HOSTS: ${{ secrets.DJANGO_ALLOWED_HOSTS }}
+          DATABASE_NAME: ${{ secrets.DB_NAME }}
+          DATABASE_USER: ${{ secrets.DB_USER }}
+          DATABASE_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DATABASE_HOST: ${{ secrets.DB_HOST }}
+          DATABASE_PORT: ${{ secrets.DB_PORT }}
         run: |
-          python3 manage.py migrate
+          source .venv/bin/activate
+          export SECRET_KEY="${{ secrets.SECRET_KEY }}"
+          export DJANGO_ALLOWED_HOSTS="${{ secrets.DJANGO_ALLOWED_HOSTS }}"
+          export DATABASE_NAME="${{ secrets.DB_NAME }}"
+          export DATABASE_USER="${{ secrets.DB_USER }}"
+          export DATABASE_PASSWORD="${{ secrets.DB_PASSWORD }}"
+          export DATABASE_HOST="${{ secrets.DB_HOST }}"
+          export DATABASE_PORT="${{ secrets.DB_PORT }}"
 
-      - name: Collect Static
-        run: |
-          python3 manage.py collectstatic --noinput
+          python manage.py migrate --noinput
+          python manage.py collectstatic --noinput
 
-      - name: Restart Django using PM2
+      - name: Restart Gunicorn via PM2
         run: |
+          source .venv/bin/activate
           pm2 delete atom-backend || true
-          pm2 start python3 --name atom-backend -- manage.py runserver 0.0.0.0:8000
+          DJANGO_WSGI_MODULE="crm_lift_atom.wsgi"   # edit if different
+          pm2 start ".venv/bin/gunicorn" --name atom-backend --interpreter bash -- \
+            --bind 127.0.0.1:8000 ${DJANGO_WSGI_MODULE}:application --workers 3
           pm2 save
+
+      - name: Show pm2 status
+        run: pm2 status
