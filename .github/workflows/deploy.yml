@@ -1,99 +1,104 @@
 name: Deploy Django (Production - Gunicorn + PM2)
 
 on:
-  push:
-    branches: [ main ]
+push:
+branches: [ main ]
 
 jobs:
-  deploy:
-    runs-on: self-hosted
-    timeout-minutes: 60
+deploy:
+runs-on: self-hosted
+timeout-minutes: 60
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+```
+steps:
+  - name: Checkout repository
+    uses: actions/checkout@v4
 
-      ###############################################
-      # SETUP PYTHON + CREATE VENV (AMAZON LINUX FIX)
-      ###############################################
-      - name: Setup Python 3.11 & Create Virtual Environment
-        run: |
-          sudo dnf install -y python3.11 python3.11-devel gcc make
+  ###############################################
+  # SETUP PYTHON + CREATE VENV (AMAZON LINUX FIX)
+  ###############################################
+  - name: Setup Python 3.11 & Create Virtual Environment
+    run: |
+      sudo dnf install -y python3.11 python3.11-devel gcc make
+      python3.11 -m venv venv
+      source venv/bin/activate
+      pip install --upgrade pip setuptools wheel
+    shell: bash
 
-          python3.11 -m venv venv
-          source venv/bin/activate
-          pip install --upgrade pip setuptools wheel
-        shell: bash
+  ###############################################
+  # INSTALL REQUIREMENTS
+  ###############################################
+  - name: Install requirements.txt
+    run: |
+      source venv/bin/activate
+      pip install -r requirements.txt
+    shell: bash
 
-      ###############################################
-      # INSTALL REQUIREMENTS
-      ###############################################
-      - name: Install requirements.txt
-        run: |
-          source venv/bin/activate
+  ###############################################
+  # CREATE .env FILE
+  ###############################################
+  - name: Create .env file
+    run: |
+      echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" > .env
+      echo "DJANGO_ALLOWED_HOSTS=${{ secrets.DJANGO_ALLOWED_HOSTS }}" >> .env
+      echo "DATABASE_NAME=${{ secrets.DB_NAME }}" >> .env
+      echo "DATABASE_USER=${{ secrets.DB_USER }}" >> .env
+      echo "DATABASE_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
+      echo "DATABASE_HOST=${{ secrets.DB_HOST }}" >> .env
+      echo "DATABASE_PORT=${{ secrets.DB_PORT }}" >> .env
+    shell: bash
 
-          # Install dependencies
-          pip install -r requirements.txt
-        shell: bash
+  ###############################################
+  # DJANGO MIGRATIONS
+  ###############################################
+  - name: Run Django Migrations
+    run: |
+      source venv/bin/activate
+      python manage.py makemigrations --noinput
+      python manage.py migrate --noinput
+    shell: bash
 
-      ###############################################
-      # CREATE .env FILE
-      ###############################################
-      - name: Create .env file
-        run: |
-          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" > .env
-          echo "DJANGO_ALLOWED_HOSTS=${{ secrets.DJANGO_ALLOWED_HOSTS }}" >> .env
-          echo "DATABASE_NAME=${{ secrets.DB_NAME }}" >> .env
-          echo "DATABASE_USER=${{ secrets.DB_USER }}" >> .env
-          echo "DATABASE_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
-          echo "DATABASE_HOST=${{ secrets.DB_HOST }}" >> .env
-          echo "DATABASE_PORT=${{ secrets.DB_PORT }}" >> .env
-        shell: bash
+  ###############################################
+  # COLLECT STATIC FILES
+  ###############################################
+  - name: Collect Static Files
+    run: |
+      source venv/bin/activate
+      python manage.py collectstatic --noinput
+    shell: bash
 
-      ###############################################
-      # DJANGO MIGRATIONS
-      ###############################################
-      - name: Run Django Migrations
-        run: |
-          source venv/bin/activate
-          python manage.py makemigrations --noinput
-          python manage.py migrate --noinput
-        shell: bash
+  ###############################################
+  # ENSURE PM2 INSTALLED
+  ###############################################
+  - name: Ensure PM2 is installed
+    run: |
+      if ! command -v pm2 >/dev/null 2>&1; then
+        sudo npm install -g pm2
+      fi
+      pm2 -v
+    shell: bash
 
-      ###############################################
-      # COLLECT STATIC FILES
-      ###############################################
-      - name: Collect Static Files
-        run: |
-          source venv/bin/activate
-          python manage.py collectstatic --noinput
-        shell: bash
+  ###############################################
+  # START/RESTART GUNICORN USING PM2
+  ###############################################
+  - name: Restart Gunicorn using PM2
+    run: |
+      source venv/bin/activate
 
-      ###############################################
-      # ENSURE PM2 INSTALLED
-      ###############################################
-      - name: Ensure PM2 is installed
-        run: |
-          if ! command -v pm2 >/dev/null 2>&1; then
-            sudo npm install -g pm2
-          fi
-          pm2 -v
-        shell: bash
+      # Make sure project root is in PYTHONPATH
+      export PYTHONPATH=$(pwd)
 
-      ###############################################
-      # START/RESTART GUNICORN USING PM2
-      ###############################################
-      - name: Restart Gunicorn using PM2
-        run: |
-          source venv/bin/activate
+      # Stop old app if exists
+      pm2 delete atom-backend || true
 
-          # Stop old app if exists
-          pm2 delete atom-backend || true
+      # Start Gunicorn via PM2 using venv Python interpreter
+      pm2 start venv/bin/gunicorn \
+        --name atom-backend \
+        --interpreter venv/bin/python \
+        --cwd $(pwd) \
+        -- passenger_wsgi:application --bind 0.0.0.0:8000 --workers 3
 
-          # Start Gunicorn via PM2
-          pm2 start venv/bin/gunicorn --name atom-backend --interpreter bash -- \
-            --bind 127.0.0.1:8000 crm_lift_atom.wsgi:application --workers 3
-
-          pm2 save
-          pm2 status
-        shell: bash
+      pm2 save
+      pm2 status
+    shell: bash
+```
