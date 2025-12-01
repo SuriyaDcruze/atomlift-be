@@ -8,10 +8,10 @@ permissions:
   contents: read
 
 env:
-  WORKDIR: ${{ github.workspace }}    # repo root on runner
+  WORKDIR: ${{ github.workspace }}
   VENV_PATH: ${{ github.workspace }}/.venv
   PM2_APP_NAME: atom-backend
-  WSGI_MODULE: crm_lift_atom.wsgi     # <-- EDIT if your wsgi module differs
+  WSGI_MODULE: crm_lift_atom.wsgi   # <-- EDIT if different
 
 jobs:
   deploy:
@@ -22,20 +22,19 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Runner / env info (debug)
+      - name: Runner info (debug)
         run: |
           echo "GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
-          echo "WORKDIR=${{ env.WORKDIR }}"
-          echo "User: $(id)"
+          echo "WORKDIR=${WORKDIR}"
+          id
           uname -a
           command -v python3.11 || command -v python3 || true
           node -v || true
           pm2 -v || true
         shell: bash
 
-      - name: Ensure system build deps (safe list)
+      - name: Install common system build deps
         run: |
-          # best-effort install; won't break if packages already present
           sudo dnf update -y || true
           sudo dnf install -y gcc gcc-c++ make \
             libffi-devel openssl-devel zlib-devel bzip2-devel xz-devel \
@@ -43,41 +42,40 @@ jobs:
             lcms2-devel sqlite-devel patch || true
         shell: bash
 
-      - name: Pick python & create venv
+      - name: Create venv and upgrade pip
         id: venv_setup
         run: |
           set -euo pipefail
           PY_BIN=$(command -v python3.11 || command -v python3)
-          echo "PY_BIN=$PY_BIN" >> $GITHUB_ENV
-          echo "Creating venv at $VENV_PATH using $PY_BIN"
-          $PY_BIN -m venv "$VENV_PATH"
+          echo "PY_BIN=$PY_BIN" >> "$GITHUB_ENV"
+          "$PY_BIN" -m venv "$VENV_PATH"
           source "$VENV_PATH/bin/activate"
           python -m pip install --upgrade pip setuptools wheel
           python -m pip --version
-          python -c "import sys; print('sys.executable=',sys.executable)"
+          python -c "import sys; print('sys.executable=', sys.executable)"
         shell: bash
 
-      - name: Prepare requirements file (psycopg2 -> psycopg2-binary)
+      - name: Prepare requirements (psycopg2 -> psycopg2-binary)
         id: prep_reqs
         run: |
           set -euo pipefail
           cd "$WORKDIR"
           if [ ! -f requirements.txt ]; then
-            echo "ERROR: requirements.txt not found in repo root ($WORKDIR)"
+            echo "requirements.txt not found in repo root ($WORKDIR)" >&2
             exit 1
           fi
 
           if grep -qE '^psycopg2([<>=]|$)' requirements.txt; then
             sed -E 's/^psycopg2([<>=].*)?/psycopg2-binary\1/' requirements.txt > tmp_requirements.txt
-            echo "REQ_FILE=tmp_requirements.txt" >> $GITHUB_ENV
-            echo "Replaced psycopg2 -> psycopg2-binary; using tmp_requirements.txt"
+            echo "REQ_FILE=tmp_requirements.txt" >> "$GITHUB_ENV"
+            echo "Using tmp_requirements.txt (psycopg2 -> psycopg2-binary)"
           else
-            echo "REQ_FILE=requirements.txt" >> $GITHUB_ENV
+            echo "REQ_FILE=requirements.txt" >> "$GITHUB_ENV"
             echo "Using requirements.txt"
           fi
         shell: bash
 
-      - name: Install Python deps into venv
+      - name: Install Python dependencies into venv
         run: |
           set -euo pipefail
           cd "$WORKDIR"
@@ -90,10 +88,9 @@ jobs:
           tail -n 40 installed-requirements.txt || true
         shell: bash
 
-      - name: Create runtime env (.env) and export for steps
+      - name: Write .env from secrets (runtime only)
         run: |
-          set -euo pipefail
-          cat > "$WORKDIR/.env" <<EOF
+          cat > "$WORKDIR/.env" <<'ENVFILE'
 SECRET_KEY=${{ secrets.SECRET_KEY }}
 DJANGO_ALLOWED_HOSTS=${{ secrets.DJANGO_ALLOWED_HOSTS }}
 DATABASE_NAME=${{ secrets.DB_NAME }}
@@ -101,24 +98,32 @@ DATABASE_USER=${{ secrets.DB_USER }}
 DATABASE_PASSWORD=${{ secrets.DB_PASSWORD }}
 DATABASE_HOST=${{ secrets.DB_HOST }}
 DATABASE_PORT=${{ secrets.DB_PORT }}
-EOF
-          # export to job environment
-          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> $GITHUB_ENV
-          echo "DJANGO_ALLOWED_HOSTS=${{ secrets.DJANGO_ALLOWED_HOSTS }}" >> $GITHUB_ENV
-          echo "DATABASE_NAME=${{ secrets.DB_NAME }}" >> $GITHUB_ENV
-          echo "DATABASE_USER=${{ secrets.DB_USER }}" >> $GITHUB_ENV
-          echo "DATABASE_PASSWORD=${{ secrets.DB_PASSWORD }}" >> $GITHUB_ENV
-          echo "DATABASE_HOST=${{ secrets.DB_HOST }}" >> $GITHUB_ENV
-          echo "DATABASE_PORT=${{ secrets.DB_PORT }}" >> $GITHUB_ENV
-          echo ".env file written (not committed)."
+ENVFILE
+          # Export to job environment for subsequent steps
+          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> "$GITHUB_ENV"
+          echo "DJANGO_ALLOWED_HOSTS=${{ secrets.DJANGO_ALLOWED_HOSTS }}" >> "$GITHUB_ENV"
+          echo "DATABASE_NAME=${{ secrets.DB_NAME }}" >> "$GITHUB_ENV"
+          echo "DATABASE_USER=${{ secrets.DB_USER }}" >> "$GITHUB_ENV"
+          echo "DATABASE_PASSWORD=${{ secrets.DB_PASSWORD }}" >> "$GITHUB_ENV"
+          echo "DATABASE_HOST=${{ secrets.DB_HOST }}" >> "$GITHUB_ENV"
+          echo "DATABASE_PORT=${{ secrets.DB_PORT }}" >> "$GITHUB_ENV"
+          echo ".env file written to $WORKDIR/.env (not committed)."
         shell: bash
 
-      - name: Run migrations & collectstatic
+      - name: Run Django migrations & collectstatic
+        env:
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          DJANGO_ALLOWED_HOSTS: ${{ secrets.DJANGO_ALLOWED_HOSTS }}
+          DATABASE_NAME: ${{ secrets.DB_NAME }}
+          DATABASE_USER: ${{ secrets.DB_USER }}
+          DATABASE_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DATABASE_HOST: ${{ secrets.DB_HOST }}
+          DATABASE_PORT: ${{ secrets.DB_PORT }}
         run: |
           set -euo pipefail
           cd "$WORKDIR"
           source "$VENV_PATH/bin/activate"
-          # ensure env vars are present in this shell
+
           export SECRET_KEY="${{ secrets.SECRET_KEY }}"
           export DJANGO_ALLOWED_HOSTS="${{ secrets.DJANGO_ALLOWED_HOSTS }}"
           export DATABASE_NAME="${{ secrets.DB_NAME }}"
@@ -128,13 +133,11 @@ EOF
           export DATABASE_PORT="${{ secrets.DB_PORT }}"
 
           echo "Python: $(python --version)"
-          echo "Attempting migrate..."
           python manage.py migrate --noinput
-          echo "Attempting collectstatic..."
           python manage.py collectstatic --noinput
         shell: bash
 
-      - name: Ensure PM2 (global)
+      - name: Ensure pm2 is installed globally
         run: |
           if ! command -v pm2 >/dev/null 2>&1; then
             sudo npm install -g pm2
@@ -148,13 +151,11 @@ EOF
           cd "$WORKDIR"
           source "$VENV_PATH/bin/activate"
 
-          PM2_NAME="$PM2_APP_NAME"
-          echo "Stopping existing pm2 app (if any): $PM2_NAME"
-          pm2 delete "$PM2_NAME" || true
+          pm2 delete "$PM2_APP_NAME" || true
 
-          echo "Starting gunicorn via venv binary"
-          pm2 start "$VENV_PATH/bin/gunicorn" --name "$PM2_NAME" --interpreter bash -- \
-            --bind 127.0.0.1:8000 $WSGI_MODULE:application --workers 3
+          # Start Gunicorn via venv binary
+          pm2 start "$VENV_PATH/bin/gunicorn" --name "$PM2_APP_NAME" --interpreter bash -- \
+            --bind 127.0.0.1:8000 ${WSGI_MODULE}:application --workers 3
 
           pm2 save
           pm2 status
@@ -162,7 +163,6 @@ EOF
 
       - name: Health check & logs
         run: |
-          set -euo pipefail
           ss -ltnp | grep :8000 || true
           sleep 1
           curl -I --max-time 10 http://127.0.0.1:8000/ || true
