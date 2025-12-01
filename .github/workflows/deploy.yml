@@ -1,4 +1,4 @@
-name: Deploy Django to EC2 Runner
+name: Deploy Django (self-hosted runner)
 
 on:
   push:
@@ -7,81 +7,93 @@ on:
 permissions:
   contents: read
 
+env:
+  WORKDIR: ${{ github.workspace }}    # repo root on runner
+  VENV_PATH: ${{ github.workspace }}/.venv
+  PM2_APP_NAME: atom-backend
+  WSGI_MODULE: crm_lift_atom.wsgi     # <-- EDIT if your wsgi module differs
+
 jobs:
   deploy:
     runs-on: self-hosted
     timeout-minutes: 60
 
     steps:
-      - name: Checkout code
+      - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Show runner info
+      - name: Runner / env info (debug)
         run: |
-          echo "Runner: $(uname -a)"
+          echo "GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
+          echo "WORKDIR=${{ env.WORKDIR }}"
           echo "User: $(id)"
+          uname -a
           command -v python3.11 || command -v python3 || true
           node -v || true
           pm2 -v || true
         shell: bash
 
-      - name: Ensure system build deps (may require sudo)
+      - name: Ensure system build deps (safe list)
         run: |
-          sudo dnf update -y
+          # best-effort install; won't break if packages already present
+          sudo dnf update -y || true
           sudo dnf install -y gcc gcc-c++ make \
             libffi-devel openssl-devel zlib-devel bzip2-devel xz-devel \
             libjpeg-turbo-devel libpng-devel freetype-devel libwebp-devel \
             lcms2-devel sqlite-devel patch || true
         shell: bash
 
-      - name: Create / activate venv & upgrade pip
+      - name: Pick python & create venv
+        id: venv_setup
         run: |
+          set -euo pipefail
           PY_BIN=$(command -v python3.11 || command -v python3)
-          echo "Using python: $PY_BIN"
-          $PY_BIN -m venv .venv
-          source .venv/bin/activate
+          echo "PY_BIN=$PY_BIN" >> $GITHUB_ENV
+          echo "Creating venv at $VENV_PATH using $PY_BIN"
+          $PY_BIN -m venv "$VENV_PATH"
+          source "$VENV_PATH/bin/activate"
           python -m pip install --upgrade pip setuptools wheel
+          python -m pip --version
+          python -c "import sys; print('sys.executable=',sys.executable)"
         shell: bash
 
-      - name: Prepare requirements (convert psycopg2 -> psycopg2-binary if present)
+      - name: Prepare requirements file (psycopg2 -> psycopg2-binary)
+        id: prep_reqs
         run: |
-          source .venv/bin/activate
-
+          set -euo pipefail
+          cd "$WORKDIR"
           if [ ! -f requirements.txt ]; then
-            echo "ERROR: requirements.txt not found in repo root"
+            echo "ERROR: requirements.txt not found in repo root ($WORKDIR)"
             exit 1
           fi
 
           if grep -qE '^psycopg2([<>=]|$)' requirements.txt; then
-            echo "psycopg2 detected in requirements.txt — creating tmp_requirements.txt replacing with psycopg2-binary"
             sed -E 's/^psycopg2([<>=].*)?/psycopg2-binary\1/' requirements.txt > tmp_requirements.txt
-            echo "REQFILE=tmp_requirements.txt" >> $GITHUB_ENV
+            echo "REQ_FILE=tmp_requirements.txt" >> $GITHUB_ENV
+            echo "Replaced psycopg2 -> psycopg2-binary; using tmp_requirements.txt"
           else
-            echo "REQFILE=requirements.txt" >> $GITHUB_ENV
+            echo "REQ_FILE=requirements.txt" >> $GITHUB_ENV
+            echo "Using requirements.txt"
           fi
-
-          echo "Using requirements file: $REQFILE"
         shell: bash
 
-      - name: Install Python dependencies into venv
+      - name: Install Python deps into venv
         run: |
-          source .venv/bin/activate
-          # REQFILE is injected into env via $GITHUB_ENV in the previous step
-          echo "Installing from $REQFILE"
+          set -euo pipefail
+          cd "$WORKDIR"
+          source "$VENV_PATH/bin/activate"
+          echo "Installing from $REQ_FILE"
           python -m pip install --upgrade pip setuptools wheel
-          python -m pip install -r "$REQFILE"
+          python -m pip install -r "$REQ_FILE"
+          python -m pip check || true
+          python -m pip freeze > installed-requirements.txt
+          tail -n 40 installed-requirements.txt || true
         shell: bash
 
-      - name: Persist requirements (optional)
+      - name: Create runtime env (.env) and export for steps
         run: |
-          source .venv/bin/activate
-          python -m pip freeze > requirements.txt
-          git status --porcelain || true
-        shell: bash
-
-      - name: Write runtime env (.env) from secrets
-        run: |
-          cat > .env <<EOF
+          set -euo pipefail
+          cat > "$WORKDIR/.env" <<EOF
 SECRET_KEY=${{ secrets.SECRET_KEY }}
 DJANGO_ALLOWED_HOSTS=${{ secrets.DJANGO_ALLOWED_HOSTS }}
 DATABASE_NAME=${{ secrets.DB_NAME }}
@@ -90,27 +102,23 @@ DATABASE_PASSWORD=${{ secrets.DB_PASSWORD }}
 DATABASE_HOST=${{ secrets.DB_HOST }}
 DATABASE_PORT=${{ secrets.DB_PORT }}
 EOF
-
-          # export for this run
-          set -o allexport
-          source .env
-          set +o allexport
-
-          echo ".env written and exported for this job (not committed)."
+          # export to job environment
+          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> $GITHUB_ENV
+          echo "DJANGO_ALLOWED_HOSTS=${{ secrets.DJANGO_ALLOWED_HOSTS }}" >> $GITHUB_ENV
+          echo "DATABASE_NAME=${{ secrets.DB_NAME }}" >> $GITHUB_ENV
+          echo "DATABASE_USER=${{ secrets.DB_USER }}" >> $GITHUB_ENV
+          echo "DATABASE_PASSWORD=${{ secrets.DB_PASSWORD }}" >> $GITHUB_ENV
+          echo "DATABASE_HOST=${{ secrets.DB_HOST }}" >> $GITHUB_ENV
+          echo "DATABASE_PORT=${{ secrets.DB_PORT }}" >> $GITHUB_ENV
+          echo ".env file written (not committed)."
         shell: bash
 
-      - name: Run migrations and collectstatic
-        env:
-          SECRET_KEY: ${{ secrets.SECRET_KEY }}
-          DJANGO_ALLOWED_HOSTS: ${{ secrets.DJANGO_ALLOWED_HOSTS }}
-          DATABASE_NAME: ${{ secrets.DB_NAME }}
-          DATABASE_USER: ${{ secrets.DB_USER }}
-          DATABASE_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DATABASE_HOST: ${{ secrets.DB_HOST }}
-          DATABASE_PORT: ${{ secrets.DB_PORT }}
+      - name: Run migrations & collectstatic
         run: |
-          source .venv/bin/activate
-          # export again to ensure subshells have them
+          set -euo pipefail
+          cd "$WORKDIR"
+          source "$VENV_PATH/bin/activate"
+          # ensure env vars are present in this shell
           export SECRET_KEY="${{ secrets.SECRET_KEY }}"
           export DJANGO_ALLOWED_HOSTS="${{ secrets.DJANGO_ALLOWED_HOSTS }}"
           export DATABASE_NAME="${{ secrets.DB_NAME }}"
@@ -119,37 +127,44 @@ EOF
           export DATABASE_HOST="${{ secrets.DB_HOST }}"
           export DATABASE_PORT="${{ secrets.DB_PORT }}"
 
+          echo "Python: $(python --version)"
+          echo "Attempting migrate..."
           python manage.py migrate --noinput
+          echo "Attempting collectstatic..."
           python manage.py collectstatic --noinput
         shell: bash
 
-      - name: Ensure pm2 installed globally (sudo may be required)
+      - name: Ensure PM2 (global)
         run: |
           if ! command -v pm2 >/dev/null 2>&1; then
             sudo npm install -g pm2
           fi
-          pm2 -v
+          pm2 -v || true
         shell: bash
 
       - name: Restart Gunicorn via PM2
         run: |
-          source .venv/bin/activate
-          pm2 delete atom-backend || true
+          set -euo pipefail
+          cd "$WORKDIR"
+          source "$VENV_PATH/bin/activate"
 
-          # Set your WSGI module name below (edit as needed)
-          DJANGO_WSGI_MODULE="crm_lift_atom.wsgi"
+          PM2_NAME="$PM2_APP_NAME"
+          echo "Stopping existing pm2 app (if any): $PM2_NAME"
+          pm2 delete "$PM2_NAME" || true
 
-          pm2 start ".venv/bin/gunicorn" --name atom-backend --interpreter bash -- \
-            --bind 127.0.0.1:8000 ${DJANGO_WSGI_MODULE}:application --workers 3
+          echo "Starting gunicorn via venv binary"
+          pm2 start "$VENV_PATH/bin/gunicorn" --name "$PM2_NAME" --interpreter bash -- \
+            --bind 127.0.0.1:8000 $WSGI_MODULE:application --workers 3
 
           pm2 save
           pm2 status
         shell: bash
 
-      - name: Health checks & logs
+      - name: Health check & logs
         run: |
-          ss -ltnp | grep 8000 || true
+          set -euo pipefail
+          ss -ltnp | grep :8000 || true
           sleep 1
           curl -I --max-time 10 http://127.0.0.1:8000/ || true
-          pm2 logs atom-backend --lines 200 || true
+          pm2 logs "$PM2_APP_NAME" --lines 200 || true
         shell: bash
