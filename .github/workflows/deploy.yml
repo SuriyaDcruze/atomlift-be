@@ -14,7 +14,7 @@ steps:
     uses: actions/checkout@v4
 
   ###############################################
-  # SETUP PYTHON + CREATE VENV (AMAZON LINUX FIX)
+  # SETUP PYTHON + CREATE VENV
   ###############################################
   - name: Setup Python 3.11 & Create Virtual Environment
     run: |
@@ -84,19 +84,20 @@ steps:
     run: |
       source venv/bin/activate
 
-      # Make sure project root is in PYTHONPATH
+      # Add project root to PYTHONPATH to avoid ModuleNotFoundError
       export PYTHONPATH=$(pwd)
 
-      # Stop old app if exists
+      # Stop old PM2 process if exists
       pm2 delete atom-backend || true
 
-      # Start Gunicorn via PM2 using venv Python interpreter
+      # Start Gunicorn in PM2 with venv Python interpreter and correct cwd
       pm2 start venv/bin/gunicorn \
         --name atom-backend \
         --interpreter venv/bin/python \
         --cwd $(pwd) \
         -- passenger_wsgi:application --bind 0.0.0.0:8000 --workers 3
 
+      # Save PM2 process list
       pm2 save
       pm2 status
     shell: bash
