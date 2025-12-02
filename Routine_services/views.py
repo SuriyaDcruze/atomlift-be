@@ -4,10 +4,14 @@ from django.utils import timezone
 from datetime import timedelta
 from .models import RoutineService
 from amc.models import AMCRoutineService
+from .utils import update_overdue_routine_services
 
 @login_required
 def routine_services(request):
     """View all routine services (including AMC routine services)"""
+    # Auto-update overdue services
+    update_overdue_routine_services()
+    
     # Get regular routine services
     regular_services = RoutineService.objects.select_related('customer', 'lift', 'assigned_technician').all()
     
@@ -53,6 +57,9 @@ def routine_services(request):
 @login_required
 def today_routine_services(request):
     """View today's routine services (including AMC routine services)"""
+    # Auto-update overdue services
+    update_overdue_routine_services()
+
     today = timezone.now().date()
     
     # Get regular routine services for today
@@ -155,14 +162,25 @@ def route_wise_services(request):
 @login_required
 def this_month_services(request):
     """View services for current month (including AMC routine services)"""
+    # Auto-update overdue services
+    update_overdue_routine_services()
+
     today = timezone.now()
     start_of_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    # Calculate start of next month
+    start_of_next_month = (start_of_month + timedelta(days=32)).replace(day=1)
     
     # Get regular routine services for this month
-    regular_services = RoutineService.objects.select_related('customer', 'lift', 'assigned_technician').filter(service_date__gte=start_of_month.date())
+    regular_services = RoutineService.objects.select_related('customer', 'lift', 'assigned_technician').filter(
+        service_date__gte=start_of_month.date(),
+        service_date__lt=start_of_next_month.date()
+    )
     
     # Get AMC routine services for this month
-    amc_services = AMCRoutineService.objects.select_related('amc__customer', 'employee_assign').filter(service_date__gte=start_of_month.date())
+    amc_services = AMCRoutineService.objects.select_related('amc__customer', 'employee_assign').filter(
+        service_date__gte=start_of_month.date(),
+        service_date__lt=start_of_next_month.date()
+    )
     
     # Combine services
     all_services = list(regular_services)
@@ -306,16 +324,20 @@ def this_month_completed(request):
     """View completed services for current month (including AMC routine services)"""
     today = timezone.now()
     start_of_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    # Calculate start of next month
+    start_of_next_month = (start_of_month + timedelta(days=32)).replace(day=1)
 
     # Get regular completed services
     regular_services = RoutineService.objects.select_related('customer', 'lift', 'assigned_technician').filter(
         service_date__gte=start_of_month.date(),
+        service_date__lt=start_of_next_month.date(),
         status='completed'
     )
     
     # Get AMC completed services
     amc_services = AMCRoutineService.objects.select_related('amc__customer', 'employee_assign').filter(
         service_date__gte=start_of_month.date(),
+        service_date__lt=start_of_next_month.date(),
         status='completed'
     )
     
@@ -407,6 +429,9 @@ def last_month_completed(request):
 @login_required
 def pending_services(request):
     """View all pending services (including AMC routine services)"""
+    # Auto-update overdue services
+    update_overdue_routine_services()
+
     # Get regular pending services
     regular_services = RoutineService.objects.select_related('customer', 'lift', 'assigned_technician').filter(status='pending')
     

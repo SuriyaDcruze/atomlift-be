@@ -43,6 +43,13 @@ class RoutineService(models.Model):
     def is_overdue(self):
         """Check if service is overdue"""
         return self.service_date < timezone.now().date() and self.status not in ['completed', 'cancelled']
+
+    def save(self, *args, **kwargs):
+        """Auto-update status to overdue if past due date"""
+        if self.service_date and self.status == 'pending':
+            if self.service_date < timezone.now().date():
+                self.status = 'overdue'
+        super().save(*args, **kwargs)
     
     def cust_refno(self):
         """Customer reference number (job_no or reference_id)"""
@@ -594,13 +601,22 @@ class ThisMonthServicesPage(Page):
     def serve(self, request, *args, **kwargs):
         today = timezone.now()
         start_of_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        # Calculate start of next month
+        start_of_next_month = (start_of_month + timedelta(days=32)).replace(day=1)
+
         # Get regular routine services for this month
-        regular_services = list(RoutineService.objects.select_related('customer', 'lift', 'assigned_technician').filter(service_date__gte=start_of_month.date()))
+        regular_services = list(RoutineService.objects.select_related('customer', 'lift', 'assigned_technician').filter(
+            service_date__gte=start_of_month.date(),
+            service_date__lt=start_of_next_month.date()
+        ))
         
         # Get AMC routine services for this month
         try:
             from amc.models import AMCRoutineService
-            amc_services = AMCRoutineService.objects.select_related('amc__customer', 'employee_assign').filter(service_date__gte=start_of_month.date())
+            amc_services = AMCRoutineService.objects.select_related('amc__customer', 'employee_assign').filter(
+                service_date__gte=start_of_month.date(),
+                service_date__lt=start_of_next_month.date()
+            )
             for amc_service in amc_services:
                 unified_service = _create_unified_service_from_amc(amc_service)
                 regular_services.append(unified_service)
@@ -718,10 +734,13 @@ class ThisMonthCompletedPage(Page):
     def serve(self, request, *args, **kwargs):
         today = timezone.now()
         start_of_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        # Calculate start of next month
+        start_of_next_month = (start_of_month + timedelta(days=32)).replace(day=1)
 
         # Get regular routine services
         regular_services = list(RoutineService.objects.select_related('customer', 'lift', 'assigned_technician').filter(
             service_date__gte=start_of_month.date(),
+            service_date__lt=start_of_next_month.date(),
             status='completed'
         ))
         
@@ -730,6 +749,7 @@ class ThisMonthCompletedPage(Page):
             from amc.models import AMCRoutineService
             amc_services = AMCRoutineService.objects.select_related('amc__customer', 'employee_assign').filter(
                 service_date__gte=start_of_month.date(),
+                service_date__lt=start_of_next_month.date(),
                 status='completed'
             )
             for amc_service in amc_services:
@@ -1331,18 +1351,26 @@ class RoutineServiceThisMonthViewSet(SnippetViewSet):
             """Override to return combined queryset-like list for this month's services"""
             today = timezone.now()
             start_of_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            # Calculate start of next month
+            start_of_next_month = (start_of_month + timedelta(days=32)).replace(day=1)
             
             # Get regular routine services for this month
             regular_services = list(RoutineService.objects.select_related(
                 'customer', 'lift', 'assigned_technician'
-            ).filter(service_date__gte=start_of_month.date()))
+            ).filter(
+                service_date__gte=start_of_month.date(),
+                service_date__lt=start_of_next_month.date()
+            ))
             
             # Get AMC routine services for this month and convert to unified format
             try:
                 from amc.models import AMCRoutineService
                 amc_services = AMCRoutineService.objects.select_related(
                     'amc__customer', 'employee_assign'
-                ).filter(service_date__gte=start_of_month.date())
+                ).filter(
+                    service_date__gte=start_of_month.date(),
+                    service_date__lt=start_of_next_month.date()
+                )
                 
                 for amc_service in amc_services:
                     unified_service = _create_unified_service_from_amc(amc_service)
@@ -1706,12 +1734,15 @@ class RoutineServiceThisMonthCompletedViewSet(SnippetViewSet):
             """Override to return combined queryset-like list for this month's completed services"""
             today = timezone.now()
             start_of_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            # Calculate start of next month
+            start_of_next_month = (start_of_month + timedelta(days=32)).replace(day=1)
             
             # Get regular routine services
             regular_services = list(RoutineService.objects.select_related(
                 'customer', 'lift', 'assigned_technician'
             ).filter(
                 service_date__gte=start_of_month.date(),
+                service_date__lt=start_of_next_month.date(),
                 status='completed'
             ))
             
@@ -1722,6 +1753,7 @@ class RoutineServiceThisMonthCompletedViewSet(SnippetViewSet):
                     'amc__customer', 'employee_assign'
                 ).filter(
                     service_date__gte=start_of_month.date(),
+                    service_date__lt=start_of_next_month.date(),
                     status='completed'
                 )
                 for amc_service in amc_services:
