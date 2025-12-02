@@ -10,7 +10,7 @@ from wagtail.admin.menu import MenuItem, SubmenuMenuItem, Menu
 from wagtail.snippets.widgets import SnippetListingButton
 from datetime import date, timedelta
 import json
-from .views import get_customer_json  # Add this import
+from .views import get_customer_json  # Add this importa
 from . import views
 
 from .models import AMC, AMCType, AMCRoutineService, AMCRoutineServiceSchedule
@@ -252,6 +252,10 @@ def view_amc_custom(request, pk):
     """Custom view for viewing AMC details in read-only mode"""
     from lift.models import Lift
     from customer.models import CustomerContact
+    from Routine_services.utils import update_overdue_routine_services
+    
+    # Auto-update overdue services
+    update_overdue_routine_services()
     
     amc = get_object_or_404(
         AMC.objects.select_related('customer', 'amc_type', 'payment_terms', 'amc_service_item'),
@@ -628,6 +632,10 @@ def create_renewed_amc(request):
 # AMC Routine Services Views
 def edit_amc_routine_services(request, pk):
     """View for editing AMC routine services"""
+    # Auto-update overdue services
+    from Routine_services.utils import update_overdue_routine_services
+    update_overdue_routine_services()
+
     amc = get_object_or_404(AMC.objects.select_related('customer'), pk=pk)
     User = get_user_model()
     employees = User.objects.filter(is_active=True).order_by('username')
