@@ -34,7 +34,6 @@
 #     from .local import *
 # except ImportError:
 #     pass
-dev.py
 
 from .base import *  # import base settings (keeps other settings)
 
