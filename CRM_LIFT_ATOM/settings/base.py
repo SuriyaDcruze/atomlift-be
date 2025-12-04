@@ -111,10 +111,18 @@ WSGI_APPLICATION = "CRM_LIFT_ATOM.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+import pymysql
+pymysql.install_as_MySQLdb()
+
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": os.path.join(BASE_DIR, "db.sqlite3"),
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": "atomliftdb",
+        "USER": "dbadmin",
+        "PASSWORD": "Atom$1234",
+        "HOST": "atomliftprod.c9iu6ua48ejv.ap-south-1.rds.amazonaws.com",
+        "PORT": "3306",
+        "OPTIONS": {"init_command": "SET sql_mode='STRICT_TRANS_TABLES'"},
     }
 }
 
@@ -238,14 +246,46 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 20
 }
 
+# # CORS settings for mobile app
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:3000",
+#     "http://127.0.0.1:3000",
+#     "https://technician.careelevators.in",
+#     # Add your mobile app domains here
+# ]
+
+# CORS_ALLOW_CREDENTIALS = True
+
+# CORS_ALLOW_ALL_ORIGINS = True  # Only for development, remove in production
+
 # CORS settings for mobile app
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "https://technician.careelevators.in",
+    "https://admin.careelevators.in",
     # Add your mobile app domains here
 ]
 
 CORS_ALLOW_CREDENTIALS = True
 
-CORS_ALLOW_ALL_ORIGINS = True  # Only for development, remove in production
+CORS_ALLOW_ALL_ORIGINS = False
+
+# CORS_ALLOW_ALL_ORIGINS = [
+#    "http://localhost:3000",
+#    "http://127.0.0.1:3000",
+#    "https://technician.careelevators.in",
+#    "https://admin.careelevators.in",
+#    ]  # Only for development, remove in production
+
+ALLOWED_HOSTS = [
+    "localhost",
+    "127.0.0.1",
+    "technician.careelevators.in",
+    "admin.careelevators.in",
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://technician.careelevators.in",
+    "https://admin.careelevators.in",
+]
