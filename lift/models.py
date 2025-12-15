@@ -182,24 +182,25 @@ class Lift(models.Model):
                     'model': 'Model must not contain special characters. Only letters, numbers, spaces, and hyphens are allowed.'
                 })
         
-        if self.speed:
-            # Ensure speed is not just whitespace
-            if self.speed.strip() == '':
-                raise ValidationError({
-                    'speed': 'Speed cannot be empty or contain only whitespace.'
-                })
-            
-            # Validate length (max 50 characters)
-            if len(self.speed) > 50:
-                raise ValidationError({
-                    'speed': 'Speed must not exceed 50 characters.'
-                })
-            
-            # Allow letters, numbers, spaces, hyphens, and forward slashes
-            if not re.match(r'^[a-zA-Z0-9\s\-/]+$', self.speed):
-                raise ValidationError({
-                    'speed': 'Speed must not contain special characters. Only letters, numbers, spaces, hyphens, and forward slashes are allowed.'
-                })
+       if self.speed:
+    # Ensure speed is not just whitespace
+    if self.speed.strip() == '':
+        raise ValidationError({
+            'speed': 'Speed cannot be empty or contain only whitespace.'
+        })
+    
+    # Validate length (max 50 characters)
+    if len(self.speed) > 50:
+        raise ValidationError({
+            'speed': 'Speed must not exceed 50 characters.'
+        })
+    
+    # Allow letters, numbers, spaces, hyphens, and forward slashes
+    if not re.match(r'^[a-zA-Z0-9\s\-/]+$', self.speed):
+        raise ValidationError({
+            'speed': 'Speed must not contain special characters. Only letters, numbers, spaces, hyphens, and forward slashes are allowed.'
+        })
+
     
     def save(self, *args, **kwargs):
         """Call clean before saving"""
