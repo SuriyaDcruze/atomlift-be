@@ -131,96 +131,70 @@ class Lift(models.Model):
     def clean(self):
         """Validate lift fields"""
         super().clean()
-        
-        # Validate lift_code is required
+
         if not self.lift_code or self.lift_code.strip() == '':
             raise ValidationError({
                 'lift_code': 'Lift Code is required. Please enter a lift code.'
             })
-        
-        # Validate floor_id is required
+
         if not self.floor_id:
             raise ValidationError({
                 'floor_id': 'Floor ID is required. Please select a floor ID.'
             })
-        
-        # Validate brand is required
+
         if not self.brand:
             raise ValidationError({
                 'brand': 'Brand is required. Please select a brand.'
             })
-        
-        # Validate lift_type is required
+
         if not self.lift_type:
             raise ValidationError({
                 'lift_type': 'Lift Type is required. Please select a lift type.'
             })
-        
-        # Validate machine_type is required
+
         if not self.machine_type:
             raise ValidationError({
                 'machine_type': 'Machine Type is required. Please select a machine type.'
             })
-        
-        # Validate door_type is required
+
         if not self.door_type:
             raise ValidationError({
                 'door_type': 'Door Type is required. Please select a door type.'
             })
-        
+
         if self.name:
-            # Allow letters, numbers, spaces, and hyphens
             if not re.match(r'^[a-zA-Z0-9\s\-]+$', self.name):
                 raise ValidationError({
-                    'name': 'Name must not contain special characters. Only letters, numbers, spaces, and hyphens are allowed.'
+                    'name': 'Name must contain only letters, numbers, spaces, and hyphens.'
                 })
-        
+
         if self.model:
-            # Allow letters, numbers, spaces, and hyphens
             if not re.match(r'^[a-zA-Z0-9\s\-]+$', self.model):
                 raise ValidationError({
-                    'model': 'Model must not contain special characters. Only letters, numbers, spaces, and hyphens are allowed.'
+                    'model': 'Model must contain only letters, numbers, spaces, and hyphens.'
                 })
-        
-    #    if self.speed:
-    # # Ensure speed is not just whitespace
-    # if self.speed.strip() == '':
-    #     raise ValidationError({
-    #         'speed': 'Speed cannot be empty or contain only whitespace.'
-    #     })
-    
-    # # Validate length (max 50 characters)
-    # if len(self.speed) > 50:
-    #     raise ValidationError({
-    #         'speed': 'Speed must not exceed 50 characters.'
-    #     })
-    
-    # # Allow letters, numbers, spaces, hyphens, and forward slashes
-    # if not re.match(r'^[a-zA-Z0-9\s\-/]+$', self.speed):
-    #     raise ValidationError({
-    #         'speed': 'Speed must not contain special characters. Only letters, numbers, spaces, hyphens, and forward slashes are allowed.'
-    #     })
 
-     if self.speed:
-    # Ensure speed is not just whitespace
-    if self.speed.strip() == '':
-        raise ValidationError({
-            'speed': 'Speed cannot be empty or contain only whitespace.'
-        })
-    
-    # Validate length (max 50 characters)
-    if len(self.speed) > 50:
-        raise ValidationError({
-            'speed': 'Speed must not exceed 50 characters.'
-        })
-    
-    # Allow letters, numbers, spaces, hyphens, and forward slashes
-    if not re.match(r'^[a-zA-Z0-9\s\-/]+$', self.speed):
-        raise ValidationError({
-            'speed': 'Speed must not contain special characters. Only letters, numbers, spaces, hyphens, and forward slashes are allowed.'
-        })
+        if self.speed:
+            if self.speed.strip() == '':
+                raise ValidationError({
+                    'speed': 'Speed cannot be empty or whitespace.'
+                })
 
-    
+            if len(self.speed) > 50:
+                raise ValidationError({
+                    'speed': 'Speed must not exceed 50 characters.'
+                })
+
+            # ✅ FIXED REGEX (allows decimal point)
+            if not re.match(r'^[a-zA-Z0-9\s./-]+$', self.speed):
+                raise ValidationError({
+                    'speed': (
+                        'Speed must contain only letters, numbers, spaces, dots, '
+                        'hyphens, and forward slashes.'
+                    )
+                })
+
+
     def save(self, *args, **kwargs):
         """Call clean before saving"""
         self.full_clean()
