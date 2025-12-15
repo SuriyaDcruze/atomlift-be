@@ -89,15 +89,15 @@ class Customer(models.Model):
     
     # Geographic coordinates (optional)
     latitude = models.DecimalField(
-        max_digits=10, 
-        decimal_places=8, 
+        max_digits=12, 
+        decimal_places=10, 
         blank=True, 
         null=True,
         help_text="Latitude coordinate (-90 to 90). Used for mapping and location services."
     )
     longitude = models.DecimalField(
-        max_digits=11, 
-        decimal_places=8, 
+        max_digits=13, 
+        decimal_places=10, 
         blank=True, 
         null=True,
         help_text="Longitude coordinate (-180 to 180). Used for mapping and location services."
