@@ -46,20 +46,18 @@ jobs:
         shell: bash
 
       # -----------------------------
-      # 4. CREATE / UPDATE .env FILE
+      # 4. CREATE/UPDATE .env FILE
       # -----------------------------
       - name: Create .env file
         run: |
           cd /var/www/atom-backend
-          cat <<EOF > .env
-SECRET_KEY=${{ secrets.SECRET_KEY }}
-DJANGO_ALLOWED_HOSTS=${{ secrets.DJANGO_ALLOWED_HOSTS }}
-DATABASE_NAME=${{ secrets.DB_NAME }}
-DATABASE_USER=${{ secrets.DB_USER }}
-DATABASE_PASSWORD=${{ secrets.DB_PASSWORD }}
-DATABASE_HOST=${{ secrets.DB_HOST }}
-DATABASE_PORT=${{ secrets.DB_PORT }}
-EOF
+          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" > .env
+          echo "DJANGO_ALLOWED_HOSTS=${{ secrets.DJANGO_ALLOWED_HOSTS }}" >> .env
+          echo "DATABASE_NAME=${{ secrets.DB_NAME }}" >> .env
+          echo "DATABASE_USER=${{ secrets.DB_USER }}" >> .env
+          echo "DATABASE_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
+          echo "DATABASE_HOST=${{ secrets.DB_HOST }}" >> .env
+          echo "DATABASE_PORT=${{ secrets.DB_PORT }}" >> .env
         shell: bash
 
       # -----------------------------
