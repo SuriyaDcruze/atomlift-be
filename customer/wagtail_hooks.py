@@ -10,6 +10,7 @@ from wagtail.admin.panels import FieldPanel, MultiFieldPanel
 from wagtail.snippets.widgets import SnippetListingButton
 import json
 from datetime import datetime
+from decimal import Decimal, InvalidOperation
 
 from .models import Customer, Route, Branch, ProvinceState, City, CustomerLicense, CustomerContact, CustomerFeedback, CustomerFollowUp
 
@@ -151,22 +152,25 @@ def add_customer_custom(request):
             generate_license = False
 
             # Handle latitude and longitude
+            # Use Decimal instead of float to avoid precision issues
             latitude = data.get('latitude')
             longitude = data.get('longitude')
             if latitude == '' or latitude is None:
                 latitude = None
             else:
                 try:
-                    latitude = float(latitude)
-                except (ValueError, TypeError):
+                    # Convert to Decimal, quantize to 8 decimal places, then normalize to remove trailing zeros
+                    latitude = Decimal(str(latitude)).quantize(Decimal('0.00000001')).normalize()
+                except (ValueError, TypeError, InvalidOperation):
                     latitude = None
             
             if longitude == '' or longitude is None:
                 longitude = None
             else:
                 try:
-                    longitude = float(longitude)
-                except (ValueError, TypeError):
+                    # Convert to Decimal, quantize to 8 decimal places, then normalize to remove trailing zeros
+                    longitude = Decimal(str(longitude)).quantize(Decimal('0.00000001')).normalize()
+                except (ValueError, TypeError, InvalidOperation):
                     longitude = None
 
             # Create customer
@@ -266,22 +270,25 @@ def edit_customer_custom(request, pk):
             customer.billing_name = data.get('billing_name', customer.billing_name)
             
             # Handle latitude and longitude
+            # Use Decimal instead of float to avoid precision issues
             latitude = data.get('latitude')
             longitude = data.get('longitude')
             if latitude == '' or latitude is None:
                 customer.latitude = None
             else:
                 try:
-                    customer.latitude = float(latitude)
-                except (ValueError, TypeError):
+                    # Convert to Decimal, quantize to 8 decimal places, then normalize to remove trailing zeros
+                    customer.latitude = Decimal(str(latitude)).quantize(Decimal('0.00000001')).normalize()
+                except (ValueError, TypeError, InvalidOperation):
                     customer.latitude = None
             
             if longitude == '' or longitude is None:
                 customer.longitude = None
             else:
                 try:
-                    customer.longitude = float(longitude)
-                except (ValueError, TypeError):
+                    # Convert to Decimal, quantize to 8 decimal places, then normalize to remove trailing zeros
+                    customer.longitude = Decimal(str(longitude)).quantize(Decimal('0.00000001')).normalize()
+                except (ValueError, TypeError, InvalidOperation):
                     customer.longitude = None
             
             # Update foreign keys
@@ -1088,25 +1095,33 @@ def get_customer_lifts(request, customer_id):
         lifts_data = []
         lift_ids = set()
         assigned_lift_id = None
+        all_lifts_have_full_details = True
+        has_customer_lifts = False  # Track if customer has any lifts (not from "all lifts" fallback)
         
         # Priority 1: Find lift matching customer's job_no (this is the primary assigned lift)
         if customer.job_no:
-            matching_lift = Lift.objects.filter(lift_code=customer.job_no).first()
-            if matching_lift:
-                assigned_lift_id = matching_lift.id
-                lift_ids.add(matching_lift.id)
-                # Add matching lift first (at the beginning of the list)
-                lifts_data.insert(0, {
-                    'id': matching_lift.id,
-                    'lift_code': matching_lift.lift_code or '',
-                    'name': matching_lift.name or '',
-                    'reference_id': matching_lift.reference_id or '',
-                })
+            matching_lifts = Lift.objects.filter(lift_code=customer.job_no).select_related('floor_id', 'brand', 'lift_type', 'machine_type', 'door_type')
+            for matching_lift in matching_lifts:
+                if matching_lift.id not in lift_ids:
+                    has_customer_lifts = True
+                    assigned_lift_id = matching_lift.id
+                    lift_ids.add(matching_lift.id)
+                    # Add matching lift first (at the beginning of the list)
+                    lifts_data.insert(0, {
+                        'id': matching_lift.id,
+                        'lift_code': matching_lift.lift_code or '',
+                        'name': matching_lift.name or '',
+                        'reference_id': matching_lift.reference_id or '',
+                    })
+                    # Check if this lift has full details
+                    if not _lift_has_full_details(matching_lift):
+                        all_lifts_have_full_details = False
         
         # Priority 2: Get lifts that have licenses for this customer
-        licenses = CustomerLicense.objects.filter(customer=customer).select_related('lift')
+        licenses = CustomerLicense.objects.filter(customer=customer).select_related('lift', 'lift__floor_id', 'lift__brand', 'lift__lift_type', 'lift__machine_type', 'lift__door_type')
         for license_obj in licenses:
             if license_obj.lift and license_obj.lift.id not in lift_ids:
+                has_customer_lifts = True
                 lift = license_obj.lift
                 lift_ids.add(lift.id)
                 lifts_data.append({
@@ -1115,9 +1130,13 @@ def get_customer_lifts(request, customer_id):
                     'name': lift.name or '',
                     'reference_id': lift.reference_id or '',
                 })
+                # Check if this lift has full details
+                if not _lift_has_full_details(lift):
+                    all_lifts_have_full_details = False
         
-        # If no lifts found, return all lifts (so user can still select)
-        if not lifts_data:
+        # If no customer lifts found, return all lifts (so user can still select)
+        # But don't check them for full details since they're not the customer's lifts
+        if not has_customer_lifts:
             all_lifts = Lift.objects.all().order_by('lift_code')
             for lift in all_lifts:
                 lifts_data.append({
@@ -1126,18 +1145,48 @@ def get_customer_lifts(request, customer_id):
                     'name': lift.name or '',
                     'reference_id': lift.reference_id or '',
                 })
+            # If customer has no lifts, all_lifts_have_full_details should be False
+            # so the link is shown
+            all_lifts_have_full_details = False
         
         return JsonResponse({
             'success': True,
             'lifts': lifts_data,
             'assigned_lift_id': assigned_lift_id,  # The lift matching job_no
-            'customer_job_no': customer.job_no or ''  # Customer's job_no for reference
+            'customer_job_no': customer.job_no or '',  # Customer's job_no for reference
+            'all_lifts_have_full_details': all_lifts_have_full_details,  # Whether all lifts have full details
+            'has_customer_lifts': has_customer_lifts  # Whether customer has their own lifts (not from fallback)
         })
     except Exception as e:
         return JsonResponse({
             'success': False,
             'error': str(e)
         }, status=500)
+
+
+def _lift_has_full_details(lift):
+    """Check if a lift has all required fields filled (full details)"""
+    # Required fields based on Lift model's clean() method
+    required_fields = [
+        ('lift_code', lift.lift_code),
+        ('floor_id', lift.floor_id),
+        ('brand', lift.brand),
+        ('lift_type', lift.lift_type),
+        ('machine_type', lift.machine_type),
+        ('door_type', lift.door_type),
+        ('name', lift.name),
+        ('model', lift.model),
+        ('no_of_passengers', lift.no_of_passengers),
+        ('speed', lift.speed),
+    ]
+    
+    for field_name, field_value in required_fields:
+        if field_value is None:
+            return False
+        if isinstance(field_value, str) and field_value.strip() == '':
+            return False
+    
+    return True
 
 
 @csrf_exempt

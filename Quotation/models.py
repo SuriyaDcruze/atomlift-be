@@ -30,7 +30,6 @@ class Quotation(ClusterableModel):
     on_delete=models.SET_NULL,
     null=True,
     blank=True,
-    limit_choices_to={'groups__name': 'employee'},  # ✅ FIXED
     related_name='assigned_quotations',
     )
 

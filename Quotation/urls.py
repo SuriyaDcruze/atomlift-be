@@ -19,4 +19,7 @@ urlpatterns = [
     path('api/lifts/', views.get_lifts, name='api_get_lifts'),
     path('api/lifts-by-customer/', views.get_lifts_by_customer, name='api_get_lifts_by_customer'),
     path('api/quotations/', views.get_quotations, name='api_get_quotations'),
+    
+    # Customer mobile app quotation API
+    path('api/customer/quotations/', views.customer_quotations_list, name='customer_quotations_list'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

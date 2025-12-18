@@ -75,7 +75,8 @@
   font-size: 0.875rem;
 }
 
-#customerSearch:focus {
+#customerSearch:focus,
+#assignToSearch:focus {
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
 }
@@ -284,7 +285,19 @@
             </div>
             <div class="form-group">
               <label class="form-label">Assign To</label>
-              <select id="assign_to" class="form-select"></select>
+              <div style="position: relative;">
+                <input 
+                  type="text" 
+                  id="assignToSearch" 
+                  class="form-input" 
+                  placeholder="Search user..."
+                  autocomplete="off"
+                />
+                <select id="assign_to" class="form-select" style="display: none;"></select>
+                <div id="assignToDropdown" class="customer-dropdown" style="display: none;">
+                  <div id="assignToList"></div>
+                </div>
+              </div>
             </div>
             <div class="form-group">
               <label class="form-label">Contact Person</label>
@@ -359,6 +372,8 @@
 <script>
 let allCustomers = [];
 let selectedCustomerId = null;
+let allUsers = [];
+let selectedUserId = null;
 let currentModalType = '';
 let currentEditId = null;
 
@@ -410,7 +425,8 @@ document.addEventListener('DOMContentLoaded',function(){
   loadSelect('priority','/complaints/api/complaints/priorities/');
   loadCustomers();
   setupCustomerSearch();
-  loadSelect('assign_to','/complaints/api/complaints/executives/');
+  loadUsers();
+  setupAssignToSearch();
   
   document.getElementById('customer').addEventListener('change',function(){
     const opt=this.options[this.selectedIndex];
@@ -541,6 +557,102 @@ function selectCustomer(customer) {
     document.getElementById('contact_person_mobile').value = customer.phone;
   }
   // Block/Wing field is left empty for manual entry
+}
+
+// User/Assign To search functionality
+function loadUsers() {
+  fetch('/complaints/api/complaints/executives/')
+    .then(r=>r.json())
+    .then(d=>{
+      allUsers = d;
+      const s=document.getElementById('assign_to');
+      s.innerHTML='<option value="">Select</option>';
+      d.forEach(i=>{
+        const o=document.createElement('option');
+        o.value=i.id;
+        o.textContent=i.full_name || i.name || i.username;
+        s.appendChild(o);
+      });
+    });
+}
+
+function setupAssignToSearch() {
+  const searchInput = document.getElementById('assignToSearch');
+  const dropdown = document.getElementById('assignToDropdown');
+  
+  searchInput.addEventListener('focus', () => {
+    if (allUsers.length > 0) {
+      filterUsers(searchInput.value);
+      dropdown.style.display = 'block';
+    }
+  });
+  
+  searchInput.addEventListener('input', (e) => {
+    filterUsers(e.target.value);
+  });
+  
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#assignToSearch') && !e.target.closest('#assignToDropdown')) {
+      dropdown.style.display = 'none';
+    }
+  });
+}
+
+function filterUsers(searchTerm) {
+  const dropdown = document.getElementById('assignToDropdown');
+  
+  if (!searchTerm.trim()) {
+    displayUsers(allUsers);
+  } else {
+    const term = searchTerm.toLowerCase();
+    const filtered = allUsers.filter(user => {
+      const fullName = (user.full_name || user.name || user.username || '').toLowerCase();
+      const username = (user.username || '').toLowerCase();
+      const email = (user.email || '').toLowerCase();
+      return (
+        fullName.includes(term) ||
+        username.includes(term) ||
+        email.includes(term)
+      );
+    });
+    displayUsers(filtered);
+  }
+  
+  dropdown.style.display = 'block';
+}
+
+function displayUsers(users) {
+  const userList = document.getElementById('assignToList');
+  
+  if (users.length === 0) {
+    userList.innerHTML = '<div class="no-results">No users found</div>';
+    return;
+  }
+  
+  userList.innerHTML = users.map(user => {
+    const fullName = user.full_name || user.name || user.username || 'N/A';
+    const email = user.email ? ` | ${user.email}` : '';
+    return `
+    <div class="customer-item ${selectedUserId === user.id ? 'selected' : ''}" 
+         onclick="selectUser(${JSON.stringify(user).replace(/"/g, '&quot;')})">
+      <div class="customer-item-name">${fullName}</div>
+      <div class="customer-item-details">
+        ${user.username || ''}${email}
+      </div>
+    </div>
+  `;
+  }).join('');
+}
+
+function selectUser(user) {
+  selectedUserId = user.id;
+  const searchInput = document.getElementById('assignToSearch');
+  const dropdown = document.getElementById('assignToDropdown');
+  const hiddenSelect = document.getElementById('assign_to');
+  
+  searchInput.value = user.full_name || user.name || user.username || '';
+  hiddenSelect.value = user.id;
+  dropdown.style.display = 'none';
 }
 
 // Modal functions for Type and Priority

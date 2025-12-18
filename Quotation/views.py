@@ -15,6 +15,15 @@ from customer.models import Customer
 from amc.models import AMCType
 from authentication.models import CustomUser
 from lift.models import Lift
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from rest_framework import status
+from django.views.decorators.csrf import csrf_exempt
+import logging
+from .serializers import QuotationListSerializer
+
+logger = logging.getLogger(__name__)
 
 
 # quotation/views.py (relevant excerpts)
@@ -30,7 +39,7 @@ def add_quotation_custom(request):
     context = {
         'customers': Customer.objects.all().order_by('site_name'),
         'amc_types': AMCType.objects.all().order_by('name'),
-        'users': CustomUser.objects.filter(groups__name='employee').order_by('username'),
+        'users': CustomUser.objects.all().order_by('username'),
         'lifts': Lift.objects.all().order_by('name'),
         'is_edit': False,
         'selected_lift_ids': '',
@@ -46,7 +55,7 @@ def edit_quotation_custom(request, reference_id):
         'quotation': quotation,
         'customers': Customer.objects.all().order_by('site_name'),
         'amc_types': AMCType.objects.all().order_by('name'),
-        'users': CustomUser.objects.filter(groups__name='employee').order_by('username'),
+        'users': CustomUser.objects.all().order_by('username'),
         'lifts': Lift.objects.all().order_by('name'),
         'is_edit': True,
         'selected_lift_ids': selected_lift_ids,
@@ -236,7 +245,7 @@ def get_amc_types(request):
 def get_executives(request):
     """Get all sales/service executives"""
     try:
-        executives = CustomUser.objects.filter(groups__name='employee').order_by('first_name', 'last_name', 'username')
+        executives = CustomUser.objects.all().order_by('first_name', 'last_name', 'username')
         data = []
         for user in executives:
             full_name = f"{user.first_name} {user.last_name}".strip()
@@ -466,11 +475,10 @@ def bulk_import_view(request):
                     sales_service_executive = None
                     if sales_service_executive_value:
                         sales_service_executive = CustomUser.objects.filter(
-                            username=sales_service_executive_value,
-                            groups__name='employee'
+                            username=sales_service_executive_value
                         ).first()
                         if not sales_service_executive:
-                            errors.append(f'Row {idx}: Sales/Service Executive "{sales_service_executive_value}" not found or not an employee.')
+                            errors.append(f'Row {idx}: Sales/Service Executive "{sales_service_executive_value}" not found.')
                             error_count += 1
                             continue
                     
@@ -592,3 +600,56 @@ def bulk_import_view(request):
     
     # GET request - render form
     return render(request, 'quotation/bulk_import.html')
+
+
+# ======================================================
+#  CUSTOMER MOBILE APP QUOTATION APIs
+# ======================================================
+
+@csrf_exempt
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def customer_quotations_list(request):
+    """
+    Get all quotations for a specific customer by email
+    Only customers can view their own quotations
+    """
+    email = request.query_params.get('email')
+    
+    if not email:
+        return Response(
+            {'error': 'Email parameter is required'}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        # Find customer by email
+        customer = Customer.objects.get(email=email)
+        
+        # Get all quotations for this customer
+        quotations = Quotation.objects.filter(
+            customer=customer
+        ).select_related('customer', 'amc_type', 'sales_service_executive').prefetch_related('lifts').order_by('-date')
+        
+        # Serialize quotations
+        serializer = QuotationListSerializer(quotations, many=True)
+        
+        response_data = {
+            'quotations': serializer.data,
+            'count': quotations.count(),
+            'message': 'Quotations retrieved successfully'
+        }
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+        
+    except Customer.DoesNotExist:
+        return Response(
+            {'error': 'Customer not found with this email address'}, 
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        logger.error(f"Error retrieving customer quotations: {e}", exc_info=True)
+        return Response(
+            {'error': f'Internal server error: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

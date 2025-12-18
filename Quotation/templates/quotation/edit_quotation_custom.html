@@ -213,6 +213,67 @@ body {
    margin-top: 0.25rem;
  }
 
+/* Customer/User dropdown styles */
+.customer-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #D1D5DB;
+  border-top: none;
+  border-radius: 0 0 0.375rem 0.375rem;
+  max-height: 300px;
+  overflow-y: auto;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  margin-top: -1px;
+}
+
+.customer-item {
+  padding: 0.75rem;
+  cursor: pointer;
+  border-bottom: 1px solid #F3F4F6;
+  transition: background-color 0.2s;
+}
+
+.customer-item:hover {
+  background-color: #F9FAFB;
+}
+
+.customer-item:last-child {
+  border-bottom: none;
+}
+
+.customer-item-name {
+  font-weight: 500;
+  color: #374151;
+  font-size: 0.875rem;
+}
+
+.customer-item-details {
+  font-size: 0.75rem;
+  color: #6B7280;
+  margin-top: 0.25rem;
+}
+
+.customer-item.selected {
+  background-color: #EBF4FF;
+  border-left: 3px solid #3B82F6;
+}
+
+.no-results {
+  padding: 1rem;
+  text-align: center;
+  color: #6B7280;
+  font-size: 0.875rem;
+}
+
+#executiveSearch:focus {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
  .year-picker-container {
    position: absolute;
    top: 100%;
@@ -643,10 +704,21 @@ body {
 
             <div class="form-group">
               <label class="form-label">Sales/Service Executive</label>
-              <div class="form-select-addon">
-                <select id="sales_service_executive" name="sales_service_executive" class="form-input form-select">
-                  <option value="">Loading executives...</option>
+              <div style="position: relative;">
+                <input 
+                  type="text"
+                  id="executiveSearch" 
+                  class="form-input" 
+                  placeholder="Search user..."
+                  autocomplete="off"
+                  value="{% if quotation.sales_service_executive %}{{ quotation.sales_service_executive.first_name }} {{ quotation.sales_service_executive.last_name }}{% endif %}"
+                />
+                <select id="sales_service_executive" name="sales_service_executive" class="form-select" style="display: none;">
+                  <option value="">Select Executive</option>
                 </select>
+                <div id="executiveDropdown" class="customer-dropdown" style="display: none;">
+                  <div id="executiveList"></div>
+                </div>
               </div>
             </div>
 
@@ -810,6 +882,8 @@ var currentAmcTypeId = {% if is_edit and quotation.amc_type %}{{ quotation.amc_t
 var currentExecutiveId = {% if is_edit and quotation.sales_service_executive %}{{ quotation.sales_service_executive.id }}{% else %}null{% endif %};
 var currentLiftId = {% if is_edit and quotation.lifts.first %}{{ quotation.lifts.first.id }}{% else %}null{% endif %};
 var currentType = '{{ quotation.type|escapejs }}';
+var allUsers = [];
+var selectedUserId = currentExecutiveId;
 
 document.addEventListener('DOMContentLoaded', function() {
   // Load various dropdowns dynamically on page load
@@ -1048,6 +1122,7 @@ function loadExecutives() {
   fetch('/quotation/api/executives/')
     .then(function(response) { return response.json(); })
     .then(function(data) {
+      allUsers = data;
       var select = document.getElementById('sales_service_executive');
       select.innerHTML = '<option value="">Select Executive</option>';
 
@@ -1063,12 +1138,102 @@ function loadExecutives() {
 
         select.appendChild(option);
       });
+      
+      // Set initial search input value if executive is already assigned
+      if (currentExecutiveId) {
+        var assignedUser = data.find(function(u) { return u.id === currentExecutiveId; });
+        if (assignedUser) {
+          var searchInput = document.getElementById('executiveSearch');
+          if (searchInput) {
+            searchInput.value = assignedUser.name || assignedUser.username || '';
+          }
+        }
+      }
+      
+      setupExecutiveSearch();
     })
     .catch(function(error) {
       console.error('Error loading executives:', error);
       var select = document.getElementById('sales_service_executive');
       select.innerHTML = '<option value="">Error loading executives</option>';
     });
+}
+
+function setupExecutiveSearch() {
+  var searchInput = document.getElementById('executiveSearch');
+  var dropdown = document.getElementById('executiveDropdown');
+  
+  if (!searchInput) return;
+  
+  searchInput.addEventListener('focus', function() {
+    if (allUsers.length > 0) {
+      filterExecutives(searchInput.value);
+      dropdown.style.display = 'block';
+    }
+  });
+  
+  searchInput.addEventListener('input', function(e) {
+    filterExecutives(e.target.value);
+  });
+  
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('#executiveSearch') && !e.target.closest('#executiveDropdown')) {
+      dropdown.style.display = 'none';
+    }
+  });
+}
+
+function filterExecutives(searchTerm) {
+  var dropdown = document.getElementById('executiveDropdown');
+  
+  if (!searchTerm.trim()) {
+    displayExecutives(allUsers);
+  } else {
+    var term = searchTerm.toLowerCase();
+    var filtered = allUsers.filter(function(user) {
+      var fullName = (user.name || user.username || '').toLowerCase();
+      var username = (user.username || '').toLowerCase();
+      var email = (user.email || '').toLowerCase();
+      return (
+        fullName.indexOf(term) !== -1 ||
+        username.indexOf(term) !== -1 ||
+        email.indexOf(term) !== -1
+      );
+    });
+    displayExecutives(filtered);
+  }
+  
+  dropdown.style.display = 'block';
+}
+
+function displayExecutives(users) {
+  var userList = document.getElementById('executiveList');
+  
+  if (users.length === 0) {
+    userList.innerHTML = '<div class="no-results">No users found</div>';
+    return;
+  }
+  
+  userList.innerHTML = users.map(function(user) {
+    var fullName = user.name || user.username || 'N/A';
+    var email = user.email ? ' | ' + user.email : '';
+    var selectedClass = selectedUserId === user.id ? 'selected' : '';
+    return '<div class="customer-item ' + selectedClass + '" onclick="selectExecutive(' + JSON.stringify(user).replace(/"/g, '&quot;') + ')">' +
+      '<div class="customer-item-name">' + fullName + '</div>' +
+      '<div class="customer-item-details">' + (user.username || '') + email + '</div>' +
+      '</div>';
+  }).join('');
+}
+
+function selectExecutive(user) {
+  selectedUserId = user.id;
+  var searchInput = document.getElementById('executiveSearch');
+  var dropdown = document.getElementById('executiveDropdown');
+  var hiddenSelect = document.getElementById('sales_service_executive');
+  
+  searchInput.value = user.name || user.username || '';
+  hiddenSelect.value = user.id;
+  dropdown.style.display = 'none';
 }
 
 function loadLifts() {

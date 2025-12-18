@@ -9,6 +9,7 @@ urlpatterns = [
     # API endpoints
     path('api/requisition/next-reference/', views.get_next_requisition_reference, name='get_next_requisition_reference'),
     path('api/requisition/customers/', views.get_customers, name='get_requisition_customers'),
+    path('api/requisition/users/', views.get_users, name='get_requisition_users'),
     
     # Stock Register
     path('stock-register/', views.stock_register_view, name='stock_register'),

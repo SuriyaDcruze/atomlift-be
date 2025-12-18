@@ -37,6 +37,12 @@ urlpatterns = [
     path("api/customer/cities/<int:city_id>/delete/", views.delete_city, name="delete_city"),
     # Mobile create customer
     path("api/customer/create/", views.create_customer_mobile, name="create_customer_mobile"),
+    
+    # Customer mobile app authentication APIs
+    path("api/customer/generate-otp/", views.customer_generate_otp, name="customer_generate_otp"),
+    path("api/customer/verify-otp/", views.customer_verify_otp_and_login, name="customer_verify_otp"),
+    path("api/customer/resend-otp/", views.customer_resend_otp, name="customer_resend_otp"),
+    path("api/customer/logout/", views.customer_logout, name="customer_logout"),
 ]
 
 # Serve media files in development

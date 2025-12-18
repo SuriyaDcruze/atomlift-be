@@ -13,4 +13,9 @@ urlpatterns = [
     path('this-month-completed/', views.this_month_completed, name='this_month_completed'),
     path('last-month-completed/', views.last_month_completed, name='last_month_completed'),
     path('pending/', views.pending_services, name='pending_services'),
+    
+    # Customer mobile app API
+    path('api/mobile/routine-services/', views.customer_routine_services, name='customer_routine_services'),
+    path('api/mobile/routine-services/all/', views.customer_all_routine_services, name='customer_all_routine_services'),
+    path('api/mobile/download-service-slip/', views.download_service_slip, name='download_service_slip'),
 ]

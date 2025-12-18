@@ -27,6 +27,13 @@ except ImportError:
 from .models import Complaint, ComplaintType, ComplaintPriority
 from customer.models import Customer
 from authentication.models import CustomUser
+from lift.models import Lift
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from rest_framework import status
+from django.utils import timezone
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -439,7 +446,7 @@ def delete_complaint_priority(request, pk):
 
 @require_http_methods(["GET"])
 def get_executives(request):
-    users = CustomUser.objects.filter(groups__name='employee').order_by('first_name', 'last_name')
+    users = CustomUser.objects.all().order_by('first_name', 'last_name')
     return JsonResponse([
         {
             'id': u.id,
@@ -535,6 +542,15 @@ def create_complaint(request):
 
     try:
         customer = Customer.objects.get(id=data.get('customer')) if data.get('customer') else None
+        
+        # Check if customer has an active complaint
+        if customer and Complaint.has_active_complaint(customer):
+            active_complaint = Complaint.get_active_complaint(customer)
+            return JsonResponse({
+                'success': False, 
+                'error': f'Cannot create a new complaint. Customer has an active complaint ({active_complaint.reference}) with status "{active_complaint.get_status_display()}". Please close the existing complaint before creating a new one.'
+            }, status=400)
+        
         complaint = Complaint.objects.create(
             complaint_type=ComplaintType.objects.get(id=data['complaint_type']) if data.get('complaint_type') else None,
             date=data.get('date') or None,
@@ -822,6 +838,14 @@ def submit_public_complaint(request, customer_id):
     try:
         customer = get_object_or_404(Customer, id=customer_id)
         
+        # Check if customer has an active complaint
+        if Complaint.has_active_complaint(customer):
+            active_complaint = Complaint.get_active_complaint(customer)
+            return JsonResponse({
+                'success': False, 
+                'error': f'Cannot create a new complaint. You have an active complaint ({active_complaint.reference}) with status "{active_complaint.get_status_display()}". Please wait until the existing complaint is closed before creating a new one.'
+            }, status=400)
+        
         # Get selected complaint templates (checkboxes)
         complaint_templates = request.POST.getlist('complaint_templates[]') or request.POST.getlist('complaint_templates')
         templates_text = ", ".join(complaint_templates) if complaint_templates else ""
@@ -1067,9 +1091,9 @@ def bulk_import_view(request):
                     
                     assign_to = None
                     if assign_to_value:
-                        assign_to = CustomUser.objects.filter(username=assign_to_value, groups__name='employee').first()
+                        assign_to = CustomUser.objects.filter(username=assign_to_value).first()
                         if not assign_to:
-                            errors.append(f'Row {idx}: Employee "{assign_to_value}" not found or is not in employee group. Please use an existing employee username.')
+                            errors.append(f'Row {idx}: User "{assign_to_value}" not found. Please use an existing username.')
                             error_count += 1
                             continue
                     
@@ -1096,6 +1120,13 @@ def bulk_import_view(request):
                     complaint_templates = row.get('complaint_templates', '').strip() if row.get('complaint_templates') else ''
                     technician_remark = row.get('technician_remark', '').strip() if row.get('technician_remark') else ''
                     solution = row.get('solution', '').strip() if row.get('solution') else ''
+                    
+                    # Check if customer has an active complaint
+                    if Complaint.has_active_complaint(customer):
+                        active_complaint = Complaint.get_active_complaint(customer)
+                        errors.append(f'Row {idx}: Cannot create a new complaint. Customer "{customer_value}" has an active complaint ({active_complaint.reference}) with status "{active_complaint.get_status_display()}". Please close the existing complaint before creating a new one.')
+                        error_count += 1
+                        continue
                     
                     # Create complaint (same structure as create_complaint)
                     complaint = Complaint.objects.create(
@@ -1174,3 +1205,443 @@ def bulk_import_view(request):
     
     # GET request - render form
     return render(request, 'complaints/bulk_import.html')
+
+
+# ======================================================
+#  CUSTOMER MOBILE APP COMPLAINT APIs
+# ======================================================
+
+@csrf_exempt
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def customer_lifts_list(request):
+    """
+    Get lifts for a specific customer by email.
+    Used by mobile app to show available lifts when booking complaints.
+    """
+    email = request.query_params.get('email')
+    
+    if not email:
+        return Response(
+            {'error': 'Email parameter is required'}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        # Find customer by email
+        customer = Customer.objects.get(email=email)
+        
+        # Get lifts where lift_code matches customer's job_no
+        lifts = []
+        if customer.job_no:
+            lifts = Lift.objects.filter(lift_code=customer.job_no).order_by('name')
+        
+        data = [
+            {
+                "id": lift.id, 
+                "name": lift.name,
+                "reference_id": lift.reference_id,
+                "lift_code": lift.lift_code or "",
+                "brand": str(lift.brand) if lift.brand else "N/A"
+            }
+            for lift in lifts
+        ]
+        
+        return Response({'lifts': data}, status=status.HTTP_200_OK)
+        
+    except Customer.DoesNotExist:
+        return Response(
+            {'error': 'Customer not found with this email address'}, 
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        logger.error(f"Error retrieving customer lifts: {e}", exc_info=True)
+        return Response(
+            {'error': f'Internal server error: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@csrf_exempt
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def customer_complaints_list(request):
+    """
+    Get complaints for a specific customer by email.
+    Used by mobile app to show customer's complaints.
+    
+    Query parameters:
+    - email: Customer email (required)
+    - assigned_only: If 'true', only return complaints that have been assigned to someone
+    """
+    email = request.query_params.get('email')
+    assigned_only = request.query_params.get('assigned_only', 'false').lower() == 'true'
+    
+    if not email:
+        return Response(
+            {'error': 'Email parameter is required'}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        # Find customer by email
+        customer = Customer.objects.get(email=email)
+        
+        # Get all complaints for this customer
+        complaints = Complaint.objects.filter(
+            customer=customer
+        ).select_related(
+            'customer', 'complaint_type', 'priority', 'assign_to'
+        )
+        
+        # Filter for assigned complaints only if requested
+        if assigned_only:
+            complaints = complaints.filter(assign_to__isnull=False)
+        
+        # Order by date and created time
+        complaints = complaints.order_by('-date', '-created')
+        
+        # Serialize complaints with request context for absolute URLs
+        from .serializers import ComplaintListSerializer
+        serializer = ComplaintListSerializer(complaints, many=True, context={'request': request})
+        
+        return Response({
+            'complaints': serializer.data,
+            'count': complaints.count()
+        }, status=status.HTTP_200_OK)
+        
+    except Customer.DoesNotExist:
+        return Response(
+            {'error': 'Customer not found with this email address'}, 
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        logger.error(f"Error retrieving customer complaints: {e}", exc_info=True)
+        return Response(
+            {'error': f'Internal server error: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def customer_create_complaint(request):
+    """
+    Create a complaint from customer mobile app.
+    Requires customer email to identify the customer.
+    """
+    try:
+        data = request.data
+        
+        # Get customer email (required)
+        customer_email = data.get('email')
+        if not customer_email:
+            return Response(
+                {'error': 'Customer email is required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Find customer
+        try:
+            customer = Customer.objects.get(email=customer_email)
+        except Customer.DoesNotExist:
+            return Response(
+                {'error': 'Customer not found with this email address'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Check if customer has an active complaint
+        if Complaint.has_active_complaint(customer):
+            active_complaint = Complaint.get_active_complaint(customer)
+            return Response(
+                {
+                    'error': f'Cannot create a new complaint. You have an active complaint ({active_complaint.reference}) with status "{active_complaint.get_status_display()}". Please wait until the existing complaint is closed before creating a new one.'
+                }, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Get or create default complaint type if not provided
+        complaint_type = None
+        if data.get('complaint_type_id'):
+            try:
+                complaint_type = ComplaintType.objects.get(id=data.get('complaint_type_id'))
+            except ComplaintType.DoesNotExist:
+                pass
+        
+        # Get or create default priority if not provided
+        priority = None
+        if data.get('priority_id'):
+            try:
+                priority = ComplaintPriority.objects.get(id=data.get('priority_id'))
+            except ComplaintPriority.DoesNotExist:
+                pass
+        
+        # Build complaint message from templates and description
+        complaint_templates = data.get('complaint_templates', [])
+        description = data.get('description', '')
+        
+        # Combine templates and description into message
+        message_parts = []
+        if complaint_templates:
+            if isinstance(complaint_templates, list):
+                message_parts.extend(complaint_templates)
+            else:
+                message_parts.append(str(complaint_templates))
+        
+        if description:
+            message_parts.append(description)
+        
+        message = '\n'.join(message_parts) if message_parts else 'No description provided'
+        
+        # Create subject from templates or use default
+        subject = data.get('subject', '')
+        if not subject and complaint_templates:
+            if isinstance(complaint_templates, list):
+                subject = ', '.join(complaint_templates[:3])  # First 3 templates
+            else:
+                subject = str(complaint_templates)
+        
+        if not subject:
+            subject = 'Customer Complaint'
+        
+        # Parse date from string if provided, otherwise use today
+        complaint_date = timezone.now().date()
+        if data.get('date'):
+            try:
+                # Try to parse the date string (format: YYYY-MM-DD)
+                date_str = data.get('date')
+                if isinstance(date_str, str):
+                    complaint_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+                elif isinstance(date_str, datetime):
+                    complaint_date = date_str.date()
+            except (ValueError, TypeError) as e:
+                logger.warning(f"Invalid date format provided: {date_str}, using today's date. Error: {e}")
+                complaint_date = timezone.now().date()
+        
+        # Get lift_info from selected lift
+        lift_info = data.get('lift_info', '')
+        # If lift_info is provided, use it; otherwise it will be empty string
+        
+        # Create complaint
+        complaint = Complaint.objects.create(
+            customer=customer,
+            complaint_type=complaint_type,
+            date=complaint_date,
+            contact_person_name=data.get('contact_person_name', customer.contact_person_name or ''),
+            contact_person_mobile=data.get('contact_person_mobile', customer.phone or customer.mobile or ''),
+            block_wing=data.get('block_wing', customer.site_address or ''),
+            lift_info=lift_info,
+            complaint_templates=', '.join(complaint_templates) if isinstance(complaint_templates, list) else str(complaint_templates),
+            status='open',  # New complaints are always open
+            priority=priority,
+            subject=subject,
+            message=message,
+        )
+        
+        # Format date for response
+        # Refresh complaint from DB to ensure we have the correct date object
+        complaint.refresh_from_db()
+        date_str = None
+        if complaint.date:
+            try:
+                # complaint.date should be a date object from Django
+                date_str = complaint.date.strftime('%Y-%m-%d')
+            except AttributeError:
+                # Fallback if somehow it's a string
+                date_str = str(complaint.date)
+        
+        return Response({
+            'success': True,
+            'message': 'Complaint created successfully',
+            'complaint': {
+                'id': complaint.id,
+                'reference': complaint.reference,
+                'subject': complaint.subject,
+                'status': complaint.status,
+                'date': date_str,
+            }
+        }, status=status.HTTP_201_CREATED)
+        
+    except Exception as e:
+        logger.error(f"Error creating customer complaint: {e}", exc_info=True)
+        return Response(
+            {'error': f'Internal server error: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@csrf_exempt
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def customer_download_complaint_pdf(request, reference):
+    """
+    Download PDF for a specific complaint by reference.
+    Used by mobile app to download complaint PDF.
+    """
+    try:
+        # Get complaint by reference
+        complaint = get_object_or_404(
+            Complaint.objects.select_related('customer', 'assign_to', 'complaint_type', 'priority'),
+            reference=reference
+        )
+
+        # --- Prepare data ---
+        context = {
+            'company_name': 'Atom Lifts India Pvt Ltd',
+            'address': 'No.87B, Pillayar Koll Street, Mannurpet, Ambattur Indus Estate, Chennai 50, CHENNAI',
+            'phone': '9600087456',
+            'email': 'admin@atomlifts.com',
+            'ticket_no': complaint.reference or '',
+            'ticket_date': complaint.date.strftime('%d/%m/%Y') if complaint.date else '',
+            'ticket_type': complaint.complaint_type.name if complaint.complaint_type else '',
+            'priority': complaint.priority.name if complaint.priority else '',
+            'customer_name': getattr(complaint.customer, 'site_name', '') if complaint.customer else '',
+            'site_address': getattr(complaint.customer, 'site_address', '') if complaint.customer else '',
+            'contact_person': getattr(complaint.customer, 'contact_person_name', '') or complaint.contact_person_name or '',
+            'contact_mobile': getattr(complaint.customer, 'phone', '') or complaint.contact_person_mobile or '',
+            'block_wing': complaint.block_wing or '',
+            'subject': complaint.subject or '',
+            'message': complaint.message or '',
+            'assigned_to': (
+                f"{complaint.assign_to.first_name} {complaint.assign_to.last_name}".strip()
+                or complaint.assign_to.username
+                if complaint.assign_to else "Unassigned"
+            ),
+            'technician_remark': complaint.technician_remark or '',
+            'solution': complaint.solution or '',
+            'technician_signature': complaint.technician_signature.url if complaint.technician_signature else '',
+            'customer_signature': complaint.customer_signature.url if complaint.customer_signature else '',
+            'technician_signature_file': complaint.technician_signature if complaint.technician_signature else None,
+            'customer_signature_file': complaint.customer_signature if complaint.customer_signature else None,
+        }
+
+        # --- Create PDF ---
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=72)
+        styles = getSampleStyleSheet()
+        story = []
+
+        # Header
+        header_style = ParagraphStyle(
+            name='HeaderStyle',
+            parent=styles['Heading1'],
+            fontSize=18,
+            alignment=1  # Center
+        )
+        story.append(Paragraph(context['company_name'], header_style))
+        story.append(Paragraph(context['address'], styles['Normal']))
+        story.append(Paragraph(f"Phone: {context['phone']} | Email: {context['email']}", styles['Normal']))
+        story.append(Spacer(1, 12))
+
+        # Complaint Info
+        data = [
+            ['Ticket No:', context['ticket_no']],
+            ['Date:', context['ticket_date']],
+            ['Type:', context['ticket_type']],
+            ['Priority:', context['priority']],
+        ]
+        table = Table(data, colWidths=[100, 400])
+        table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ]))
+        story.append(table)
+        story.append(Spacer(1, 12))
+
+        # Customer Details
+        story.append(Paragraph("Customer Details", styles['Heading2']))
+        cust_data = [
+            ['Customer Name:', context['customer_name']],
+            ['Site Address:', context['site_address']],
+            ['Contact Person:', context['contact_person']],
+            ['Contact Mobile:', context['contact_mobile']],
+            ['Block/Wing:', context['block_wing']],
+        ]
+        cust_table = Table(cust_data, colWidths=[100, 400])
+        cust_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ]))
+        story.append(cust_table)
+        story.append(Spacer(1, 12))
+
+        # Complaint Details
+        story.append(Paragraph("Complaint Details", styles['Heading2']))
+        story.append(Paragraph(f"Subject: {context['subject']}", styles['Normal']))
+        story.append(Paragraph(f"Message: {context['message']}", styles['Normal']))
+        story.append(Paragraph(f"Assigned To: {context['assigned_to']}", styles['Normal']))
+        story.append(Spacer(1, 12))
+
+        # Resolution
+        story.append(Paragraph("Resolution", styles['Heading2']))
+        story.append(Paragraph(f"Technician Remark: {context['technician_remark']}", styles['Normal']))
+        story.append(Paragraph(f"Solution: {context['solution']}", styles['Normal']))
+        story.append(Spacer(1, 12))
+
+        # Signatures
+        story.append(Paragraph("Signatures", styles['Heading2']))
+
+        # Technician Signature
+        story.append(Paragraph("Technician Signature:", styles['Normal']))
+        if context.get('technician_signature_file'):
+            try:
+                sig_file = context['technician_signature_file']
+                if hasattr(sig_file, 'path'):
+                    with open(sig_file.path, 'rb') as f:
+                        img_buffer = BytesIO(f.read())
+                elif hasattr(sig_file, 'read'):
+                    img_buffer = BytesIO(sig_file.read())
+                    sig_file.seek(0)
+                else:
+                    with open(sig_file, 'rb') as f:
+                        img_buffer = BytesIO(f.read())
+                sig_img = Image(img_buffer, width=200, height=60)
+                story.append(sig_img)
+            except Exception as e:
+                logger.error(f"Error embedding technician signature image: {str(e)}")
+                story.append(Paragraph("[Signature captured digitally]", styles['Italic']))
+        else:
+            story.append(Paragraph("___________________________", styles['Normal']))
+        story.append(Spacer(1, 12))
+
+        # Customer Signature
+        story.append(Paragraph("Customer Signature:", styles['Normal']))
+        if context.get('customer_signature_file'):
+            try:
+                sig_file = context['customer_signature_file']
+                if hasattr(sig_file, 'path'):
+                    with open(sig_file.path, 'rb') as f:
+                        img_buffer = BytesIO(f.read())
+                elif hasattr(sig_file, 'read'):
+                    img_buffer = BytesIO(sig_file.read())
+                    sig_file.seek(0)
+                else:
+                    with open(sig_file, 'rb') as f:
+                        img_buffer = BytesIO(f.read())
+                sig_img = Image(img_buffer, width=200, height=60)
+                story.append(sig_img)
+            except Exception as e:
+                logger.error(f"Error embedding customer signature image: {str(e)}")
+                story.append(Paragraph("[Signature captured digitally]", styles['Italic']))
+        else:
+            story.append(Paragraph("___________________________", styles['Normal']))
+        story.append(Spacer(1, 12))
+
+        story.append(Spacer(1, 12))
+
+        # Build and return
+        doc.build(story)
+        buffer.seek(0)
+        response = HttpResponse(buffer, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename=complaint_{context["ticket_no"] or complaint.pk}.pdf'
+        return response
+
+    except Exception as e:
+        logger.error(f"Error generating complaint PDF: {str(e)}")
+        return Response(
+            {'error': f'Error generating PDF: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

@@ -267,17 +267,17 @@
                     <li>First row must contain column headers</li>
                     <li><strong>Required columns:</strong> site_name, mobile, job_no, city</li>
                     <li><strong>Optional columns:</strong> email, phone, site_address, office_address, same_as_site_address, contact_person_name, designation, pin_code, country, province_state, routes, branch, sector, handover_date (or handover_date_str), billing_name, latitude, longitude, notes, generate_license_now</li>
-                    <li>Foreign key fields (province_state, city, routes, branch) must match existing records by their value/name</li>
+                    <li>Foreign key fields (city, province_state, routes, branch) will be created automatically if they don't exist</li>
                     <li><strong>Validation Rules (same as Add Customer form):</strong></li>
                     <li style="margin-left: 1.5rem;">• <strong>Site Name:</strong> Required</li>
                     <li style="margin-left: 1.5rem;">• <strong>Mobile:</strong> Required, must be exactly 10 digits, must be unique</li>
                     <li style="margin-left: 1.5rem;">• <strong>Job No:</strong> Required, must be unique</li>
-                    <li style="margin-left: 1.5rem;">• <strong>City:</strong> Required, must match an existing city name</li>
+                    <li style="margin-left: 1.5rem;">• <strong>City:</strong> Required, will be created automatically if it doesn't exist</li>
                     <li style="margin-left: 1.5rem;">• <strong>Email:</strong> Optional, must be unique if provided</li>
                     <li style="margin-left: 1.5rem;">• <strong>Phone:</strong> Optional, must be exactly 10 digits if provided, must be unique if provided</li>
-                    <li style="margin-left: 1.5rem;">• <strong>Province/State:</strong> Optional, must match an existing province/state name</li>
-                    <li style="margin-left: 1.5rem;">• <strong>Routes:</strong> Optional, must match an existing route name</li>
-                    <li style="margin-left: 1.5rem;">• <strong>Branch:</strong> Optional, must match an existing branch name</li>
+                    <li style="margin-left: 1.5rem;">• <strong>Province/State:</strong> Optional, will be created automatically if it doesn't exist</li>
+                    <li style="margin-left: 1.5rem;">• <strong>Routes:</strong> Optional, will be created automatically if it doesn't exist</li>
+                    <li style="margin-left: 1.5rem;">• <strong>Branch:</strong> Optional, will be created automatically if it doesn't exist</li>
                     <li style="margin-left: 1.5rem;">• <strong>Sector:</strong> Optional, must be either "government" or "private"</li>
                     <li style="margin-left: 1.5rem;">• <strong>Handover Date:</strong> Optional, format YYYY-MM-DD (same as export format)</li>
                     <li style="margin-left: 1.5rem;">• <strong>Latitude:</strong> Optional, must be between -90 and 90 degrees</li>

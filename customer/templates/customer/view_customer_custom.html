@@ -1206,6 +1206,7 @@ tr {
                     <span style="padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; font-weight: 600; 
                     {% if invoice.status == 'paid' %}background: #D1FAE5; color: #065F46;
                     {% elif invoice.status == 'partially_paid' %}background: #FEF3C7; color: #92400E;
+                    {% elif invoice.status == 'due' %}background: #FEF3C7; color: #B45309;
                     {% else %}background: #FEE2E2; color: #991B1B;{% endif %}">
                       {{ invoice.get_status_display|upper }}
                     </span>

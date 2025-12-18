@@ -26,7 +26,7 @@ class Invoice(ClusterableModel):
     PAYMENT_CHOICES = [('cash', 'Cash'), ('cheque', 'Cheque'), ('neft', 'NEFT')]
     payment_term = models.CharField(max_length=10, choices=PAYMENT_CHOICES, default='cash')
     uploads_files = models.FileField(upload_to='invoice_uploads/', null=True, blank=True, max_length=100)
-    STATUS_CHOICES = [('open', 'Open'), ('paid', 'Paid'), ('partially_paid', 'Partially Paid')]
+    STATUS_CHOICES = [('open', 'Open'), ('paid', 'Paid'), ('partially_paid', 'Partially Paid'), ('due', 'Due')]
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open')
 
     panels = [
@@ -50,6 +50,13 @@ class Invoice(ClusterableModel):
             # Safely generate reference_id
             last_id = int(last_invoice.reference_id.replace(self.REFERENCE_PREFIX, '')) if last_invoice and last_invoice.reference_id.startswith(self.REFERENCE_PREFIX) else 0
             self.reference_id = f'{self.REFERENCE_PREFIX}{str(last_id + 1).zfill(3)}'
+        
+        # Auto-update status to 'due' if due_date has passed and invoice is not paid
+        from django.utils import timezone
+        if self.due_date and self.status != 'paid':
+            if self.due_date < timezone.now().date():
+                self.status = 'due'
+        
         super().save(*args, **kwargs)
     
     def get_subtotal(self):
@@ -202,10 +209,14 @@ class InvoiceViewSet(SnippetViewSet):
         instance = self.model.objects.get(pk=pk)
         return redirect(self.get_edit_url(instance))
 
-    # Custom IndexView to restrict export to superusers
+    # Custom IndexView to restrict export to superusers and auto-update overdue invoices
     class RestrictedIndexView(IndexView):
         def dispatch(self, request, *args, **kwargs):
-            """Override dispatch to check export permissions"""
+            """Override dispatch to check export permissions and update overdue invoices"""
+            # Auto-update overdue invoices before displaying the list
+            from invoice.utils import update_overdue_invoices
+            update_overdue_invoices()
+            
             # Check if this is an export request
             export_format = request.GET.get('export')
             if export_format in ['csv', 'xlsx']:

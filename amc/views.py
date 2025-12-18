@@ -25,7 +25,7 @@ from django.core.exceptions import ValidationError
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.contrib.auth import get_user_model
 from .serializers import AMCCreateSerializer, AMCListSerializer, AMCRoutineServiceSerializer
 
@@ -947,3 +947,227 @@ def bulk_import_view(request):
     
     # GET request - render form
     return render(request, 'amc/bulk_import.html')
+
+
+# ======================================================
+#  CUSTOMER MOBILE APP AMC APIs
+# ======================================================
+
+@csrf_exempt
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def customer_amcs_list(request):
+    """
+    Get all AMCs for a specific customer by email
+    Only customers can view their own AMCs
+    """
+    email = request.query_params.get('email')
+    
+    if not email:
+        return Response(
+            {'error': 'Email parameter is required'}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        # Find customer by email
+        customer = Customer.objects.get(email=email)
+        
+        # Get all AMCs for this customer
+        amcs = AMC.objects.filter(
+            customer=customer
+        ).select_related('customer', 'amc_type', 'payment_terms').order_by('-start_date')
+        
+        # Serialize AMCs
+        serializer = AMCListSerializer(amcs, many=True)
+        
+        # Add agreement download URL to each AMC
+        from django.conf import settings
+        base_url = request.build_absolute_uri('/').rstrip('/')
+        for amc_data in serializer.data:
+            amc_id = amc_data.get('id')
+            if amc_id:
+                amc_data['agreement_url'] = f"{base_url}/amc/api/customer/amcs/{amc_id}/download-agreement/"
+        
+        response_data = {
+            'amcs': serializer.data,
+            'count': amcs.count(),
+            'message': 'AMCs retrieved successfully'
+        }
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+        
+    except Customer.DoesNotExist:
+        return Response(
+            {'error': 'Customer not found with this email address'}, 
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        logger.error(f"Error retrieving customer AMCs: {e}", exc_info=True)
+        return Response(
+            {'error': f'Internal server error: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@csrf_exempt
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def download_amc_agreement(request, amc_id):
+    """
+    Generate and download AMC agreement PDF for a specific AMC
+    """
+    try:
+        amc = get_object_or_404(
+            AMC.objects.select_related('customer', 'amc_type', 'payment_terms'),
+            pk=amc_id
+        )
+        
+        customer = amc.customer
+        
+        # Prepare context data for PDF
+        context = {
+            'company_name': 'Atom Lifts India Pvt Ltd',
+            'address': 'No.87B, Pillayar Koil Street, Mannurpet, Ambattur Indus Estate, Chennai 50., CHENNAI',
+            'phone': '9600087456',
+            'email': 'admin@atomlifts.com',
+            'amc_no': amc.reference_id,
+            'contract_id': amc.reference_id,
+            'customer_name': customer.site_name if customer else 'N/A',
+            'customer_address': customer.site_address if customer and customer.site_address else 'N/A',
+            'customer_email': customer.email if customer else 'N/A',
+            'customer_phone': customer.phone if customer else 'N/A',
+            'start_date': amc.start_date.strftime('%d/%m/%Y') if amc.start_date else 'N/A',
+            'end_date': amc.end_date.strftime('%d/%m/%Y') if amc.end_date else 'N/A',
+            'contract_period': f"{amc.start_date.strftime('%d/%m/%Y')} to {amc.end_date.strftime('%d/%m/%Y')}" if amc.start_date and amc.end_date else 'N/A',
+            'amc_type': amc.amc_type.name if amc.amc_type else 'N/A',
+            'no_of_services': amc.no_of_services or 0,
+            'no_of_lifts': amc.no_of_lifts or 0,
+            'price': float(amc.price or 0),
+            'gst_percentage': float(amc.gst_percentage or 0),
+            'contract_amount': float(amc.contract_amount or 0),
+            'total_amount_paid': float(amc.total_amount_paid or 0),
+            'amount_due': float(amc.amount_due or 0),
+            'payment_terms': amc.payment_terms.name if amc.payment_terms else 'N/A',
+            'invoice_frequency': amc.get_invoice_frequency_display(),
+            'status': amc.get_status_display(),
+            'notes': amc.notes or '',
+        }
+        
+        # Build PDF
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=72)
+        styles = getSampleStyleSheet()
+        story = []
+        
+        # Header
+        header_style = ParagraphStyle(
+            name='HeaderStyle',
+            parent=styles['Heading1'],
+            fontSize=18,
+            alignment=1  # Center
+        )
+        story.append(Paragraph(context['company_name'], header_style))
+        story.append(Paragraph(context['address'], styles['Normal']))
+        story.append(Paragraph(f"Phone: {context['phone']} | Email: {context['email']}", styles['Normal']))
+        story.append(Spacer(1, 12))
+        
+        # Agreement Title
+        story.append(Paragraph("AMC AGREEMENT", header_style))
+        story.append(Spacer(1, 12))
+        
+        # Contract Information
+        story.append(Paragraph("Contract Information", styles['Heading2']))
+        contract_data = [
+            ['Contract ID:', context['amc_no']],
+            ['Contract Period:', context['contract_period']],
+            ['AMC Type:', context['amc_type']],
+            ['Status:', context['status']],
+        ]
+        contract_table = Table(contract_data, colWidths=[150, 350])
+        contract_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ]))
+        story.append(contract_table)
+        story.append(Spacer(1, 12))
+        
+        # Customer Information
+        story.append(Paragraph("Customer Information", styles['Heading2']))
+        cust_data = [
+            ['Customer Name:', context['customer_name']],
+            ['Address:', context['customer_address']],
+            ['Email:', context['customer_email']],
+            ['Phone:', context['customer_phone']],
+        ]
+        cust_table = Table(cust_data, colWidths=[150, 350])
+        cust_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ]))
+        story.append(cust_table)
+        story.append(Spacer(1, 12))
+        
+        # Financial Details
+        story.append(Paragraph("Financial Details", styles['Heading2']))
+        financial_data = [
+            ['Number of Lifts:', str(context['no_of_lifts'])],
+            ['Price per Lift:', f"₹ {context['price']:.2f}"],
+            ['GST Percentage:', f"{context['gst_percentage']:.2f}%"],
+            ['Contract Amount:', f"₹ {context['contract_amount']:.2f}"],
+            ['Total Amount Paid:', f"₹ {context['total_amount_paid']:.2f}"],
+            ['Amount Due:', f"₹ {context['amount_due']:.2f}"],
+            ['Payment Terms:', context['payment_terms']],
+            ['Invoice Frequency:', context['invoice_frequency']],
+        ]
+        financial_table = Table(financial_data, colWidths=[150, 350])
+        financial_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ]))
+        story.append(financial_table)
+        story.append(Spacer(1, 12))
+        
+        # Service Details
+        story.append(Paragraph("Service Details", styles['Heading2']))
+        service_data = [
+            ['Number of Services:', str(context['no_of_services'])],
+        ]
+        service_table = Table(service_data, colWidths=[150, 350])
+        service_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ]))
+        story.append(service_table)
+        story.append(Spacer(1, 12))
+        
+        # Notes
+        if context['notes']:
+            story.append(Paragraph("Notes", styles['Heading2']))
+            story.append(Paragraph(context['notes'], styles['Normal']))
+            story.append(Spacer(1, 12))
+        
+        # Signatures
+        story.append(Paragraph("Signatures", styles['Heading2']))
+        story.append(Paragraph("Company Signature:", styles['Normal']))
+        story.append(Paragraph("___________________________", styles['Normal']))
+        story.append(Spacer(1, 12))
+        story.append(Paragraph("Customer Signature:", styles['Normal']))
+        story.append(Paragraph("___________________________", styles['Normal']))
+        story.append(Spacer(1, 12))
+        
+        # Build and return
+        doc.build(story)
+        buffer.seek(0)
+        response = HttpResponse(buffer, content_type='application/pdf')
+        filename = f'AMC_Agreement_{context["amc_no"]}_{datetime.now().strftime("%Y%m%d")}.pdf'
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error generating AMC agreement PDF: {str(e)}", exc_info=True)
+        return HttpResponse(f"Error generating PDF: {str(e)}", status=500)

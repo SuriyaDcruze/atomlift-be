@@ -897,6 +897,11 @@ function fetchCustomerDetails() {
   const selectedOption = customerSelect.options[customerSelect.selectedIndex];
 
   if (selectedOption.value) {
+    const customerId = selectedOption.value;
+    
+    // Check if customer has lifts and show/hide navigation section accordingly
+    showNavigationSection(customerId);
+    
     // Get customer data from the option's data attributes
     const jobNo = selectedOption.getAttribute('data-job-no') || '';
     const siteAddress = selectedOption.getAttribute('data-site-address') || '';
@@ -950,7 +955,8 @@ function fetchCustomerDetails() {
       showMessage('success', 'Customer details auto-filled successfully!');
     }
   } else {
-    // If no customer selected, clear the fields
+    // If no customer selected, clear the fields and hide navigation section
+    hideNavigationSection();
     const equipmentNoInput = document.getElementById('equipment_no');
     const latitudeInput = document.getElementById('latitude');
     const geoLatitudeInput = document.getElementById('geo_latitude');
@@ -1337,13 +1343,49 @@ function loadItemsDropdown() {
 }
 
 function showNavigationSection(customerId) {
-  // Show the navigation section
-  var navigationSection = document.getElementById('navigationSection');
-  var customerViewLink = document.getElementById('customerViewLink');
+  // Check if customer has lifts with full details before showing navigation section
+  if (!customerId) {
+    hideNavigationSection();
+    return;
+  }
   
-  if (navigationSection && customerViewLink) {
-    navigationSection.style.display = 'block';
-    customerViewLink.href = '/admin/customer/view-custom/' + customerId + '/';
+  // Fetch customer lifts to check if all lifts have full details
+  fetch('/admin/api/customer/' + customerId + '/lifts/')
+    .then(function(response) { return response.json(); })
+    .then(function(result) {
+      var navigationSection = document.getElementById('navigationSection');
+      var customerViewLink = document.getElementById('customerViewLink');
+      
+      if (navigationSection && customerViewLink) {
+        // Only show navigation section if:
+        // 1. Customer has no lifts (has_customer_lifts is false), OR
+        // 2. Customer has lifts but they don't all have full details
+        if (result.success && result.has_customer_lifts && result.lifts && result.lifts.length > 0 && result.all_lifts_have_full_details) {
+          // Customer has lifts with full details, hide the section
+          navigationSection.style.display = 'none';
+        } else {
+          // No lifts or lifts don't have full details, show the section
+          navigationSection.style.display = 'block';
+          customerViewLink.href = '/admin/customer/view-custom/' + customerId + '/';
+        }
+      }
+    })
+    .catch(function(error) {
+      console.error('Error checking customer lifts:', error);
+      // On error, show the section to be safe (user can still add lifts)
+      var navigationSection = document.getElementById('navigationSection');
+      var customerViewLink = document.getElementById('customerViewLink');
+      if (navigationSection && customerViewLink) {
+        navigationSection.style.display = 'block';
+        customerViewLink.href = '/admin/customer/view-custom/' + customerId + '/';
+      }
+    });
+}
+
+function hideNavigationSection() {
+  var navigationSection = document.getElementById('navigationSection');
+  if (navigationSection) {
+    navigationSection.style.display = 'none';
   }
 }
 
@@ -1425,6 +1467,11 @@ function loadCustomersDropdown(customerIdToSelect) {
           setTimeout(function() {
             showMessage('success', 'Customer details auto-filled successfully!');
           }, 500);
+        }
+        
+        // Check if customer has lifts and show/hide navigation section accordingly
+        if (currentCustomerId) {
+          showNavigationSection(currentCustomerId);
         }
       }
     })

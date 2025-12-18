@@ -81,8 +81,8 @@ class ComplaintListSerializer(serializers.ModelSerializer):
     priority = ComplaintPrioritySerializer(read_only=True)
     assign_to_name = serializers.SerializerMethodField()
     days_since_created = serializers.SerializerMethodField()
-    technician_signature = serializers.ImageField(read_only=True)
-    customer_signature = serializers.ImageField(read_only=True)
+    technician_signature_url = serializers.SerializerMethodField()
+    customer_signature_url = serializers.SerializerMethodField()
     
     class Meta:
         model = Complaint
@@ -91,7 +91,7 @@ class ComplaintListSerializer(serializers.ModelSerializer):
             'contact_person_name', 'contact_person_mobile', 'block_wing',
             'status', 'lift_info', 'complaint_templates', 'assign_to_name',
             'priority', 'subject', 'message', 'technician_remark', 'solution',
-            'technician_signature', 'customer_signature',
+            'technician_signature_url', 'customer_signature_url',
             'created', 'updated', 'days_since_created'
         ]
     
@@ -102,8 +102,26 @@ class ComplaintListSerializer(serializers.ModelSerializer):
     
     def get_days_since_created(self, obj):
         from django.utils import timezone
-        delta = timezone.now().date() - obj.date
-        return delta.days
+        if obj.date:
+            delta = timezone.now().date() - obj.date
+            return delta.days
+        return 0
+    
+    def get_technician_signature_url(self, obj):
+        if obj.technician_signature:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.technician_signature.url)
+            return obj.technician_signature.url
+        return None
+    
+    def get_customer_signature_url(self, obj):
+        if obj.customer_signature:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.customer_signature.url)
+            return obj.customer_signature.url
+        return None
 
 
 class ComplaintDetailSerializer(serializers.ModelSerializer):
@@ -171,9 +189,17 @@ class ComplaintCreateSerializer(serializers.ModelSerializer):
         ]
     
     def validate_customer(self, value):
-        """Ensure customer exists"""
+        """Ensure customer exists and doesn't have an active complaint"""
         if not value:
             raise serializers.ValidationError("Customer is required")
+        
+        # Check if customer has an active complaint
+        if Complaint.has_active_complaint(value):
+            active_complaint = Complaint.get_active_complaint(value)
+            raise serializers.ValidationError(
+                f'Cannot create a new complaint. Customer has an active complaint ({active_complaint.reference}) with status "{active_complaint.get_status_display()}". Please close the existing complaint before creating a new one.'
+            )
+        
         return value
     
     def validate_subject(self, value):

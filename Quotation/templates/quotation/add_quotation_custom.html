@@ -544,7 +544,8 @@ body {
   font-size: 0.875rem;
 }
 
-#customerSearch:focus {
+#customerSearch:focus,
+#executiveSearch:focus {
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
 }
@@ -637,9 +638,21 @@ body {
 
             <div class="form-group">
               <label class="form-label">Sales/Service Executive</label>
-              <select id="sales_service_executive" name="sales_service_executive" class="form-select">
-                <option value="">Select Executive</option>
-              </select>
+              <div style="position: relative;">
+                <input 
+                  type="text" 
+                  id="executiveSearch" 
+                  class="form-input" 
+                  placeholder="Search user..."
+                  autocomplete="off"
+                />
+                <select id="sales_service_executive" name="sales_service_executive" class="form-select" style="display: none;">
+                  <option value="">Select Executive</option>
+                </select>
+                <div id="executiveDropdown" class="customer-dropdown" style="display: none;">
+                  <div id="executiveList"></div>
+                </div>
+              </div>
               <p id="executive-error" class="form-error-message" style="display: none;"></p>
             </div>
           </div>
@@ -792,6 +805,8 @@ var submitUrl = "{% url 'create_quotation' %}";
 var adminHomeUrl = "/admin/snippets/Quotation/quotation";
 
 let allCustomers = [];
+let allUsers = [];
+let selectedUserId = null;
 let selectedCustomerId = null;
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -1041,6 +1056,7 @@ function loadExecutives() {
       return response.json();
     })
     .then(data => {
+      allUsers = data;
       const select = document.getElementById('sales_service_executive');
       select.innerHTML = '<option value="">Select Executive</option>';
       data.forEach(item => {
@@ -1049,12 +1065,94 @@ function loadExecutives() {
         option.textContent = item.name || item.username;
         select.appendChild(option);
       });
+      setupExecutiveSearch();
     })
     .catch(error => {
       console.error('Error loading executives:', error);
       document.getElementById('sales_service_executive').innerHTML = '<option value="">Error loading executives</option>';
       showMessage('error', 'Failed to load sales/service executives');
     });
+}
+
+function setupExecutiveSearch() {
+  const searchInput = document.getElementById('executiveSearch');
+  const dropdown = document.getElementById('executiveDropdown');
+  
+  if (!searchInput) return;
+  
+  searchInput.addEventListener('focus', () => {
+    if (allUsers.length > 0) {
+      filterExecutives(searchInput.value);
+      dropdown.style.display = 'block';
+    }
+  });
+  
+  searchInput.addEventListener('input', (e) => {
+    filterExecutives(e.target.value);
+  });
+  
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#executiveSearch') && !e.target.closest('#executiveDropdown')) {
+      dropdown.style.display = 'none';
+    }
+  });
+}
+
+function filterExecutives(searchTerm) {
+  const dropdown = document.getElementById('executiveDropdown');
+  
+  if (!searchTerm.trim()) {
+    displayExecutives(allUsers);
+  } else {
+    const term = searchTerm.toLowerCase();
+    const filtered = allUsers.filter(user => {
+      const fullName = (user.name || user.username || '').toLowerCase();
+      const username = (user.username || '').toLowerCase();
+      const email = (user.email || '').toLowerCase();
+      return (
+        fullName.includes(term) ||
+        username.includes(term) ||
+        email.includes(term)
+      );
+    });
+    displayExecutives(filtered);
+  }
+  
+  dropdown.style.display = 'block';
+}
+
+function displayExecutives(users) {
+  const userList = document.getElementById('executiveList');
+  
+  if (users.length === 0) {
+    userList.innerHTML = '<div class="no-results">No users found</div>';
+    return;
+  }
+  
+  userList.innerHTML = users.map(user => {
+    const fullName = user.name || user.username || 'N/A';
+    const email = user.email ? ` | ${user.email}` : '';
+    return `
+    <div class="customer-item ${selectedUserId === user.id ? 'selected' : ''}" 
+         onclick="selectExecutive(${JSON.stringify(user).replace(/"/g, '&quot;')})">
+      <div class="customer-item-name">${fullName}</div>
+      <div class="customer-item-details">
+        ${user.username || ''}${email}
+      </div>
+    </div>
+  `;
+  }).join('');
+}
+
+function selectExecutive(user) {
+  selectedUserId = user.id;
+  const searchInput = document.getElementById('executiveSearch');
+  const dropdown = document.getElementById('executiveDropdown');
+  const hiddenSelect = document.getElementById('sales_service_executive');
+  
+  searchInput.value = user.name || user.username || '';
+  hiddenSelect.value = user.id;
+  dropdown.style.display = 'none';
 }
 
 function loadLifts() {

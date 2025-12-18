@@ -16,4 +16,7 @@ urlpatterns = [
     
     # PDF download
     path('pdf/<int:pk>/', views.download_invoice_pdf, name='download_invoice_pdf'),
+    
+    # Customer mobile app invoice API
+    path('api/customer/invoices/', views.customer_invoices_list, name='customer_invoices_list'),
 ]

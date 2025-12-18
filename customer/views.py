@@ -2,21 +2,33 @@ import csv
 import io
 from datetime import datetime, date
 import json
+from decimal import Decimal, InvalidOperation
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.contrib import messages
 from django.core.exceptions import ValidationError
-from .models import Customer, Route, Branch, ProvinceState, City
+from .models import Customer, Route, Branch, ProvinceState, City, CustomerOTP
 from rest_framework.decorators import api_view, permission_classes, parser_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.pagination import PageNumberPagination
 from django.db.models import Q
-from .serializers import CustomerCreateSerializer, CustomerListSerializer
+from django.core.mail import send_mail
+from django.conf import settings
+import logging
+from .serializers import (
+    CustomerCreateSerializer, 
+    CustomerListSerializer, 
+    CustomerLoginSerializer,
+    CustomerEmailOTPRequestSerializer,
+    CustomerVerifyOTPRequestSerializer
+)
+
+logger = logging.getLogger(__name__)
 
 def customer_details(request, pk):
     try:
@@ -667,12 +679,8 @@ def bulk_import_view(request):
                         error_count += 1
                         continue
                     
-                    # Get city by value
-                    city = City.objects.filter(value=city_value).first()
-                    if not city:
-                        errors.append(f'Row {idx}: City "{city_value}" not found. Please use an existing city name.')
-                        error_count += 1
-                        continue
+                    # Get or create city by value (auto-create if doesn't exist)
+                    city, created = City.objects.get_or_create(value=city_value.strip())
                     
                     # Optional fields
                     email = row.get('email', '').strip() if row.get('email') else ''
@@ -702,33 +710,21 @@ def bulk_import_view(request):
                         error_count += 1
                         continue
                     
-                    # Get foreign key objects
+                    # Get or create foreign key objects (auto-create if doesn't exist)
                     province_state = None
                     province_state_value = row.get('province_state', '').strip() if row.get('province_state') else ''
                     if province_state_value:
-                        province_state = ProvinceState.objects.filter(value=province_state_value).first()
-                        if not province_state:
-                            errors.append(f'Row {idx}: Province/State "{province_state_value}" not found. Please use an existing province/state name.')
-                            error_count += 1
-                            continue
+                        province_state, created = ProvinceState.objects.get_or_create(value=province_state_value.strip())
                     
                     routes = None
                     routes_value = row.get('routes', '').strip() if row.get('routes') else ''
                     if routes_value:
-                        routes = Route.objects.filter(value=routes_value).first()
-                        if not routes:
-                            errors.append(f'Row {idx}: Route "{routes_value}" not found. Please use an existing route name.')
-                            error_count += 1
-                            continue
+                        routes, created = Route.objects.get_or_create(value=routes_value.strip())
                     
                     branch = None
                     branch_value = row.get('branch', '').strip() if row.get('branch') else ''
                     if branch_value:
-                        branch = Branch.objects.filter(value=branch_value).first()
-                        if not branch:
-                            errors.append(f'Row {idx}: Branch "{branch_value}" not found. Please use an existing branch name.')
-                            error_count += 1
-                            continue
+                        branch, created = Branch.objects.get_or_create(value=branch_value.strip())
                     
                     # Handle office address sync
                     site_address = row.get('site_address', '').strip() if row.get('site_address') else ''
@@ -751,28 +747,31 @@ def bulk_import_view(request):
                             continue
                     
                     # Handle latitude and longitude
+                    # Use Decimal instead of float to avoid precision issues
                     latitude = None
                     longitude = None
                     latitude_value = row.get('latitude', '')
                     longitude_value = row.get('longitude', '')
                     if latitude_value:
                         try:
-                            latitude = float(latitude_value)
+                            # Convert to Decimal, quantize to 8 decimal places, then normalize to remove trailing zeros
+                            latitude = Decimal(str(latitude_value)).quantize(Decimal('0.00000001')).normalize()
                             if latitude < -90 or latitude > 90:
                                 errors.append(f'Row {idx}: Latitude must be between -90 and 90 degrees.')
                                 error_count += 1
                                 continue
-                        except (ValueError, TypeError):
+                        except (ValueError, TypeError, InvalidOperation):
                             latitude = None
                     
                     if longitude_value:
                         try:
-                            longitude = float(longitude_value)
+                            # Convert to Decimal, quantize to 8 decimal places, then normalize to remove trailing zeros
+                            longitude = Decimal(str(longitude_value)).quantize(Decimal('0.00000001')).normalize()
                             if longitude < -180 or longitude > 180:
                                 errors.append(f'Row {idx}: Longitude must be between -180 and 180 degrees.')
                                 error_count += 1
                                 continue
-                        except (ValueError, TypeError):
+                        except (ValueError, TypeError, InvalidOperation):
                             longitude = None
                     
                     # Other optional fields
@@ -877,3 +876,223 @@ def bulk_import_view(request):
     
     # GET request - render form
     return render(request, 'customer/bulk_import.html')
+
+
+# ======================================================
+#  CUSTOMER MOBILE APP AUTHENTICATION APIs
+# ======================================================
+
+def send_customer_otp_email(email, otp_code):
+    """Send OTP via email to customer"""
+    try:
+        subject = 'Your Customer App Login OTP'
+        message = f'Your OTP for customer app login is: {otp_code}\n\nThis OTP is valid for 10 minutes.'
+        from_email = getattr(settings, 'EMAIL_HOST_USER', 'noreply@example.com')
+        recipient_list = [email]
+        
+        # Try to send email, but don't fail if email settings are not configured
+        try:
+            send_mail(subject, message, from_email, recipient_list, fail_silently=False)
+            logger.info(f"OTP email sent successfully to {email}")
+            return True
+        except Exception as email_error:
+            # Log the error but still allow OTP generation for testing
+            logger.error(f"Failed to send customer OTP email to {email}: {email_error}")
+            # In development, you might want to return True to allow testing without email
+            # In production, return False
+            if getattr(settings, 'DEBUG', False):
+                logger.warning(f"DEBUG mode: Allowing OTP generation without email. OTP: {otp_code}")
+                return True
+            return False
+    except Exception as e:
+        logger.error(f"Error in send_customer_otp_email: {e}")
+        return False
+
+
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def customer_generate_otp(request):
+    """
+    Generate and send OTP for customer mobile app login via email
+    Only customers with email addresses can use this API
+    """
+    serializer = CustomerEmailOTPRequestSerializer(data=request.data)
+    
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    email = serializer.validated_data.get('email')
+    
+    try:
+        # Find customer by email
+        customer = Customer.objects.get(email=email)
+        
+        # Generate OTP
+        otp = CustomerOTP.generate_otp(customer, email)
+        
+        # Send OTP via email
+        success = send_customer_otp_email(email, otp.otp_code)
+        
+        # In DEBUG mode, allow OTP generation even if email fails (for testing)
+        is_debug = getattr(settings, 'DEBUG', False)
+        
+        if not success and not is_debug:
+            return Response(
+                {'error': 'Failed to send OTP. Please try again.'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+        response_data = {
+            'message': 'OTP sent successfully to your email' if success else f'OTP generated (DEBUG mode). OTP: {otp.otp_code}',
+            'email': email,
+            'expires_in_minutes': 10
+        }
+        
+        # In DEBUG mode, include OTP in response for testing
+        if is_debug and not success:
+            response_data['otp_code'] = otp.otp_code
+            response_data['debug'] = True
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+        
+    except Customer.DoesNotExist:
+        return Response(
+            {'error': 'No customer found with this email address'}, 
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        logger.error(f"Error generating customer OTP: {e}", exc_info=True)
+        return Response(
+            {'error': f'Internal server error: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def customer_verify_otp_and_login(request):
+    """
+    Verify OTP and return customer details for mobile app
+    """
+    serializer = CustomerVerifyOTPRequestSerializer(data=request.data)
+    
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    email = serializer.validated_data.get('email')
+    otp_code = serializer.validated_data.get('otp_code')
+    
+    try:
+        # Find customer
+        customer = Customer.objects.get(email=email)
+        
+        # Verify OTP
+        is_valid, message = CustomerOTP.verify_otp(customer, otp_code, email)
+        
+        if not is_valid:
+            return Response(
+                {'error': message}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Serialize customer data
+        customer_serializer = CustomerLoginSerializer(customer)
+        
+        response_data = {
+            'customer': customer_serializer.data,
+            'message': 'Login successful'
+        }
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+        
+    except Customer.DoesNotExist:
+        return Response(
+            {'error': 'Customer not found'}, 
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        logger.error(f"Error verifying customer OTP: {e}", exc_info=True)
+        return Response(
+            {'error': f'Internal server error: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def customer_resend_otp(request):
+    """
+    Resend OTP for customer mobile app login
+    """
+    serializer = CustomerEmailOTPRequestSerializer(data=request.data)
+    
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    email = serializer.validated_data.get('email')
+    
+    try:
+        # Find customer
+        customer = Customer.objects.get(email=email)
+        
+        # Generate new OTP
+        otp = CustomerOTP.generate_otp(customer, email)
+        
+        # Send OTP
+        success = send_customer_otp_email(email, otp.otp_code)
+        
+        if not success:
+            return Response(
+                {'error': 'Failed to send OTP. Please try again.'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+        response_data = {
+            'message': 'OTP resent successfully to your email',
+            'email': email,
+            'expires_in_minutes': 10
+        }
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+        
+    except Customer.DoesNotExist:
+        return Response(
+            {'error': 'Customer not found'}, 
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        logger.error(f"Error resending customer OTP: {e}", exc_info=True)
+        return Response(
+            {'error': f'Internal server error: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def customer_logout(request):
+    """
+    Logout customer from mobile app
+    This endpoint can be used to log any logout activity or clear server-side sessions if needed
+    """
+    try:
+        # For customer mobile app, logout is primarily client-side
+        # This endpoint can be used for logging purposes or future session management
+        # Currently, customer authentication is stateless (no tokens), so logout is handled client-side
+        
+        response_data = {
+            'message': 'Logout successful'
+        }
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        logger.error(f"Error in customer logout: {e}", exc_info=True)
+        return Response(
+            {'error': f'Internal server error: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

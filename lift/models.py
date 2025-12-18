@@ -186,12 +186,9 @@ class Lift(models.Model):
                 })
 
             # ✅ FIXED REGEX (allows decimal point)
-            if not re.match(r'^[a-zA-Z0-9\s./-]+$', self.speed):
+            if not re.match(r'^[a-zA-Z0-9\s\-/.]+$', self.speed):
                 raise ValidationError({
-                    'speed': (
-                        'Speed must contain only letters, numbers, spaces, dots, '
-                        'hyphens, and forward slashes.'
-                    )
+                    'speed': 'Speed must not contain special characters. Only letters, numbers, spaces, hyphens, forward slashes, and decimal points are allowed.'
                 })
 
 

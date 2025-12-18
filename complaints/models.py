@@ -21,7 +21,7 @@ class ComplaintType(models.Model):
 
 
 class ComplaintPriority(models.Model):
-    name = models.CharField(max_length=20, unique=True)
+    name = models.CharField(max_length=200, unique=True)
     panels = [FieldPanel("name")]
 
     def __str__(self):
@@ -55,7 +55,6 @@ class Complaint(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        limit_choices_to={'groups__name': 'employee'},
         related_name='assigned_complaints',
     )
 
@@ -73,6 +72,19 @@ class Complaint(models.Model):
         ordering = ["-date", "-id"]
 
     def save(self, *args, **kwargs):
+        # Check if this is a new complaint (not an update)
+        is_new = self.pk is None
+        
+        if is_new and self.customer:
+            # Check if customer has an active complaint before creating a new one
+            # Exclude self in case this is being updated (though is_new should prevent that)
+            if Complaint.has_active_complaint(self.customer, exclude_complaint=self):
+                active_complaint = Complaint.get_active_complaint(self.customer, exclude_complaint=self)
+                from django.core.exceptions import ValidationError
+                raise ValidationError(
+                    f'Cannot create a new complaint. Customer has an active complaint ({active_complaint.reference}) with status "{active_complaint.get_status_display()}". Please close the existing complaint before creating a new one.'
+                )
+        
         if not self.reference:
             last = Complaint.objects.order_by("id").last()
             last_id = 1000
@@ -95,6 +107,40 @@ class Complaint(models.Model):
 
     def __str__(self):
         return f"{self.reference} - {self.subject}"
+
+    @classmethod
+    def has_active_complaint(cls, customer, exclude_complaint=None):
+        """
+        Check if customer has an active (non-closed) complaint.
+        Returns True if there's an active complaint, False otherwise.
+        exclude_complaint: Optional complaint instance to exclude from the check (useful when updating).
+        """
+        if not customer:
+            return False
+        queryset = cls.objects.filter(
+            customer=customer,
+            status__in=['open', 'in_progress']
+        )
+        if exclude_complaint:
+            queryset = queryset.exclude(pk=exclude_complaint.pk)
+        return queryset.exists()
+
+    @classmethod
+    def get_active_complaint(cls, customer, exclude_complaint=None):
+        """
+        Get the active (non-closed) complaint for a customer.
+        Returns the complaint object or None.
+        exclude_complaint: Optional complaint instance to exclude from the check (useful when updating).
+        """
+        if not customer:
+            return None
+        queryset = cls.objects.filter(
+            customer=customer,
+            status__in=['open', 'in_progress']
+        )
+        if exclude_complaint:
+            queryset = queryset.exclude(pk=exclude_complaint.pk)
+        return queryset.first()
 
     # -------- Helpers for exports --------
     @property

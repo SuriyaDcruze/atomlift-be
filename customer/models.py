@@ -1,12 +1,15 @@
 from django.db import models
 from django.core.exceptions import ValidationError
 from datetime import date, timedelta
+from django.utils import timezone
 from wagtail.admin.panels import FieldPanel, MultiFieldPanel
 from wagtail.snippets.models import register_snippet
 from wagtail.snippets.views.snippets import SnippetViewSet, SnippetViewSetGroup, IndexView
 from django.http import HttpResponseForbidden
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+import random
+import string
 
 
 # ======================================================
@@ -89,15 +92,15 @@ class Customer(models.Model):
     
     # Geographic coordinates (optional)
     latitude = models.DecimalField(
-        max_digits=12, 
-        decimal_places=10, 
+        max_digits=10, 
+        decimal_places=8, 
         blank=True, 
         null=True,
         help_text="Latitude coordinate (-90 to 90). Used for mapping and location services."
     )
     longitude = models.DecimalField(
-        max_digits=13, 
-        decimal_places=10, 
+        max_digits=11, 
+        decimal_places=8, 
         blank=True, 
         null=True,
         help_text="Longitude coordinate (-180 to 180). Used for mapping and location services."
@@ -222,19 +225,32 @@ class Customer(models.Model):
         #     Customer.objects.filter(pk=self.pk).update(generate_license_now=False)
     
     def number_of_lifts(self):
-        """Count the number of lifts assigned to this customer through licenses"""
+        """Count the number of lifts assigned to this customer through job_no matching"""
         try:
-            # Count lifts through CustomerLicense relationship
-            return self.licenses.count()
+            from lift.models import Lift
+            
+            # Count lifts where lift_code matches customer's job_no
+            if self.job_no:
+                return Lift.objects.filter(lift_code=self.job_no).count()
+            else:
+                return 0
         except Exception:
             return 0
     number_of_lifts.short_description = 'No. of Lifts'
     
     def number_of_routine_services(self):
-        """Count the number of routine services for this customer"""
+        """Count the number of routine services for this customer (both regular and AMC services)"""
         try:
             from Routine_services.models import RoutineService
-            return RoutineService.objects.filter(customer=self).count()
+            from amc.models import AMCRoutineService
+            
+            # Count regular routine services
+            regular_count = RoutineService.objects.filter(customer=self).count()
+            
+            # Count AMC routine services (through AMC relationship)
+            amc_count = AMCRoutineService.objects.filter(amc__customer=self).count()
+            
+            return regular_count + amc_count
         except Exception:
             return 0
     number_of_routine_services.short_description = 'Routine Services'
@@ -753,3 +769,90 @@ class CustomerGroup(SnippetViewSetGroup):
 # register_snippet(CustomerGroup)
 
 register_snippet(CustomerLicenseGroup)
+
+
+# ======================================================
+#  CUSTOMER OTP MODEL FOR MOBILE APP AUTHENTICATION
+# ======================================================
+
+class CustomerOTP(models.Model):
+    """
+    Model to store OTP codes for customer mobile app authentication
+    """
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='otps')
+    otp_code = models.CharField(max_length=6)
+    email = models.EmailField()  # Store email for verification
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+    attempts = models.IntegerField(default=0)
+    
+    class Meta:
+        verbose_name = "Customer OTP"
+        verbose_name_plural = "Customer OTPs"
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"OTP for {self.customer.email} - {self.otp_code}"
+    
+    def save(self, *args, **kwargs):
+        if not self.pk:  # Only set expiry time for new OTPs
+            self.expires_at = timezone.now() + timedelta(minutes=10)  # OTP expires in 10 minutes
+        super().save(*args, **kwargs)
+    
+    def is_expired(self):
+        """Check if OTP has expired"""
+        return timezone.now() > self.expires_at
+    
+    def is_valid(self):
+        """Check if OTP is valid (not used, not expired, and attempts < 3)"""
+        return not self.is_used and not self.is_expired() and self.attempts < 3
+    
+    def mark_as_used(self):
+        """Mark OTP as used"""
+        self.is_used = True
+        self.save()
+    
+    def increment_attempts(self):
+        """Increment failed attempts"""
+        self.attempts += 1
+        self.save()
+    
+    @classmethod
+    def generate_otp(cls, customer, email):
+        """Generate a new OTP for customer"""
+        # Deactivate any existing OTPs for this customer
+        cls.objects.filter(customer=customer, is_used=False).update(is_used=True)
+        
+        # Generate 6-digit OTP
+        otp_code = ''.join(random.choices(string.digits, k=6))
+        
+        # Create new OTP
+        otp = cls.objects.create(
+            customer=customer,
+            otp_code=otp_code,
+            email=email
+        )
+        
+        return otp
+    
+    @classmethod
+    def verify_otp(cls, customer, otp_code, email):
+        """Verify OTP for customer"""
+        try:
+            otp = cls.objects.get(
+                customer=customer,
+                otp_code=otp_code,
+                email=email,
+                is_used=False
+            )
+            
+            if not otp.is_valid():
+                otp.increment_attempts()
+                return False, "OTP expired or maximum attempts exceeded"
+            
+            otp.mark_as_used()
+            return True, "OTP verified successfully"
+            
+        except cls.DoesNotExist:
+            return False, "Invalid OTP"

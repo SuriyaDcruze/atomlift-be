@@ -35,4 +35,10 @@ urlpatterns = [
     path('api/complaints/priorities/create/', views.create_complaint_priority, name='complaints_api_priorities_create'),
     path('api/complaints/priorities/<int:pk>/update/', views.update_complaint_priority, name='complaints_api_priorities_update'),
     path('api/complaints/priorities/<int:pk>/delete/', views.delete_complaint_priority, name='complaints_api_priorities_delete'),
+    
+    # Customer Mobile App APIs
+    path('api/customer/lifts/', views.customer_lifts_list, name='customer_lifts_list'),
+    path('api/customer/complaints/', views.customer_complaints_list, name='customer_complaints_list'),
+    path('api/customer/complaints/create/', views.customer_create_complaint, name='customer_create_complaint'),
+    path('api/customer/complaints/<str:reference>/pdf/', views.customer_download_complaint_pdf, name='customer_download_complaint_pdf'),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

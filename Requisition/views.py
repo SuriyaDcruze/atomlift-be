@@ -22,7 +22,7 @@ def add_requisition_custom(request):
     items = Item.objects.all()
     customers = Customer.objects.all()
     amcs = AMC.objects.all()
-    employees = CustomUser.objects.filter(groups__name='employee')
+    employees = CustomUser.objects.all()
 
     if request.method == 'POST':
         try:
@@ -84,7 +84,7 @@ def edit_requisition_custom(request, reference_id):
     items = Item.objects.all()
     customers = Customer.objects.all()
     amcs = AMC.objects.all()
-    employees = CustomUser.objects.filter(groups__name='employee')
+    employees = CustomUser.objects.all()
 
     if request.method == 'POST':
         try:
@@ -163,13 +163,34 @@ def get_customers(request):
                 "id": customer.id, 
                 "site_name": customer.site_name or "",
                 "job_no": customer.job_no or "",
-                "site_id": customer.site_id or "",
                 "reference_id": customer.reference_id or "",
                 "email": customer.email or "",
                 "phone": customer.phone or ""
             }
             for customer in customers
         ]
+        return JsonResponse(data, safe=False)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@require_http_methods(["GET"])
+def get_users(request):
+    """Get all users for requisition employee field"""
+    try:
+        users = CustomUser.objects.all().order_by('first_name', 'last_name', 'username')
+        data = []
+        for user in users:
+            full_name = f"{user.first_name} {user.last_name}".strip()
+            if not full_name:
+                full_name = user.username
+            data.append({
+                "id": user.id,
+                "name": full_name,
+                "username": user.username,
+                "email": user.email or "",
+                "full_name": full_name
+            })
         return JsonResponse(data, safe=False)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
@@ -449,10 +470,10 @@ def bulk_import_view(request):
                         error_count += 1
                         continue
                     
-                    # Get employee by username (must be in employee group)
-                    employee = CustomUser.objects.filter(username=employee_value, groups__name='employee').first()
+                    # Get employee by username
+                    employee = CustomUser.objects.filter(username=employee_value).first()
                     if not employee:
-                        errors.append(f'Row {idx}: Employee "{employee_value}" not found or is not in employee group. Please use an existing employee username.')
+                        errors.append(f'Row {idx}: User "{employee_value}" not found. Please use an existing username.')
                         error_count += 1
                         continue
                     

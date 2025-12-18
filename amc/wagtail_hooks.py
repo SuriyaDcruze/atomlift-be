@@ -10,7 +10,7 @@ from wagtail.admin.menu import MenuItem, SubmenuMenuItem, Menu
 from wagtail.snippets.widgets import SnippetListingButton
 from datetime import date, timedelta
 import json
-from .views import get_customer_json  # Add this importa
+from .views import get_customer_json  # Add this import
 from . import views
 
 from .models import AMC, AMCType, AMCRoutineService, AMCRoutineServiceSchedule

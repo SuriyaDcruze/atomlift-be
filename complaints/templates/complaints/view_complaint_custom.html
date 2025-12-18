@@ -83,6 +83,67 @@ tr:hover{background:#F9FAFB}
 .form-input,.form-select,.form-textarea{width:100%;padding:.75rem;border-radius:.375rem;border:1px solid #E5E7EB;background:#fff;font-size:.875rem}
 .form-textarea{min-height:200px;resize:vertical}
 
+/* Customer/User dropdown styles */
+.customer-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #D1D5DB;
+  border-top: none;
+  border-radius: 0 0 0.375rem 0.375rem;
+  max-height: 300px;
+  overflow-y: auto;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  margin-top: -1px;
+}
+
+.customer-item {
+  padding: 0.75rem;
+  cursor: pointer;
+  border-bottom: 1px solid #F3F4F6;
+  transition: background-color 0.2s;
+}
+
+.customer-item:hover {
+  background-color: #F9FAFB;
+}
+
+.customer-item:last-child {
+  border-bottom: none;
+}
+
+.customer-item-name {
+  font-weight: 500;
+  color: #374151;
+  font-size: 0.875rem;
+}
+
+.customer-item-details {
+  font-size: 0.75rem;
+  color: #6B7280;
+  margin-top: 0.25rem;
+}
+
+.customer-item.selected {
+  background-color: #EBF4FF;
+  border-left: 3px solid #3B82F6;
+}
+
+.no-results {
+  padding: 1rem;
+  text-align: center;
+  color: #6B7280;
+  font-size: 0.875rem;
+}
+
+#employeeSearch:focus {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
 /* Rich text editor toolbar */
 .rich-text-toolbar{border-bottom:1px solid #E5E7EB;padding:.5rem;display:flex;gap:.25rem;flex-wrap:wrap}
 .toolbar-btn{padding:.5rem;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:.25rem;cursor:pointer;font-size:.75rem}
@@ -468,30 +529,122 @@ tr:hover{background:#F9FAFB}
     }
   }
 
-  // Load employees when modal opens
+  let allUsers = [];
+  let selectedUserId = {% if complaint.assign_to %}{{ complaint.assign_to.id }}{% else %}null{% endif %};
+
+  // Load users when modal opens
   async function loadEmployees() {
     try {
       const response = await fetch('/complaints/api/complaints/executives/');
-      const employees = await response.json();
+      allUsers = await response.json();
       
       const select = document.getElementById('employee-select');
       // Clear existing options except the first one
-      select.innerHTML = '<option value="">Select Employee</option>';
+      select.innerHTML = '<option value="">Select User</option>';
       
-      employees.forEach(employee => {
+      allUsers.forEach(user => {
         const option = document.createElement('option');
-        option.value = employee.id;
-        option.textContent = employee.full_name;
+        option.value = user.id;
+        option.textContent = user.full_name;
+        if(user.id === selectedUserId) {
+          option.selected = true;
+        }
         select.appendChild(option);
       });
       
-      // Set current assignment if exists
-      {% if complaint.assign_to %}
-        select.value = '{{ complaint.assign_to.id }}';
-      {% endif %}
+      // Set initial search input value if user is already assigned
+      if (selectedUserId) {
+        const assignedUser = allUsers.find(u => u.id === selectedUserId);
+        if (assignedUser) {
+          document.getElementById('employeeSearch').value = assignedUser.full_name || '';
+        }
+      }
+      
+      setupEmployeeSearch();
     } catch (error) {
-      console.error('Error loading employees:', error);
+      console.error('Error loading users:', error);
     }
+  }
+
+  function setupEmployeeSearch() {
+    const searchInput = document.getElementById('employeeSearch');
+    const dropdown = document.getElementById('employeeDropdown');
+    
+    if (!searchInput) return;
+    
+    searchInput.addEventListener('focus', () => {
+      if (allUsers.length > 0) {
+        filterEmployees(searchInput.value);
+        dropdown.style.display = 'block';
+      }
+    });
+    
+    searchInput.addEventListener('input', (e) => {
+      filterEmployees(e.target.value);
+    });
+    
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#employeeSearch') && !e.target.closest('#employeeDropdown')) {
+        dropdown.style.display = 'none';
+      }
+    });
+  }
+
+  function filterEmployees(searchTerm) {
+    const dropdown = document.getElementById('employeeDropdown');
+    
+    if (!searchTerm.trim()) {
+      displayEmployees(allUsers);
+    } else {
+      const term = searchTerm.toLowerCase();
+      const filtered = allUsers.filter(user => {
+        const fullName = (user.full_name || user.name || user.username || '').toLowerCase();
+        const username = (user.username || '').toLowerCase();
+        const email = (user.email || '').toLowerCase();
+        return (
+          fullName.includes(term) ||
+          username.includes(term) ||
+          email.includes(term)
+        );
+      });
+      displayEmployees(filtered);
+    }
+    
+    dropdown.style.display = 'block';
+  }
+
+  function displayEmployees(users) {
+    const userList = document.getElementById('employeeList');
+    
+    if (users.length === 0) {
+      userList.innerHTML = '<div class="no-results">No users found</div>';
+      return;
+    }
+    
+    userList.innerHTML = users.map(user => {
+      const fullName = user.full_name || user.name || user.username || 'N/A';
+      const email = user.email ? ` | ${user.email}` : '';
+      return `
+      <div class="customer-item ${selectedUserId === user.id ? 'selected' : ''}" 
+           onclick="selectEmployee(${JSON.stringify(user).replace(/"/g, '&quot;')})">
+        <div class="customer-item-name">${fullName}</div>
+        <div class="customer-item-details">
+          ${user.username || ''}${email}
+        </div>
+      </div>
+    `;
+    }).join('');
+  }
+
+  function selectEmployee(user) {
+    selectedUserId = user.id;
+    const searchInput = document.getElementById('employeeSearch');
+    const dropdown = document.getElementById('employeeDropdown');
+    const hiddenSelect = document.getElementById('employee-select');
+    
+    searchInput.value = user.full_name || user.name || user.username || '';
+    hiddenSelect.value = user.id;
+    dropdown.style.display = 'none';
   }
 
   // Set default date to current date/time
@@ -949,13 +1102,26 @@ tr:hover{background:#F9FAFB}
           
           <!-- Employee Selection -->
           <div class="form-group">
-            <label class="form-label" style="font-weight: 600;">ASSIGN TO EMPLOYEE</label>
-            <select id="employee-select" name="assign_to" class="form-select" required>
-              <option value="">Select Employee</option>
-              {% if complaint.assign_to %}
-                <option value="{{ complaint.assign_to.id }}" selected>{{ complaint.assign_to.first_name }} {{ complaint.assign_to.last_name }} (Current)</option>
-              {% endif %}
-            </select>
+            <label class="form-label" style="font-weight: 600;">ASSIGN TO USER</label>
+            <div style="position: relative;">
+              <input 
+                type="text"
+                id="employeeSearch" 
+                class="form-input" 
+                placeholder="Search user..."
+                autocomplete="off"
+                value="{% if complaint.assign_to %}{{ complaint.assign_to.first_name }} {{ complaint.assign_to.last_name }}{% endif %}"
+              />
+              <select id="employee-select" name="assign_to" class="form-select" style="display: none;" required>
+                <option value="">Select User</option>
+                {% if complaint.assign_to %}
+                  <option value="{{ complaint.assign_to.id }}" selected>{{ complaint.assign_to.first_name }} {{ complaint.assign_to.last_name }} (Current)</option>
+                {% endif %}
+              </select>
+              <div id="employeeDropdown" class="customer-dropdown" style="display: none;">
+                <div id="employeeList"></div>
+              </div>
+            </div>
           </div>
 
           <!-- Date Field -->

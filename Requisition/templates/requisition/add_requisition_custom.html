@@ -351,7 +351,8 @@ body {
   font-size: 0.875rem;
 }
 
-#customerSearch:focus {
+#customerSearch:focus,
+#employeeSearch:focus {
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
 }
@@ -480,15 +481,28 @@ body {
             
             <div class="w-form-group">
               <label for="employee" class="w-form-label">Employee <span class="w-required">*</span></label>
-              <select id="employee" name="employee" class="w-form-select" required>
-                <option value="">Select an employee</option>
-                {% for employee in employees %}
-                  <option value="{{ employee.id }}" 
-                          {% if is_edit and requisition.employee and requisition.employee.id == employee.id %}selected{% endif %}>
-                    {{ employee.username }} - {{ employee.first_name }} {{ employee.last_name }}
-                  </option>
-                {% endfor %}
-              </select>
+              <div style="position: relative;">
+                <input 
+                  type="text"
+                  id="employeeSearch" 
+                  class="w-form-input" 
+                  placeholder="Search user..."
+                  autocomplete="off"
+                  value="{% if is_edit and requisition.employee %}{{ requisition.employee.first_name }} {{ requisition.employee.last_name }}{% endif %}"
+                />
+                <select id="employee" name="employee" class="w-form-select" style="display: none;" required>
+                  <option value="">Select an employee</option>
+                  {% for employee in employees %}
+                    <option value="{{ employee.id }}" 
+                            {% if is_edit and requisition.employee and requisition.employee.id == employee.id %}selected{% endif %}>
+                      {{ employee.username }} - {{ employee.first_name }} {{ employee.last_name }}
+                    </option>
+                  {% endfor %}
+                </select>
+                <div id="employeeDropdown" class="customer-dropdown" style="display: none;">
+                  <div id="employeeList"></div>
+                </div>
+              </div>
               <div id="employeeError" class="w-error-message"></div>
             </div>
           </div>
@@ -699,6 +713,10 @@ function fetchNextReferenceId() {
 let allCustomers = [];
 let selectedCustomerId = null;
 
+// Employee/User search functionality
+let allUsers = [];
+let selectedUserId = {% if is_edit and requisition.employee %}{{ requisition.employee.id }}{% else %}null{% endif %};
+
 function loadCustomers() {
   fetch('/requisition/api/requisition/customers/')
     .then(response => response.json())
@@ -712,6 +730,13 @@ function loadCustomers() {
         option.textContent = customer.site_name;
         select.appendChild(option);
       });
+      
+      // If dropdown is visible, refresh it with new data
+      const dropdown = document.getElementById('customerDropdown');
+      const searchInput = document.getElementById('customerSearch');
+      if (dropdown && dropdown.style.display === 'block' && searchInput) {
+        filterCustomers(searchInput.value);
+      }
       
       // Auto-select customer if in edit mode
       {% if is_edit and requisition.site %}
@@ -728,14 +753,33 @@ function loadCustomers() {
     });
 }
 
+let customerSearchSetup = false;
+
 function setupCustomerSearch() {
+  if (customerSearchSetup) return; // Prevent duplicate event listeners
+  customerSearchSetup = true;
+  
   const searchInput = document.getElementById('customerSearch');
   const dropdown = document.getElementById('customerDropdown');
+  
+  if (!searchInput || !dropdown) {
+    console.error('Customer search elements not found');
+    return;
+  }
   
   searchInput.addEventListener('focus', () => {
     if (allCustomers.length > 0) {
       filterCustomers(searchInput.value);
-      dropdown.style.display = 'block';
+    } else {
+      // If customers not loaded yet, try loading them
+      console.log('Customers not loaded yet, loading...');
+      loadCustomers();
+      // Show dropdown with loading message
+      const customerList = document.getElementById('customerList');
+      if (customerList && dropdown) {
+        customerList.innerHTML = '<div class="no-results">Loading customers...</div>';
+        dropdown.style.display = 'block';
+      }
     }
   });
   
@@ -743,8 +787,9 @@ function setupCustomerSearch() {
     filterCustomers(e.target.value);
   });
   
+  // Add click outside listener only once
   document.addEventListener('click', (e) => {
-    if (!e.target.closest('.w-form-group')) {
+    if (!e.target.closest('#customerSearch') && !e.target.closest('#customerDropdown')) {
       dropdown.style.display = 'none';
     }
   });
@@ -752,6 +797,10 @@ function setupCustomerSearch() {
 
 function filterCustomers(searchTerm) {
   const dropdown = document.getElementById('customerDropdown');
+  if (!dropdown) {
+    console.error('Customer dropdown not found');
+    return;
+  }
   
   if (!searchTerm.trim()) {
     displayCustomers(allCustomers);
@@ -761,7 +810,6 @@ function filterCustomers(searchTerm) {
       return (
         (customer.site_name && customer.site_name.toLowerCase().includes(term)) ||
         (customer.job_no && customer.job_no.toLowerCase().includes(term)) ||
-        (customer.site_id && customer.site_id.toLowerCase().includes(term)) ||
         (customer.reference_id && customer.reference_id.toLowerCase().includes(term)) ||
         (customer.email && customer.email.toLowerCase().includes(term)) ||
         (customer.phone && customer.phone.toLowerCase().includes(term))
@@ -775,6 +823,10 @@ function filterCustomers(searchTerm) {
 
 function displayCustomers(customers) {
   const customerList = document.getElementById('customerList');
+  if (!customerList) {
+    console.error('Customer list element not found');
+    return;
+  }
   
   if (customers.length === 0) {
     customerList.innerHTML = '<div class="no-results">No customers found</div>';
@@ -787,7 +839,7 @@ function displayCustomers(customers) {
       <div class="customer-item-name">${customer.reference_id || ''} ${customer.site_name || 'N/A'}</div>
       <div class="customer-item-details">
         ${customer.job_no ? 'Job No: ' + customer.job_no : ''} 
-        ${customer.site_id ? '| Site ID: ' + customer.site_id : ''}
+        ${customer.reference_id ? '| Ref: ' + customer.reference_id : ''}
         ${customer.email ? '| ' + customer.email : ''}
       </div>
     </div>
@@ -814,9 +866,134 @@ document.addEventListener('DOMContentLoaded', function() {
     fetchNextReferenceId();
   }
   
-  // Load customers and setup search
-  loadCustomers();
+  // Setup customer search event listeners first (before data loads)
   setupCustomerSearch();
+  
+  // Load customers (data will populate after load)
+  loadCustomers();
+  
+  // Load users and setup employee search
+  loadUsers();
+  setupEmployeeSearch();
 });
+
+// Employee/User search functionality
+function loadUsers() {
+  fetch('/requisition/api/requisition/users/')
+    .then(response => response.json())
+    .then(data => {
+      allUsers = data;
+      const select = document.getElementById('employee');
+      select.innerHTML = '<option value="">Select an employee</option>';
+      data.forEach(user => {
+        const option = document.createElement('option');
+        option.value = user.id;
+        option.textContent = user.name || user.username;
+        if(user.id === selectedUserId) {
+          option.selected = true;
+        }
+        select.appendChild(option);
+      });
+      
+      // Set initial search input value if user is already assigned
+      if (selectedUserId) {
+        const assignedUser = data.find(u => u.id === selectedUserId);
+        if (assignedUser) {
+          document.getElementById('employeeSearch').value = assignedUser.name || assignedUser.username || '';
+        }
+      }
+    })
+    .catch(error => {
+      console.error('Error loading users:', error);
+      showMessage('error', 'Failed to load users');
+    });
+}
+
+function setupEmployeeSearch() {
+  const searchInput = document.getElementById('employeeSearch');
+  const dropdown = document.getElementById('employeeDropdown');
+  
+  if (!searchInput) return;
+  
+  searchInput.addEventListener('focus', () => {
+    if (allUsers.length > 0) {
+      filterEmployees(searchInput.value);
+      dropdown.style.display = 'block';
+    }
+  });
+  
+  searchInput.addEventListener('input', (e) => {
+    filterEmployees(e.target.value);
+  });
+  
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#employeeSearch') && !e.target.closest('#employeeDropdown')) {
+      dropdown.style.display = 'none';
+    }
+  });
+}
+
+function filterEmployees(searchTerm) {
+  const dropdown = document.getElementById('employeeDropdown');
+  
+  if (!searchTerm.trim()) {
+    displayEmployees(allUsers);
+  } else {
+    const term = searchTerm.toLowerCase();
+    const filtered = allUsers.filter(user => {
+      const fullName = (user.name || user.username || '').toLowerCase();
+      const username = (user.username || '').toLowerCase();
+      const email = (user.email || '').toLowerCase();
+      return (
+        fullName.includes(term) ||
+        username.includes(term) ||
+        email.includes(term)
+      );
+    });
+    displayEmployees(filtered);
+  }
+  
+  dropdown.style.display = 'block';
+}
+
+function displayEmployees(users) {
+  const userList = document.getElementById('employeeList');
+  
+  if (users.length === 0) {
+    userList.innerHTML = '<div class="no-results">No users found</div>';
+    return;
+  }
+  
+  userList.innerHTML = users.map(user => {
+    const fullName = user.name || user.username || 'N/A';
+    const email = user.email ? ` | ${user.email}` : '';
+    return `
+    <div class="customer-item ${selectedUserId === user.id ? 'selected' : ''}" 
+         onclick="selectEmployee(${JSON.stringify(user).replace(/"/g, '&quot;')})">
+      <div class="customer-item-name">${fullName}</div>
+      <div class="customer-item-details">
+        ${user.username || ''}${email}
+      </div>
+    </div>
+  `;
+  }).join('');
+}
+
+function selectEmployee(user) {
+  selectedUserId = user.id;
+  const searchInput = document.getElementById('employeeSearch');
+  const dropdown = document.getElementById('employeeDropdown');
+  const hiddenSelect = document.getElementById('employee');
+  
+  searchInput.value = user.name || user.username || '';
+  hiddenSelect.value = user.id;
+  dropdown.style.display = 'none';
+  
+  // Clear any error message
+  const errorDiv = document.getElementById('employeeError');
+  if (errorDiv) {
+    errorDiv.style.display = 'none';
+  }
+}
 </script>
 {% endblock %}

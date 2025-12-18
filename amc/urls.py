@@ -28,6 +28,10 @@ urlpatterns = [
     path("api/amc/types/list/", views.list_amc_types_mobile, name="list_amc_types_mobile"),
     path("api/amc/types/create/", views.create_amc_type_mobile, name="create_amc_type_mobile"),
     path("api/amc/routine-services/employee/", views.get_employee_routine_services, name="get_employee_routine_services"),
+    
+    # Customer mobile app AMC API
+    path("api/customer/amcs/", views.customer_amcs_list, name="customer_amcs_list"),
+    path("api/customer/amcs/<int:amc_id>/download-agreement/", views.download_amc_agreement, name="download_amc_agreement"),
 ]
 
 # Serve media files in development

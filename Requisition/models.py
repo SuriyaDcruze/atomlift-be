@@ -27,7 +27,6 @@ class Requisition(models.Model):
     on_delete=models.SET_NULL,
     null=True,
     blank=True,
-    limit_choices_to={'groups__name': 'employee'},  # ✅ FIXED
     related_name='assigned_requisitions',
      )
     status = models.CharField(

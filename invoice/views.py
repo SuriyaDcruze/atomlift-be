@@ -16,6 +16,13 @@ import logging
 import json
 
 from .models import Invoice, InvoiceItem
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from rest_framework import status
+from django.views.decorators.csrf import csrf_exempt
+from customer.models import Customer
+from .serializers import InvoiceListSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -741,3 +748,56 @@ def bulk_import_view(request):
     
     # GET request - render form
     return render(request, 'invoice/bulk_import.html')
+
+
+# ======================================================
+#  CUSTOMER MOBILE APP INVOICE APIs
+# ======================================================
+
+@csrf_exempt
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def customer_invoices_list(request):
+    """
+    Get all invoices for a specific customer by email
+    Only customers can view their own invoices
+    """
+    email = request.query_params.get('email')
+    
+    if not email:
+        return Response(
+            {'error': 'Email parameter is required'}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        # Find customer by email
+        customer = Customer.objects.get(email=email)
+        
+        # Get all invoices for this customer
+        invoices = Invoice.objects.filter(
+            customer=customer
+        ).select_related('customer', 'amc_type').prefetch_related('items__item').order_by('-start_date')
+        
+        # Serialize invoices
+        serializer = InvoiceListSerializer(invoices, many=True)
+        
+        response_data = {
+            'invoices': serializer.data,
+            'count': invoices.count(),
+            'message': 'Invoices retrieved successfully'
+        }
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+        
+    except Customer.DoesNotExist:
+        return Response(
+            {'error': 'Customer not found with this email address'}, 
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        logger.error(f"Error retrieving customer invoices: {e}", exc_info=True)
+        return Response(
+            {'error': f'Internal server error: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

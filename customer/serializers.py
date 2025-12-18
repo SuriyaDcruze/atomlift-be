@@ -2,6 +2,53 @@ from rest_framework import serializers
 from .models import Customer, Route, Branch, ProvinceState, City
 
 
+class CustomerLoginSerializer(serializers.ModelSerializer):
+    """Serializer for customer login response with all customer details"""
+    branch_name = serializers.SerializerMethodField()
+    route_name = serializers.SerializerMethodField()
+    province_state_name = serializers.SerializerMethodField()
+    city_name = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Customer
+        fields = [
+            'id', 'reference_id', 'job_no', 'site_name', 'site_address',
+            'email', 'phone', 'mobile', 'office_address', 'contact_person_name', 
+            'designation', 'pin_code', 'country', 'province_state_name', 
+            'city_name', 'sector', 'branch_name', 'route_name', 'handover_date',
+            'billing_name', 'latitude', 'longitude'
+        ]
+    
+    def get_branch_name(self, obj):
+        return getattr(obj.branch, 'value', None)
+    
+    def get_route_name(self, obj):
+        return getattr(obj.routes, 'value', None)
+    
+    def get_province_state_name(self, obj):
+        return getattr(obj.province_state, 'value', None)
+    
+    def get_city_name(self, obj):
+        return getattr(obj.city, 'value', None)
+
+
+class CustomerEmailOTPRequestSerializer(serializers.Serializer):
+    """Request serializer for customer email OTP generation"""
+    email = serializers.EmailField(required=True)
+    
+    def validate_email(self, value):
+        """Validate that customer exists with this email"""
+        if not Customer.objects.filter(email=value).exists():
+            raise serializers.ValidationError("No customer found with this email address.")
+        return value
+
+
+class CustomerVerifyOTPRequestSerializer(serializers.Serializer):
+    """Request serializer for customer OTP verification"""
+    email = serializers.EmailField(required=True)
+    otp_code = serializers.CharField(max_length=6, min_length=6, required=True)
+
+
 class CustomerCreateSerializer(serializers.ModelSerializer):
     province_state = serializers.PrimaryKeyRelatedField(
         queryset=ProvinceState.objects.all(), required=False, allow_null=True

@@ -50,16 +50,23 @@ class AMCListSerializer(serializers.ModelSerializer):
     invoice_frequency_display = serializers.CharField(source='get_invoice_frequency_display', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
 
+    start_date_str = serializers.SerializerMethodField()
+    end_date_str = serializers.SerializerMethodField()
+    created_str = serializers.SerializerMethodField()
+    current_status = serializers.SerializerMethodField()
+    contract_period = serializers.SerializerMethodField()
+    
     class Meta:
         model = AMC
         fields = [
             'id', 'reference_id', 'latitude', 'equipment_no',
-            'invoice_frequency', 'invoice_frequency_display', 'start_date', 'end_date',
-            'notes', 'is_generate_contract', 'no_of_services', 'price',
-            'no_of_lifts', 'gst_percentage', 'total', 'contract_amount',
-            'total_amount_paid', 'amount_due', 'status', 'status_display',
-            'created', 'customer_name', 'customer_site_address', 'customer_job_no',
-            'customer_email', 'customer_phone', 'amc_type_name', 'payment_terms_name'
+            'invoice_frequency', 'invoice_frequency_display', 'start_date', 'start_date_str',
+            'end_date', 'end_date_str', 'notes', 'is_generate_contract', 'no_of_services', 
+            'price', 'no_of_lifts', 'gst_percentage', 'total', 'contract_amount',
+            'total_amount_paid', 'amount_due', 'status', 'status_display', 'current_status',
+            'created', 'created_str', 'customer_name', 'customer_site_address', 'customer_job_no',
+            'customer_email', 'customer_phone', 'amc_type_name', 'payment_terms_name',
+            'contract_period'
         ]
 
     def get_customer_name(self, obj):
@@ -82,6 +89,40 @@ class AMCListSerializer(serializers.ModelSerializer):
 
     def get_payment_terms_name(self, obj):
         return getattr(obj.payment_terms, 'name', None)
+    
+    def get_start_date_str(self, obj):
+        try:
+            return obj.start_date.strftime('%Y-%m-%d') if obj.start_date else None
+        except:
+            return None
+    
+    def get_end_date_str(self, obj):
+        try:
+            return obj.end_date.strftime('%Y-%m-%d') if obj.end_date else None
+        except:
+            return None
+    
+    def get_created_str(self, obj):
+        try:
+            return obj.created.strftime('%Y-%m-%d %H:%M') if obj.created else None
+        except:
+            return None
+    
+    def get_current_status(self, obj):
+        """Get current status (dynamic calculation)"""
+        try:
+            return obj.get_current_status()
+        except:
+            return obj.status
+    
+    def get_contract_period(self, obj):
+        """Get contract period as string"""
+        try:
+            return obj.contract_period
+        except:
+            if obj.start_date and obj.end_date:
+                return f"{obj.start_date} - {obj.end_date}"
+            return "Not set"
 
 
 class AMCRoutineServiceSerializer(serializers.ModelSerializer):
