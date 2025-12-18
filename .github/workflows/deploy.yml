@@ -11,15 +11,22 @@ jobs:
 
     steps:
       # -----------------------------
-      # 1. CHECKOUT CODE INTO FIXED FOLDER
+      # 1. CHECKOUT IN RUNNER WORKSPACE
       # -----------------------------
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          path: /var/www/atom-backend
 
       # -----------------------------
-      # 2. INSTALL PYTHON + CREATE/REUSE VENV
+      # 2. COPY CODE TO STATIC DEPLOY DIRECTORY
+      # -----------------------------
+      - name: Sync code to production folder
+        run: |
+          mkdir -p /var/www/atom-backend
+          rsync -av --delete ./ /var/www/atom-backend/
+        shell: bash
+
+      # -----------------------------
+      # 3. PYTHON + VENV
       # -----------------------------
       - name: Setup Python & Virtual Environment
         run: |
@@ -36,7 +43,7 @@ jobs:
         shell: bash
 
       # -----------------------------
-      # 3. INSTALL REQUIREMENTS
+      # 4. INSTALL REQUIREMENTS
       # -----------------------------
       - name: Install Requirements
         run: |
@@ -46,7 +53,7 @@ jobs:
         shell: bash
 
       # -----------------------------
-      # 4. CREATE/UPDATE .env FILE
+      # 5. CREATE ENV FILE
       # -----------------------------
       - name: Create .env file
         run: |
@@ -61,7 +68,7 @@ jobs:
         shell: bash
 
       # -----------------------------
-      # 5. DJANGO MIGRATIONS
+      # 6. DJANGO MIGRATIONS
       # -----------------------------
       - name: Run Migrations
         run: |
@@ -71,7 +78,7 @@ jobs:
         shell: bash
 
       # -----------------------------
-      # 6. COLLECT STATIC FILES
+      # 7. COLLECT STATIC
       # -----------------------------
       - name: Collect Static Files
         run: |
@@ -81,7 +88,7 @@ jobs:
         shell: bash
 
       # -----------------------------
-      # 7. ENSURE PM2 INSTALLED
+      # 8. ENSURE PM2
       # -----------------------------
       - name: Install PM2 if missing
         run: |
@@ -91,7 +98,7 @@ jobs:
         shell: bash
 
       # -----------------------------
-      # 8. START / RELOAD GUNICORN
+      # 9. START / RELOAD GUNICORN
       # -----------------------------
       - name: Start / Reload Gunicorn
         run: |
