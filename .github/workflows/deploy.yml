@@ -1,85 +1,113 @@
 name: Deploy Django (Production - Gunicorn + PM2)
 
 on:
- push:
-  branches: [main]
+  push:
+    branches: [main]
 
 jobs:
- deploy:
-  runs-on: self-hosted
-  timeout-minutes: 60
+  deploy:
+    runs-on: self-hosted
+    timeout-minutes: 40
 
-  steps:
-   - name: Checkout repository
-     uses: actions/checkout@v4
+    steps:
+      # -----------------------------
+      # 1. CHECKOUT CODE INTO FIXED FOLDER
+      # -----------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          path: /var/www/atom-backend
 
-  # SETUP PYTHON + CREATE VENV
-   - name: Setup Python 3.11 & Create Virtual Environment
-     run: |
-      sudo dnf install -y python3.11 python3.11-devel gcc make
-      python3.11 -m venv venv
-      source venv/bin/activate
-      pip install --upgrade pip setuptools wheel
-     shell: bash
+      # -----------------------------
+      # 2. INSTALL PYTHON + CREATE/REUSE VENV
+      # -----------------------------
+      - name: Setup Python & Virtual Environment
+        run: |
+          cd /var/www/atom-backend
 
-  # INSTALL REQUIREMENTS
-   - name: Install requirements.txt
-     run: |
-      source venv/bin/activate
-      pip install -r requirements.txt
-     shell: bash
+          sudo dnf install -y python3.11 python3.11-devel gcc make
 
-  # CREATE .env FILE
-   - name: Create .env file
-     run: |
-      echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" > .env
-      echo "DJANGO_ALLOWED_HOSTS=${{ secrets.DJANGO_ALLOWED_HOSTS }}" >> .env
-      echo "DATABASE_NAME=${{ secrets.DB_NAME }}" >> .env
-      echo "DATABASE_USER=${{ secrets.DB_USER }}" >> .env
-      echo "DATABASE_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
-      echo "DATABASE_HOST=${{ secrets.DB_HOST }}" >> .env
-      echo "DATABASE_PORT=${{ secrets.DB_PORT }}" >> .env
-     shell: bash
+          if [ ! -d "venv" ]; then
+            python3.11 -m venv venv
+          fi
 
-  # DJANGO MIGRATIONS
-   - name: Run Django Migrations
-     run: |
-      source venv/bin/activate
-      python manage.py makemigrations --noinput
-      python manage.py migrate --noinput
-     shell: bash
+          source venv/bin/activate
+          pip install --upgrade pip setuptools wheel
+        shell: bash
 
-  # COLLECT STATIC FILES
-   - name: Collect Static Files
-     run: |
-      source venv/bin/activate
-      python manage.py collectstatic --noinput
-     shell: bash
+      # -----------------------------
+      # 3. INSTALL REQUIREMENTS
+      # -----------------------------
+      - name: Install Requirements
+        run: |
+          cd /var/www/atom-backend
+          source venv/bin/activate
+          pip install -r requirements.txt
+        shell: bash
 
-  # ENSURE PM2 INSTALLED
-   - name: Ensure PM2 is installed
-     run: |
-      if ! command -v pm2 >/dev/null 2>&1; then
-        sudo npm install -g pm2
-      fi
-      pm2 -v
-     shell: bash
+      # -----------------------------
+      # 4. CREATE / UPDATE .env FILE
+      # -----------------------------
+      - name: Create .env file
+        run: |
+          cd /var/www/atom-backend
+          cat <<EOF > .env
+SECRET_KEY=${{ secrets.SECRET_KEY }}
+DJANGO_ALLOWED_HOSTS=${{ secrets.DJANGO_ALLOWED_HOSTS }}
+DATABASE_NAME=${{ secrets.DB_NAME }}
+DATABASE_USER=${{ secrets.DB_USER }}
+DATABASE_PASSWORD=${{ secrets.DB_PASSWORD }}
+DATABASE_HOST=${{ secrets.DB_HOST }}
+DATABASE_PORT=${{ secrets.DB_PORT }}
+EOF
+        shell: bash
 
-  # START/RESTART GUNICORN USING PM2
-   - name: Restart Gunicorn using PM2
-     run: |
-      source venv/bin/activate
-      export PYTHONPATH=$(pwd)
+      # -----------------------------
+      # 5. DJANGO MIGRATIONS
+      # -----------------------------
+      - name: Run Migrations
+        run: |
+          cd /var/www/atom-backend
+          source venv/bin/activate
+          python manage.py migrate --noinput
+        shell: bash
 
-      pm2 delete atom-backend || true
+      # -----------------------------
+      # 6. COLLECT STATIC FILES
+      # -----------------------------
+      - name: Collect Static Files
+        run: |
+          cd /var/www/atom-backend
+          source venv/bin/activate
+          python manage.py collectstatic --noinput
+        shell: bash
 
-      pm2 start venv/bin/gunicorn \
-        --name atom-backend \
-        --interpreter venv/bin/python \
-        --cwd $(pwd) \
-        -- passenger_wsgi:application --bind 0.0.0.0:8000 --workers 3
+      # -----------------------------
+      # 7. ENSURE PM2 INSTALLED
+      # -----------------------------
+      - name: Install PM2 if missing
+        run: |
+          if ! command -v pm2 >/dev/null 2>&1; then
+            sudo npm install -g pm2
+          fi
+        shell: bash
 
-      pm2 save
-      pm2 status
-     shell: bash
+      # -----------------------------
+      # 8. START / RELOAD GUNICORN
+      # -----------------------------
+      - name: Start / Reload Gunicorn
+        run: |
+          cd /var/www/atom-backend
+          source venv/bin/activate
 
+          if pm2 list | grep -q "atom-backend"; then
+            pm2 reload atom-backend
+          else
+            pm2 start venv/bin/gunicorn \
+              --name atom-backend \
+              --bind 0.0.0.0:8000 \
+              atomlift.wsgi:application
+          fi
+
+          pm2 save
+        shell: bash
