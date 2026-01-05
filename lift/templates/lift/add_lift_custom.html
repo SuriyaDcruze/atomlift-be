@@ -1097,9 +1097,9 @@ function validateSpeed() {
     return false;
   }
   
-  var speedPattern = /^[a-zA-Z0-9\s\-/]+$/;
+  var speedPattern = /^[a-zA-Z0-9\s\-/.]+$/;
   if (!speedPattern.test(speed)) {
-    speedError.textContent = 'Speed must not contain special characters. Only letters, numbers, spaces, hyphens, and forward slashes are allowed.';
+    speedError.textContent = 'Speed must not contain special characters. Only letters, numbers, spaces, hyphens, forward slashes, and decimal points are allowed.';
     speedError.style.display = 'block';
     return false;
   }
@@ -1228,9 +1228,9 @@ function validateForm() {
     if (speed.length > 50) {
       errors.speed = 'Speed must not exceed 50 characters.';
     } else {
-      var speedPattern = /^[a-zA-Z0-9\s\-/]+$/;
+      var speedPattern = /^[a-zA-Z0-9\s\-/.]+$/;
       if (!speedPattern.test(speed)) {
-        errors.speed = 'Speed must not contain special characters. Only letters, numbers, spaces, hyphens, and forward slashes are allowed.';
+        errors.speed = 'Speed must not contain special characters. Only letters, numbers, spaces, hyphens, forward slashes, and decimal points are allowed.';
       }
     }
   }

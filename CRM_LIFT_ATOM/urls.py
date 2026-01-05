@@ -30,6 +30,7 @@ urlpatterns = [
     path('employeeleave/', include('employeeleave.urls')),
     path('travelling/', include('travelling.urls')),
     path('attendance/', include('attendance.urls')),
+    path('subcustomer/', include('subcustomers.urls')),
     path("django-admin/", admin.site.urls),
     path("admin/", include(wagtailadmin_urls)),
     path("documents/", include(wagtaildocs_urls)),

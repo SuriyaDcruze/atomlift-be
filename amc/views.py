@@ -14,6 +14,7 @@ import io
 
 from .models import AMCRoutineService, AMCExpiringThisMonth, AMCExpiringLastMonth, AMCExpiringNextMonth, AMC, AMCType
 from customer.models import Customer
+from customer.utils import resolve_customer_from_email
 from items.models import Item
 from django.utils import timezone
 from datetime import timedelta, datetime, date
@@ -970,8 +971,8 @@ def customer_amcs_list(request):
         )
     
     try:
-        # Find customer by email
-        customer = Customer.objects.get(email=email)
+        # Find customer by email (also checks for sub-customers)
+        customer, is_subcustomer = resolve_customer_from_email(email)
         
         # Get all AMCs for this customer
         amcs = AMC.objects.filter(
@@ -1016,6 +1017,7 @@ def customer_amcs_list(request):
 def download_amc_agreement(request, amc_id):
     """
     Generate and download AMC agreement PDF for a specific AMC
+    Query parameter: email (optional, for customer verification)
     """
     try:
         amc = get_object_or_404(
@@ -1024,6 +1026,30 @@ def download_amc_agreement(request, amc_id):
         )
         
         customer = amc.customer
+        
+        # If email is provided, verify it belongs to this customer (supports sub-customers)
+        email = request.GET.get('email')
+        if email:
+            try:
+                from customer.utils import resolve_customer_from_email
+                from customer.models import Customer
+                verified_customer, is_subcustomer = resolve_customer_from_email(email)
+                # Verify the AMC belongs to the verified customer
+                if verified_customer != customer:
+                    return Response(
+                        {'error': 'AMC does not belong to this customer'}, 
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+            except Customer.DoesNotExist:
+                return Response(
+                    {'error': 'Invalid email or customer not found'}, 
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            except Exception as e:
+                return Response(
+                    {'error': 'Invalid email or customer not found'}, 
+                    status=status.HTTP_403_FORBIDDEN
+                )
         
         # Prepare context data for PDF
         context = {

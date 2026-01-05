@@ -14,6 +14,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 import logging
 import json
+import re
 
 from .models import Invoice, InvoiceItem
 from rest_framework.decorators import api_view, permission_classes
@@ -25,6 +26,25 @@ from customer.models import Customer
 from .serializers import InvoiceListSerializer
 
 logger = logging.getLogger(__name__)
+
+
+def sanitize_filename(name):
+    """
+    Sanitize a string to be safe for use in filenames.
+    Removes or replaces special characters, spaces, etc.
+    """
+    if not name:
+        return ''
+    # Replace spaces and special characters with underscores
+    # Keep only alphanumeric, underscores, and hyphens
+    sanitized = re.sub(r'[^\w\s-]', '', str(name))
+    # Replace spaces with underscores
+    sanitized = re.sub(r'[-\s]+', '_', sanitized)
+    # Remove multiple consecutive underscores
+    sanitized = re.sub(r'_+', '_', sanitized)
+    # Remove leading/trailing underscores
+    sanitized = sanitized.strip('_')
+    return sanitized
 
 
 def download_invoice_pdf(request, pk):
@@ -128,7 +148,17 @@ def download_invoice_pdf(request, pk):
         doc.build(story)
         buffer.seek(0)
         response = HttpResponse(buffer, content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename=invoice_{context["invoice_no"]}.pdf'
+        
+        # Generate filename with customer name
+        customer_name = sanitize_filename(context.get('customer_name', ''))
+        invoice_no = context.get('invoice_no', '') or str(invoice.pk)
+        
+        if customer_name:
+            filename = f'{customer_name}_invoice_{invoice_no}.pdf'
+        else:
+            filename = f'invoice_{invoice_no}.pdf'
+        
+        response['Content-Disposition'] = f'attachment; filename={filename}'
         return response
 
     except Exception as e:
@@ -771,8 +801,8 @@ def customer_invoices_list(request):
         )
     
     try:
-        # Find customer by email
-        customer = Customer.objects.get(email=email)
+        # Find customer by email (also checks for sub-customers)
+        customer, is_subcustomer = resolve_customer_from_email(email)
         
         # Get all invoices for this customer
         invoices = Invoice.objects.filter(

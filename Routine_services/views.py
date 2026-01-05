@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.views.decorators.csrf import csrf_exempt
 from customer.models import Customer
+from customer.utils import resolve_customer_from_email
 from django.urls import reverse
 from django.http import HttpResponse
 from io import BytesIO
@@ -19,8 +20,28 @@ from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 import logging
+import re
 
 logger = logging.getLogger(__name__)
+
+
+def sanitize_filename(name):
+    """
+    Sanitize a string to be safe for use in filenames.
+    Removes or replaces special characters, spaces, etc.
+    """
+    if not name:
+        return ''
+    # Replace spaces and special characters with underscores
+    # Keep only alphanumeric, underscores, and hyphens
+    sanitized = re.sub(r'[^\w\s-]', '', str(name))
+    # Replace spaces with underscores
+    sanitized = re.sub(r'[-\s]+', '_', sanitized)
+    # Remove multiple consecutive underscores
+    sanitized = re.sub(r'_+', '_', sanitized)
+    # Remove leading/trailing underscores
+    sanitized = sanitized.strip('_')
+    return sanitized
 
 @login_required
 def routine_services(request):
@@ -569,8 +590,8 @@ def customer_all_routine_services(request):
         )
     
     try:
-        # Get customer by email
-        customer = Customer.objects.get(email=email)
+        # Get customer by email (also checks for sub-customers)
+        customer, is_subcustomer = resolve_customer_from_email(email)
         
         # Get all regular routine services for this customer
         regular_services = RoutineService.objects.filter(
@@ -676,8 +697,8 @@ def customer_routine_services(request):
         )
     
     try:
-        # Get customer by email
-        customer = Customer.objects.get(email=email)
+        # Get customer by email (also checks for sub-customers)
+        customer, is_subcustomer = resolve_customer_from_email(email)
         
         # Get all regular routine services for this customer
         regular_services = RoutineService.objects.filter(
@@ -838,8 +859,8 @@ def download_service_slip(request):
         )
     
     try:
-        # Get customer by email
-        customer = Customer.objects.get(email=email)
+        # Get customer by email (also checks for sub-customers)
+        customer, is_subcustomer = resolve_customer_from_email(email)
         
         # Get the service
         if is_amc:
@@ -963,7 +984,17 @@ def download_service_slip(request):
                 doc.build(story)
                 buffer.seek(0)
                 response = HttpResponse(buffer, content_type='application/pdf')
-                filename = f'Routine_Service_Certificate_{context["amc_no"]}_{service.service_date.strftime("%Y%m%d")}.pdf'
+                
+                # Generate filename with customer name
+                customer_name = sanitize_filename(context.get('site_name', ''))
+                amc_no = context.get('amc_no', '') or 'N/A'
+                service_date = service.service_date.strftime("%Y%m%d")
+                
+                if customer_name and customer_name != 'N/A':
+                    filename = f'{customer_name}_Routine_Service_Certificate_{amc_no}_{service_date}.pdf'
+                else:
+                    filename = f'Routine_Service_Certificate_{amc_no}_{service_date}.pdf'
+                
                 response['Content-Disposition'] = f'attachment; filename="{filename}"'
                 return response
                 

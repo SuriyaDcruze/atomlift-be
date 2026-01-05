@@ -12,6 +12,7 @@ from django.utils import timezone
 from django.core.exceptions import ValidationError
 from .models import Quotation
 from customer.models import Customer
+from customer.utils import resolve_customer_from_email
 from amc.models import AMCType
 from authentication.models import CustomUser
 from lift.models import Lift
@@ -623,8 +624,8 @@ def customer_quotations_list(request):
         )
     
     try:
-        # Find customer by email
-        customer = Customer.objects.get(email=email)
+        # Find customer by email (also checks for sub-customers)
+        customer, is_subcustomer = resolve_customer_from_email(email)
         
         # Get all quotations for this customer
         quotations = Quotation.objects.filter(

@@ -925,14 +925,47 @@ def customer_generate_otp(request):
     email = serializer.validated_data.get('email')
     
     try:
-        # Find customer by email
-        customer = Customer.objects.get(email=email)
+        # First, try to find customer by email
+        try:
+            customer = Customer.objects.get(email=email)
+            is_subcustomer = False
+            subcustomer_data = None
+        except Customer.DoesNotExist:
+            # Check if this email belongs to a sub-customer
+            try:
+                from subcustomers.models import SubCustomer
+                subcustomer = SubCustomer.objects.get(email=email, is_active=True)
+                
+                # Check if sub-customer has access permission
+                if not subcustomer.can_access_app:
+                    return Response(
+                        {'error': 'This sub-customer does not have permission to access the app'}, 
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+                
+                # Get the parent customer
+                customer = subcustomer.customer
+                is_subcustomer = True
+                subcustomer_data = {
+                    'id': subcustomer.id,
+                    'name': subcustomer.name,
+                    'email': subcustomer.email,
+                }
+                
+            except SubCustomer.DoesNotExist:
+                # Not a customer and not a sub-customer
+                return Response(
+                    {'error': 'No customer or sub-customer found with this email address'}, 
+                    status=status.HTTP_404_NOT_FOUND
+                )
         
-        # Generate OTP
-        otp = CustomerOTP.generate_otp(customer, email)
+        # Generate OTP using customer's email (parent customer's email for sub-customers)
+        customer_email = customer.email
+        otp = CustomerOTP.generate_otp(customer, customer_email)
         
-        # Send OTP via email
-        success = send_customer_otp_email(email, otp.otp_code)
+        # Send OTP to sub-customer's email if it's a sub-customer, otherwise to customer's email
+        otp_recipient_email = email if is_subcustomer else customer_email
+        success = send_customer_otp_email(otp_recipient_email, otp.otp_code)
         
         # In DEBUG mode, allow OTP generation even if email fails (for testing)
         is_debug = getattr(settings, 'DEBUG', False)
@@ -944,10 +977,17 @@ def customer_generate_otp(request):
             )
         
         response_data = {
-            'message': 'OTP sent successfully to your email' if success else f'OTP generated (DEBUG mode). OTP: {otp.otp_code}',
-            'email': email,
+            'message': 'OTP sent successfully to your email' if is_subcustomer else 'OTP sent successfully to your email',
+            'email': email,  # Return the email that was requested (sub-customer's email or customer's email)
+            'customer_email': customer_email,  # Parent customer's email (for data fetching)
+            'is_subcustomer': is_subcustomer,
             'expires_in_minutes': 10
         }
+        
+        # Include sub-customer data if applicable
+        if is_subcustomer and subcustomer_data:
+            response_data['subcustomer'] = subcustomer_data
+            response_data['customer_name'] = customer.site_name
         
         # In DEBUG mode, include OTP in response for testing
         if is_debug and not success:
@@ -956,11 +996,6 @@ def customer_generate_otp(request):
         
         return Response(response_data, status=status.HTTP_200_OK)
         
-    except Customer.DoesNotExist:
-        return Response(
-            {'error': 'No customer found with this email address'}, 
-            status=status.HTTP_404_NOT_FOUND
-        )
     except Exception as e:
         logger.error(f"Error generating customer OTP: {e}", exc_info=True)
         return Response(
@@ -975,6 +1010,7 @@ def customer_generate_otp(request):
 def customer_verify_otp_and_login(request):
     """
     Verify OTP and return customer details for mobile app
+    Supports both customer and sub-customer logins
     """
     serializer = CustomerVerifyOTPRequestSerializer(data=request.data)
     
@@ -985,9 +1021,81 @@ def customer_verify_otp_and_login(request):
     otp_code = serializer.validated_data.get('otp_code')
     
     try:
-        # Find customer
-        customer = Customer.objects.get(email=email)
+        # First, try to find customer by email
+        try:
+            customer = Customer.objects.get(email=email)
+            is_subcustomer = False
+            subcustomer_data = None
+        except Customer.DoesNotExist:
+            # Check if this email belongs to a sub-customer
+            try:
+                from subcustomers.models import SubCustomer
+                subcustomer = SubCustomer.objects.get(email=email, is_active=True)
+                
+                # Check if sub-customer has access permission
+                if not subcustomer.can_access_app:
+                    return Response(
+                        {'error': 'This sub-customer does not have permission to access the app'}, 
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+                
+                # Get the parent customer
+                customer = subcustomer.customer
+                is_subcustomer = True
+                
+                # Verify OTP using customer's email (sub-customers use parent customer's OTP)
+                is_valid, message = CustomerOTP.verify_otp(customer, otp_code, customer.email)
+                
+                if not is_valid:
+                    return Response(
+                        {'error': message}, 
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+                # Serialize customer and sub-customer data
+                customer_serializer = CustomerLoginSerializer(customer)
+                from subcustomers.serializers import SubCustomerSerializer
+                subcustomer_serializer = SubCustomerSerializer(subcustomer)
+                
+                # Get customer data dictionary and spread all fields at root level
+                customer_data = customer_serializer.data.copy()
+                
+                # Create response with all customer details (same as regular customer login)
+                # but override email with sub-customer email and add sub-customer metadata
+                response_data = {
+                    # Spread all customer fields at root level (same structure as regular customer login)
+                    **customer_data,
+                    
+                    # Override email with sub-customer email (for login identification)
+                    'email': subcustomer.email,
+                    
+                    # Ensure profile fields use customer data (who added this sub-customer)
+                    'site_name': customer.site_name,  # Parent customer site name
+                    'name': customer.site_name,  # Also set name field for consistency
+                    
+                    # Parent customer full data object
+                    'customer': customer_data,
+                    'customer_email': customer.email,  # Use this for API calls (invoices, AMCs, complaints, etc.)
+                    
+                    # Sub-customer metadata (for reference/identification)
+                    'subcustomer': subcustomer_serializer.data,
+                    'subcustomer_id': subcustomer.id,
+                    'subcustomer_name': subcustomer.name,
+                    'subcustomer_email': subcustomer.email,
+                    'is_subcustomer': True,
+                    
+                    'message': 'Login successful as sub-customer'
+                }
+                
+                return Response(response_data, status=status.HTTP_200_OK)
+                
+            except SubCustomer.DoesNotExist:
+                return Response(
+                    {'error': 'No customer or sub-customer found with this email address'}, 
+                    status=status.HTTP_404_NOT_FOUND
+                )
         
+        # Regular customer login
         # Verify OTP
         is_valid, message = CustomerOTP.verify_otp(customer, otp_code, email)
         
@@ -1000,18 +1108,30 @@ def customer_verify_otp_and_login(request):
         # Serialize customer data
         customer_serializer = CustomerLoginSerializer(customer)
         
+        # Get sub-customers count and info
+        try:
+            from subcustomers.models import SubCustomer
+            subcustomers_count = SubCustomer.objects.filter(customer=customer, is_active=True).count()
+            subcustomers_with_access = SubCustomer.objects.filter(
+                customer=customer, 
+                is_active=True, 
+                can_access_app=True
+            ).count()
+        except Exception:
+            subcustomers_count = 0
+            subcustomers_with_access = 0
+        
         response_data = {
             'customer': customer_serializer.data,
+            'is_subcustomer': False,
+            'subcustomers_count': subcustomers_count,
+            'subcustomers_with_access_count': subcustomers_with_access,
+            'can_manage_subcustomers': True,  # All customers can manage their sub-customers
             'message': 'Login successful'
         }
         
         return Response(response_data, status=status.HTTP_200_OK)
         
-    except Customer.DoesNotExist:
-        return Response(
-            {'error': 'Customer not found'}, 
-            status=status.HTTP_404_NOT_FOUND
-        )
     except Exception as e:
         logger.error(f"Error verifying customer OTP: {e}", exc_info=True)
         return Response(
@@ -1026,6 +1146,7 @@ def customer_verify_otp_and_login(request):
 def customer_resend_otp(request):
     """
     Resend OTP for customer mobile app login
+    Supports both customer and sub-customer resend
     """
     serializer = CustomerEmailOTPRequestSerializer(data=request.data)
     
@@ -1035,16 +1156,45 @@ def customer_resend_otp(request):
     email = serializer.validated_data.get('email')
     
     try:
-        # Find customer
-        customer = Customer.objects.get(email=email)
+        # First, try to find customer by email
+        try:
+            customer = Customer.objects.get(email=email)
+            is_subcustomer = False
+            customer_email = email
+        except Customer.DoesNotExist:
+            # Check if this email belongs to a sub-customer
+            try:
+                from subcustomers.models import SubCustomer
+                subcustomer = SubCustomer.objects.get(email=email, is_active=True)
+                
+                # Check if sub-customer has access permission
+                if not subcustomer.can_access_app:
+                    return Response(
+                        {'error': 'This sub-customer does not have permission to access the app'}, 
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+                
+                # Get the parent customer
+                customer = subcustomer.customer
+                is_subcustomer = True
+                customer_email = customer.email  # Use parent customer's email for OTP
+                
+            except SubCustomer.DoesNotExist:
+                return Response(
+                    {'error': 'No customer or sub-customer found with this email address'}, 
+                    status=status.HTTP_404_NOT_FOUND
+                )
         
-        # Generate new OTP
-        otp = CustomerOTP.generate_otp(customer, email)
+        # Generate new OTP using customer's email
+        otp = CustomerOTP.generate_otp(customer, customer_email)
         
-        # Send OTP
-        success = send_customer_otp_email(email, otp.otp_code)
+        # Send OTP to sub-customer's email if it's a sub-customer, otherwise to customer's email
+        otp_recipient_email = email if is_subcustomer else customer_email
+        success = send_customer_otp_email(otp_recipient_email, otp.otp_code)
         
-        if not success:
+        is_debug = getattr(settings, 'DEBUG', False)
+        
+        if not success and not is_debug:
             return Response(
                 {'error': 'Failed to send OTP. Please try again.'}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -1052,17 +1202,19 @@ def customer_resend_otp(request):
         
         response_data = {
             'message': 'OTP resent successfully to your email',
-            'email': email,
+            'email': email,  # Return the email that was requested (sub-customer's email or customer's email)
+            'customer_email': customer_email,  # Parent customer's email (for data fetching)
+            'is_subcustomer': is_subcustomer,
             'expires_in_minutes': 10
         }
         
+        # In DEBUG mode, include OTP in response for testing
+        if is_debug and not success:
+            response_data['otp_code'] = otp.otp_code
+            response_data['debug'] = True
+        
         return Response(response_data, status=status.HTTP_200_OK)
         
-    except Customer.DoesNotExist:
-        return Response(
-            {'error': 'Customer not found'}, 
-            status=status.HTTP_404_NOT_FOUND
-        )
     except Exception as e:
         logger.error(f"Error resending customer OTP: {e}", exc_info=True)
         return Response(

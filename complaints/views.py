@@ -26,6 +26,7 @@ except ImportError:
 
 from .models import Complaint, ComplaintType, ComplaintPriority
 from customer.models import Customer
+from customer.utils import resolve_customer_from_email
 from authentication.models import CustomUser
 from lift.models import Lift
 from rest_framework.decorators import api_view, permission_classes
@@ -36,6 +37,24 @@ from django.utils import timezone
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
+
+def sanitize_filename(name):
+    """
+    Sanitize a string to be safe for use in filenames.
+    Removes or replaces special characters, spaces, etc.
+    """
+    if not name:
+        return ''
+    # Replace spaces and special characters with underscores
+    # Keep only alphanumeric, underscores, and hyphens
+    sanitized = re.sub(r'[^\w\s-]', '', str(name))
+    # Replace spaces with underscores
+    sanitized = re.sub(r'[-\s]+', '_', sanitized)
+    # Remove multiple consecutive underscores
+    sanitized = re.sub(r'_+', '_', sanitized)
+    # Remove leading/trailing underscores
+    sanitized = sanitized.strip('_')
+    return sanitized
 
 def svg_to_png_base64(svg_string, width=300, height=100):
     """
@@ -272,7 +291,17 @@ def download_complaint_pdf(request, pk):
         doc.build(story)
         buffer.seek(0)
         response = HttpResponse(buffer, content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename=complaint_{context["ticket_no"] or complaint.pk}.pdf'
+        
+        # Generate filename with customer name
+        customer_name = sanitize_filename(context.get('customer_name', ''))
+        ticket_no = context.get('ticket_no') or str(complaint.pk)
+        
+        if customer_name:
+            filename = f'{customer_name}_complaint_{ticket_no}.pdf'
+        else:
+            filename = f'complaint_{ticket_no}.pdf'
+        
+        response['Content-Disposition'] = f'attachment; filename={filename}'
         return response
 
     except Exception as e:
@@ -1228,8 +1257,8 @@ def customer_lifts_list(request):
         )
     
     try:
-        # Find customer by email
-        customer = Customer.objects.get(email=email)
+        # Find customer by email (also checks for sub-customers)
+        customer, is_subcustomer = resolve_customer_from_email(email)
         
         # Get lifts where lift_code matches customer's job_no
         lifts = []
@@ -1284,8 +1313,8 @@ def customer_complaints_list(request):
         )
     
     try:
-        # Find customer by email
-        customer = Customer.objects.get(email=email)
+        # Find customer by email (also checks for sub-customers)
+        customer, is_subcustomer = resolve_customer_from_email(email)
         
         # Get all complaints for this customer
         complaints = Complaint.objects.filter(
@@ -1342,9 +1371,9 @@ def customer_create_complaint(request):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Find customer
+        # Find customer (also checks for sub-customers)
         try:
-            customer = Customer.objects.get(email=customer_email)
+            customer, is_subcustomer = resolve_customer_from_email(customer_email)
         except Customer.DoesNotExist:
             return Response(
                 {'error': 'Customer not found with this email address'}, 
@@ -1478,13 +1507,34 @@ def customer_download_complaint_pdf(request, reference):
     """
     Download PDF for a specific complaint by reference.
     Used by mobile app to download complaint PDF.
+    Query parameter: email (required for customer verification and sub-customer support)
     """
-    try:
-        # Get complaint by reference
-        complaint = get_object_or_404(
-            Complaint.objects.select_related('customer', 'assign_to', 'complaint_type', 'priority'),
-            reference=reference
+    # Email is required for security and sub-customer support
+    email = request.GET.get('email')
+    if not email:
+        return Response(
+            {'error': 'Email parameter is required for customer verification'}, 
+            status=status.HTTP_400_BAD_REQUEST
         )
+    
+    try:
+        # First verify the email and get the customer (supports sub-customers)
+        verified_customer, is_subcustomer = resolve_customer_from_email(email)
+        
+        # Now find the complaint within this customer's complaints
+        try:
+            complaint = Complaint.objects.select_related(
+                'customer', 'assign_to', 'complaint_type', 'priority'
+            ).get(
+                reference=reference,
+                customer=verified_customer
+            )
+        except Complaint.DoesNotExist:
+            # Try to provide a helpful error message
+            return Response(
+                {'error': f'No complaint found with reference "{reference}" for this customer'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
 
         # --- Prepare data ---
         context = {
@@ -1636,11 +1686,26 @@ def customer_download_complaint_pdf(request, reference):
         doc.build(story)
         buffer.seek(0)
         response = HttpResponse(buffer, content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename=complaint_{context["ticket_no"] or complaint.pk}.pdf'
+        
+        # Generate filename with customer name
+        customer_name = sanitize_filename(context.get('customer_name', ''))
+        ticket_no = context.get('ticket_no') or str(complaint.pk)
+        
+        if customer_name:
+            filename = f'{customer_name}_complaint_{ticket_no}.pdf'
+        else:
+            filename = f'complaint_{ticket_no}.pdf'
+        
+        response['Content-Disposition'] = f'attachment; filename={filename}'
         return response
-
+            
+    except Customer.DoesNotExist:
+        return Response(
+            {'error': 'Invalid email or customer not found'}, 
+            status=status.HTTP_404_NOT_FOUND
+        )
     except Exception as e:
-        logger.error(f"Error generating complaint PDF: {str(e)}")
+        logger.error(f"Error generating complaint PDF: {str(e)}", exc_info=True)
         return Response(
             {'error': f'Error generating PDF: {str(e)}'}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR

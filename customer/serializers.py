@@ -1,5 +1,10 @@
 from rest_framework import serializers
 from .models import Customer, Route, Branch, ProvinceState, City
+# Import SubCustomer for validation (lazy import to avoid circular dependencies)
+try:
+    from subcustomers.models import SubCustomer
+except ImportError:
+    SubCustomer = None
 
 
 class CustomerLoginSerializer(serializers.ModelSerializer):
@@ -37,10 +42,17 @@ class CustomerEmailOTPRequestSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
     
     def validate_email(self, value):
-        """Validate that customer exists with this email"""
-        if not Customer.objects.filter(email=value).exists():
-            raise serializers.ValidationError("No customer found with this email address.")
-        return value
+        """Validate that customer or sub-customer exists with this email"""
+        # Check if it's a customer email
+        if Customer.objects.filter(email=value).exists():
+            return value
+        
+        # Check if it's a sub-customer email
+        if SubCustomer is not None and SubCustomer.objects.filter(email=value, is_active=True).exists():
+            return value
+        
+        # If neither customer nor sub-customer found
+        raise serializers.ValidationError("No customer or sub-customer found with this email address.")
 
 
 class CustomerVerifyOTPRequestSerializer(serializers.Serializer):
