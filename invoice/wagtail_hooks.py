@@ -24,7 +24,7 @@ def add_invoice_buttons(snippet, user, next_url=None):
             view_url = reverse('view_invoice_custom', kwargs={'reference_id': snippet.reference_id})
             buttons.append(
                 SnippetListingButton(
-                    label='👁️ View',
+                    label='View',
                     url=view_url,
                     priority=100,
                     icon_name='view',
@@ -38,7 +38,7 @@ def add_invoice_buttons(snippet, user, next_url=None):
             pdf_url = reverse('download_invoice_pdf', kwargs={'pk': snippet.pk})
             buttons.append(
                 SnippetListingButton(
-                    label='📄 Download PDF',
+                    label='Download PDF',
                     url=pdf_url,
                     priority=90,
                     icon_name='download',

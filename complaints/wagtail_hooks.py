@@ -19,7 +19,7 @@ def add_complaint_buttons(snippet, user, next_url=None):
             view_url = reverse('view_complaint_custom', kwargs={'reference': snippet.reference})
             buttons.append(
                 SnippetListingButton(
-                    label='👁️ View',
+                    label='View',
                     url=view_url,
                     priority=100,
                     icon_name='view',
