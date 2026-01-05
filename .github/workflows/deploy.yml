@@ -11,9 +11,15 @@ jobs:
     timeout-minutes: 40
 
     steps:
+      # ---------------------------------
+      # 1. CHECKOUT CODE (RUNNER WORKSPACE)
+      # ---------------------------------
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # ---------------------------------
+      # 2. SYNC CODE TO PRODUCTION FOLDER
+      # ---------------------------------
       - name: Sync code to /var/www/atom-backend
         run: |
           sudo mkdir -p /var/www/atom-backend
@@ -21,17 +27,26 @@ jobs:
           sudo chown -R ec2-user:ec2-user /var/www/atom-backend
         shell: bash
 
+      # ---------------------------------
+      # 3. PYTHON + VIRTUAL ENV
+      # ---------------------------------
       - name: Setup Python & Virtual Environment
         run: |
           cd /var/www/atom-backend
+
           sudo dnf install -y python3.11 python3.11-devel gcc make
+
           if [ ! -d venv ]; then
             python3.11 -m venv venv
           fi
+
           source venv/bin/activate
           pip install --upgrade pip setuptools wheel
         shell: bash
 
+      # ---------------------------------
+      # 4. INSTALL REQUIREMENTS
+      # ---------------------------------
       - name: Install Python Dependencies
         run: |
           cd /var/www/atom-backend
@@ -39,6 +54,9 @@ jobs:
           pip install -r requirements.txt
         shell: bash
 
+      # ---------------------------------
+      # 5. CREATE .env FILE
+      # ---------------------------------
       - name: Create environment file
         run: |
           cd /var/www/atom-backend
@@ -52,6 +70,9 @@ jobs:
           chmod 600 .env
         shell: bash
 
+      # ---------------------------------
+      # 6. DJANGO MIGRATIONS
+      # ---------------------------------
       - name: Run Django Migrations
         run: |
           cd /var/www/atom-backend
@@ -59,6 +80,9 @@ jobs:
           python manage.py migrate --noinput
         shell: bash
 
+      # ---------------------------------
+      # 7. COLLECT STATIC FILES
+      # ---------------------------------
       - name: Collect Static Files
         run: |
           cd /var/www/atom-backend
@@ -66,6 +90,9 @@ jobs:
           python manage.py collectstatic --noinput
         shell: bash
 
+      # ---------------------------------
+      # 8. ENSURE PM2 IS INSTALLED
+      # ---------------------------------
       - name: Ensure PM2 Installed
         run: |
           if ! command -v pm2 >/dev/null 2>&1; then
@@ -73,20 +100,25 @@ jobs:
           fi
         shell: bash
 
-      - name: Start or Reload Gunicorn
+      # ---------------------------------
+      # 9. START / RELOAD GUNICORN (SAFE)
+      # ---------------------------------
+      - name: Start or Reload Gunicorn (PM2 Safe)
         run: |
           cd /var/www/atom-backend
           source venv/bin/activate
 
           if pm2 describe atom-backend >/dev/null 2>&1; then
+            echo "Reloading existing Gunicorn process"
             pm2 reload atom-backend
           else
+            echo "Starting Gunicorn for first time"
             pm2 start venv/bin/gunicorn \
               --name atom-backend \
-              --interpreter bash \
+              --interpreter python3 \
               -- \
               atomlift.wsgi:application \
-              --bind 0.0.0.0:8000 \
+              --bind 127.0.0.1:8000 \
               --workers 3
           fi
 
