@@ -11,15 +11,9 @@ jobs:
     timeout-minutes: 40
 
     steps:
-      # -----------------------------
-      # 1. CHECKOUT CODE
-      # -----------------------------
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # -----------------------------
-      # 2. SYNC CODE TO SERVER DIR
-      # -----------------------------
       - name: Sync code to /var/www/atom-backend
         run: |
           sudo mkdir -p /var/www/atom-backend
@@ -27,26 +21,17 @@ jobs:
           sudo chown -R ec2-user:ec2-user /var/www/atom-backend
         shell: bash
 
-      # -----------------------------
-      # 3. PYTHON + VENV
-      # -----------------------------
       - name: Setup Python & Virtual Environment
         run: |
           cd /var/www/atom-backend
-
           sudo dnf install -y python3.11 python3.11-devel gcc make
-
           if [ ! -d venv ]; then
             python3.11 -m venv venv
           fi
-
           source venv/bin/activate
           pip install --upgrade pip setuptools wheel
         shell: bash
 
-      # -----------------------------
-      # 4. INSTALL REQUIREMENTS
-      # -----------------------------
       - name: Install Python Dependencies
         run: |
           cd /var/www/atom-backend
@@ -54,27 +39,19 @@ jobs:
           pip install -r requirements.txt
         shell: bash
 
-      # -----------------------------
-      # 5. CREATE .env FILE
-      # -----------------------------
       - name: Create environment file
         run: |
           cd /var/www/atom-backend
-          cat <<EOF > .env
-SECRET_KEY=${{ secrets.SECRET_KEY }}
-DJANGO_ALLOWED_HOSTS=${{ secrets.DJANGO_ALLOWED_HOSTS }}
-DATABASE_NAME=${{ secrets.DB_NAME }}
-DATABASE_USER=${{ secrets.DB_USER }}
-DATABASE_PASSWORD=${{ secrets.DB_PASSWORD }}
-DATABASE_HOST=${{ secrets.DB_HOST }}
-DATABASE_PORT=${{ secrets.DB_PORT }}
-EOF
+          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" > .env
+          echo "DJANGO_ALLOWED_HOSTS=${{ secrets.DJANGO_ALLOWED_HOSTS }}" >> .env
+          echo "DATABASE_NAME=${{ secrets.DB_NAME }}" >> .env
+          echo "DATABASE_USER=${{ secrets.DB_USER }}" >> .env
+          echo "DATABASE_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
+          echo "DATABASE_HOST=${{ secrets.DB_HOST }}" >> .env
+          echo "DATABASE_PORT=${{ secrets.DB_PORT }}" >> .env
           chmod 600 .env
         shell: bash
 
-      # -----------------------------
-      # 6. MIGRATIONS
-      # -----------------------------
       - name: Run Django Migrations
         run: |
           cd /var/www/atom-backend
@@ -82,9 +59,6 @@ EOF
           python manage.py migrate --noinput
         shell: bash
 
-      # -----------------------------
-      # 7. COLLECT STATIC
-      # -----------------------------
       - name: Collect Static Files
         run: |
           cd /var/www/atom-backend
@@ -92,9 +66,6 @@ EOF
           python manage.py collectstatic --noinput
         shell: bash
 
-      # -----------------------------
-      # 8. INSTALL PM2
-      # -----------------------------
       - name: Ensure PM2 Installed
         run: |
           if ! command -v pm2 >/dev/null 2>&1; then
@@ -102,10 +73,7 @@ EOF
           fi
         shell: bash
 
-      # -----------------------------
-      # 9. START / RELOAD GUNICORN
-      # -----------------------------
-      - name: Start or Reload Gunicorn via PM2
+      - name: Start or Reload Gunicorn
         run: |
           cd /var/www/atom-backend
           source venv/bin/activate
