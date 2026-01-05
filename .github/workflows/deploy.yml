@@ -2,125 +2,74 @@ name: Deploy Django (Production - Gunicorn + PM2)
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
   deploy:
     runs-on: self-hosted
-    timeout-minutes: 40
+    timeout-minutes: 30
 
     steps:
-      # ---------------------------------
-      # 1. CHECKOUT CODE (RUNNER WORKSPACE)
-      # ---------------------------------
+      # 1️⃣ Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # ---------------------------------
-      # 2. SYNC CODE TO PRODUCTION FOLDER
-      # ---------------------------------
-      - name: Sync code to /var/www/atom-backend
+      # 2️⃣ Sync code to runner workspace
+      - name: Sync code
         run: |
-          sudo mkdir -p /var/www/atom-backend
-          sudo rsync -av --delete ./ /var/www/atom-backend/
-          sudo chown -R ec2-user:ec2-user /var/www/atom-backend
+          cd /home/ec2-user/actions-runner/_work/atomlift-be
+          rsync -av --delete ./atomlift-be/ ./atomlift-be/
         shell: bash
 
-      # ---------------------------------
-      # 3. PYTHON + VIRTUAL ENV
-      # ---------------------------------
-      - name: Setup Python & Virtual Environment
+      # 3️⃣ Install Python 3.11
+      - name: Install Python
         run: |
-          cd /var/www/atom-backend
+          sudo dnf install -y python3.11 python3.11-devel gcc
+        shell: bash
 
-          sudo dnf install -y python3.11 python3.11-devel gcc make
-
-          if [ ! -d venv ]; then
-            python3.11 -m venv venv
-          fi
-
+      # 4️⃣ Setup virtual environment
+      - name: Setup venv
+        run: |
+          cd /home/ec2-user/actions-runner/_work/atomlift-be/atomlift-be
+          rm -rf venv
+          python3.11 -m venv venv
           source venv/bin/activate
           pip install --upgrade pip setuptools wheel
-        shell: bash
-
-      # ---------------------------------
-      # 4. INSTALL REQUIREMENTS
-      # ---------------------------------
-      - name: Install Python Dependencies
-        run: |
-          cd /var/www/atom-backend
-          source venv/bin/activate
           pip install -r requirements.txt
         shell: bash
 
-      # ---------------------------------
-      # 5. CREATE .env FILE
-      # ---------------------------------
-      - name: Create environment file
+      # 5️⃣ Django migrate & collectstatic
+      - name: Django migrate & collectstatic
         run: |
-          cd /var/www/atom-backend
-          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" > .env
-          echo "DJANGO_ALLOWED_HOSTS=${{ secrets.DJANGO_ALLOWED_HOSTS }}" >> .env
-          echo "DATABASE_NAME=${{ secrets.DB_NAME }}" >> .env
-          echo "DATABASE_USER=${{ secrets.DB_USER }}" >> .env
-          echo "DATABASE_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
-          echo "DATABASE_HOST=${{ secrets.DB_HOST }}" >> .env
-          echo "DATABASE_PORT=${{ secrets.DB_PORT }}" >> .env
-          chmod 600 .env
-        shell: bash
-
-      # ---------------------------------
-      # 6. DJANGO MIGRATIONS
-      # ---------------------------------
-      - name: Run Django Migrations
-        run: |
-          cd /var/www/atom-backend
+          cd /home/ec2-user/actions-runner/_work/atomlift-be/atomlift-be
           source venv/bin/activate
           python manage.py migrate --noinput
-        shell: bash
-
-      # ---------------------------------
-      # 7. COLLECT STATIC FILES
-      # ---------------------------------
-      - name: Collect Static Files
-        run: |
-          cd /var/www/atom-backend
-          source venv/bin/activate
           python manage.py collectstatic --noinput
         shell: bash
 
-      # ---------------------------------
-      # 8. ENSURE PM2 IS INSTALLED
-      # ---------------------------------
-      - name: Ensure PM2 Installed
+      # 6️⃣ Ensure PM2 is installed
+      - name: Ensure PM2
         run: |
-          if ! command -v pm2 >/dev/null 2>&1; then
-            sudo npm install -g pm2
-          fi
+          command -v pm2 || sudo npm install -g pm2
         shell: bash
 
-      # ---------------------------------
-      # 9. START / RELOAD GUNICORN (SAFE)
-      # ---------------------------------
-      - name: Start or Reload Gunicorn (PM2 Safe)
+      # 7️⃣ Start / Reload Gunicorn via PM2
+      - name: Start / Reload Gunicorn
         run: |
-          cd /var/www/atom-backend
+          cd /home/ec2-user/actions-runner/_work/atomlift-be/atomlift-be
           source venv/bin/activate
 
-          if pm2 describe atom-backend >/dev/null 2>&1; then
-            echo "Reloading existing Gunicorn process"
-            pm2 reload atom-backend
-          else
-            echo "Starting Gunicorn for first time"
-            pm2 start venv/bin/gunicorn \
-              --name atom-backend \
-              --interpreter python3 \
-              -- \
-              atomlift.wsgi:application \
-              --bind 127.0.0.1:8000 \
-              --workers 3
-          fi
+          # Delete existing PM2 process if exists
+          pm2 delete atom-backend || true
+
+          # Start Gunicorn using venv Python
+          pm2 start venv/bin/gunicorn \
+            --name atom-backend \
+            --interpreter /home/ec2-user/actions-runner/_work/atomlift-be/atomlift-be/venv/bin/python \
+            -- \
+            passenger_wsgi:application \
+            --bind 127.0.0.1:8000 \
+            --workers 3
 
           pm2 save
         shell: bash
