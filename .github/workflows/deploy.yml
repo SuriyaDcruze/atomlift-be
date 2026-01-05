@@ -1,3 +1,122 @@
+# name: Deploy Django (Production - Gunicorn + PM2)
+
+# on:
+#   push:
+#     branches: [main]
+
+# jobs:
+#   deploy:
+#     runs-on: self-hosted
+#     timeout-minutes: 40
+
+#     steps:
+#       # -----------------------------
+#       # 1. CHECKOUT IN RUNNER WORKSPACE
+#       # -----------------------------
+#       - name: Checkout repository
+#         uses: actions/checkout@v4
+
+#       # -----------------------------
+#       # 2. COPY CODE TO STATIC DEPLOY DIRECTORY
+#       # -----------------------------
+#       - name: Sync code to production folder
+#         run: |
+#           mkdir -p /var/www/atom-backend
+#           rsync -av --delete ./ /var/www/atom-backend/
+#         shell: bash
+
+#       # -----------------------------
+#       # 3. PYTHON + VENV
+#       # -----------------------------
+#       - name: Setup Python & Virtual Environment
+#         run: |
+#           cd /var/www/atom-backend
+
+#           sudo dnf install -y python3.11 python3.11-devel gcc make
+
+#           if [ ! -d "venv" ]; then
+#             python3.11 -m venv venv
+#           fi
+
+#           source venv/bin/activate
+#           pip install --upgrade pip setuptools wheel
+#         shell: bash
+
+#       # -----------------------------
+#       # 4. INSTALL REQUIREMENTS
+#       # -----------------------------
+#       - name: Install Requirements
+#         run: |
+#           cd /var/www/atom-backend
+#           source venv/bin/activate
+#           pip install -r requirements.txt
+#         shell: bash
+
+#       # -----------------------------
+#       # 5. CREATE ENV FILE
+#       # -----------------------------
+#       - name: Create .env file
+#         run: |
+#           cd /var/www/atom-backend
+#           echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" > .env
+#           echo "DJANGO_ALLOWED_HOSTS=${{ secrets.DJANGO_ALLOWED_HOSTS }}" >> .env
+#           echo "DATABASE_NAME=${{ secrets.DB_NAME }}" >> .env
+#           echo "DATABASE_USER=${{ secrets.DB_USER }}" >> .env
+#           echo "DATABASE_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
+#           echo "DATABASE_HOST=${{ secrets.DB_HOST }}" >> .env
+#           echo "DATABASE_PORT=${{ secrets.DB_PORT }}" >> .env
+#         shell: bash
+
+#       # -----------------------------
+#       # 6. DJANGO MIGRATIONS
+#       # -----------------------------
+#       - name: Run Migrations
+#         run: |
+#           cd /var/www/atom-backend
+#           source venv/bin/activate
+#           python manage.py migrate --noinput
+#         shell: bash
+
+#       # -----------------------------
+#       # 7. COLLECT STATIC
+#       # -----------------------------
+#       - name: Collect Static Files
+#         run: |
+#           cd /var/www/atom-backend
+#           source venv/bin/activate
+#           python manage.py collectstatic --noinput
+#         shell: bash
+
+#       # -----------------------------
+#       # 8. ENSURE PM2
+#       # -----------------------------
+#       - name: Install PM2 if missing
+#         run: |
+#           if ! command -v pm2 >/dev/null 2>&1; then
+#             sudo npm install -g pm2
+#           fi
+#         shell: bash
+
+#       # -----------------------------
+#       # 9. START / RELOAD GUNICORN
+#       # -----------------------------
+#       - name: Start / Reload Gunicorn
+#         run: |
+#           cd /var/www/atom-backend
+#           source venv/bin/activate
+
+#           if pm2 list | grep -q "atom-backend"; then
+#             pm2 reload atom-backend
+#           else
+#             pm2 start venv/bin/gunicorn \
+#               --name atom-backend \
+#               --bind 0.0.0.0:8000 \
+#               atomlift.wsgi:application
+#           fi
+
+#           pm2 save
+#         shell: bash
+
 name: Deploy Django (Production - Gunicorn + PM2)
 
 on:
@@ -11,13 +130,13 @@ jobs:
 
     steps:
       # -----------------------------
-      # 1. CHECKOUT IN RUNNER WORKSPACE
+      # 1. CHECKOUT REPOSITORY
       # -----------------------------
       - name: Checkout repository
         uses: actions/checkout@v4
 
       # -----------------------------
-      # 2. COPY CODE TO STATIC DEPLOY DIRECTORY
+      # 2. SYNC CODE TO PRODUCTION DIR
       # -----------------------------
       - name: Sync code to production folder
         run: |
@@ -26,7 +145,7 @@ jobs:
         shell: bash
 
       # -----------------------------
-      # 3. PYTHON + VENV
+      # 3. PYTHON + VIRTUAL ENV
       # -----------------------------
       - name: Setup Python & Virtual Environment
         run: |
@@ -78,7 +197,7 @@ jobs:
         shell: bash
 
       # -----------------------------
-      # 7. COLLECT STATIC
+      # 7. COLLECT STATIC FILES
       # -----------------------------
       - name: Collect Static Files
         run: |
@@ -88,7 +207,7 @@ jobs:
         shell: bash
 
       # -----------------------------
-      # 8. ENSURE PM2
+      # 8. ENSURE PM2 IS INSTALLED
       # -----------------------------
       - name: Install PM2 if missing
         run: |
@@ -110,9 +229,11 @@ jobs:
           else
             pm2 start venv/bin/gunicorn \
               --name atom-backend \
+              -- \
               --bind 0.0.0.0:8000 \
               atomlift.wsgi:application
           fi
 
           pm2 save
         shell: bash
+
