@@ -25,6 +25,14 @@ def add_item_custom(request):
                 return JsonResponse({'success': False, 'error': 'Make is required. Please select a make.'})
             
             # Create new item
+            service_type = data.get('service_type', 'Goods')
+            tax_preference = data.get('tax_preference', 'Non-Taxable')
+            # SAC code is only required for Services or Taxable items
+            # For non-taxable goods, set to None
+            sac_code = None
+            if not (service_type == 'Goods' and tax_preference == 'Non-Taxable'):
+                sac_code = data.get('sac_code', '').strip() if data.get('sac_code') else None
+            
             item = Item(
                 name=data.get('name'),
                 make_id=make_id,
@@ -34,10 +42,10 @@ def add_item_custom(request):
                 threshold_qty=data.get('threshold_qty') if data.get('threshold_qty') is not None else None,
                 sale_price=data.get('sale_price', 0),
                 purchase_price=data.get('purchase_price') if data.get('purchase_price') is not None else None,
-                service_type=data.get('service_type', 'Goods'),
-                tax_preference=data.get('tax_preference', 'Non-Taxable'),
+                service_type=service_type,
+                tax_preference=tax_preference,
                 unit_id=data.get('unit') if data.get('unit') else None,
-                sac_code=data.get('sac_code', '').strip() if data.get('sac_code') else None,
+                sac_code=sac_code,
                 igst=data.get('igst', 0),
                 gst=data.get('gst', 0),
                 description=data.get('description', '')
@@ -107,7 +115,14 @@ def edit_item_custom(request, item_number):
             item.service_type = data.get('service_type', 'Goods')
             item.tax_preference = data.get('tax_preference', 'Non-Taxable')
             item.unit_id = data.get('unit') if data.get('unit') else None
-            item.sac_code = data.get('sac_code', '').strip() if data.get('sac_code') else None
+            # SAC code is only required for Services or Taxable items
+            # For non-taxable goods, clear SAC code
+            service_type = data.get('service_type', 'Goods')
+            tax_preference = data.get('tax_preference', 'Non-Taxable')
+            if service_type == 'Goods' and tax_preference == 'Non-Taxable':
+                item.sac_code = None
+            else:
+                item.sac_code = data.get('sac_code', '').strip() if data.get('sac_code') else None
             item.igst = data.get('igst', 0)
             item.gst = data.get('gst', 0)
             item.description = data.get('description', '')
@@ -489,8 +504,12 @@ def bulk_import_view(request):
                     if tax_preference not in ['Taxable', 'Non-Taxable']:
                         tax_preference = 'Non-Taxable'
                     
-                    # Process sac_code (same as add_item_custom - strip if provided)
-                    sac_code_processed = sac_code.strip() if sac_code else None
+                    # Process sac_code - only for Services or Taxable items
+                    # For non-taxable goods, clear SAC code
+                    if service_type == 'Goods' and tax_preference == 'Non-Taxable':
+                        sac_code_processed = None
+                    else:
+                        sac_code_processed = sac_code.strip() if sac_code else None
                     
                     # Create item (same structure as add_item_custom)
                     item = Item(

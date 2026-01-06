@@ -929,9 +929,17 @@ function updateFieldVisibility() {
   const taxPref = document.querySelector('input[name="tax_preference"]:checked')?.value;
 
   const sacCodeGroup = document.getElementById('sac_code_group');
+  const sacCodeInput = document.getElementById('sac_code');
   const wasVisible = sacCodeGroup.style.display !== 'none';
   sacCodeGroup.style.display = taxPref === 'Taxable' || serviceType === 'Services' ? 'block' : 'none';
   const isVisible = sacCodeGroup.style.display !== 'none';
+  
+  // Clear SAC code when field becomes hidden (for non-taxable goods)
+  if (!isVisible && wasVisible) {
+    sacCodeInput.value = '';
+    const sacCodeError = document.getElementById('sacCodeError');
+    sacCodeError.style.display = 'none';
+  }
   
   // Validate SAC code when field becomes visible
   if (isVisible && !wasVisible) {

@@ -129,14 +129,21 @@ class Item(models.Model):
                     'capacity': 'Capacity must not contain special characters. Only letters, numbers, spaces, hyphens, and forward slashes are allowed.'
                 })
         
-        # Validate SAC code if provided
-        if self.sac_code:
-            sac_code = self.sac_code.strip()
-            # SAC code must be exactly 6 digits (numeric only)
-            if not re.match(r'^\d{6}$', sac_code):
-                raise ValidationError({
-                    'sac_code': 'SAC Code must be exactly 6 digits (numbers only).'
-                })
+        # SAC code is only required for Services or Taxable items
+        # For Goods and Non-Taxable items, SAC code should be cleared
+        if self.service_type == 'Goods' and self.tax_preference == 'Non-Taxable':
+            # Clear SAC code for non-taxable goods
+            self.sac_code = None
+        # Validate SAC code only if it's required (Services or Taxable)
+        elif self.service_type == 'Services' or self.tax_preference == 'Taxable':
+            if self.sac_code:
+                sac_code = self.sac_code.strip()
+                # SAC code must be exactly 6 digits (numeric only)
+                if not re.match(r'^\d{6}$', sac_code):
+                    raise ValidationError({
+                        'sac_code': 'SAC Code must be exactly 6 digits (numbers only).'
+                    })
+            # If SAC code is required but not provided, that's okay (it's optional in the form)
     
     def save(self, *args, **kwargs):
         """Call clean before saving"""
