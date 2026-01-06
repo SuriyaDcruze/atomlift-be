@@ -1,0 +1,666 @@
+{% extends "wagtailadmin/base.html" %}
+{% load wagtailadmin_tags %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+/* Modern Tailwind-like styles for Wagtail admin */
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+.w-content-wrapper {
+  background: #f5f5f5;
+  min-height: calc(100vh - 4rem);
+  padding: 2rem;
+}
+
+.w-modal-overlay {
+  position: static;
+  inset: auto;
+  background-color: transparent;
+  display: block;
+  padding: 0;
+}
+
+.w-modal-content {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.15);
+  width: 100%;
+  max-width: 72rem;
+  margin: 2rem auto;
+  max-height: none;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+}
+
+.w-modal-header {
+  background: linear-gradient(to right, #2D3A6B, #243158);
+  padding: 1.5rem;
+  color: white;
+}
+
+.w-modal-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: white;
+}
+
+.w-modal-body {
+  padding: 2rem;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.w-form-group {
+  margin-bottom: 1.5rem;
+}
+
+.w-form-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #374151;
+  font-size: 0.875rem;
+}
+
+.w-form-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.w-form-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.w-form-input[readonly] {
+  background-color: #f9fafb;
+  cursor: not-allowed;
+  color: #6b7280;
+}
+
+.w-form-select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  background-color: white;
+  cursor: pointer;
+}
+
+.w-form-textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  resize: vertical;
+  min-height: 100px;
+}
+
+.w-radio-group {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.w-radio-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.w-radio-input {
+  margin: 0;
+}
+
+.w-radio-label {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+.w-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.w-form-row-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1rem;
+}
+
+.w-error-message {
+  color: #dc2626;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  display: none;
+}
+
+.w-button-group {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.w-btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  border: none;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.w-btn-primary {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.w-btn-primary:hover:not(:disabled) {
+  background-color: #2563eb;
+}
+
+.w-btn-secondary {
+  background-color: #6b7280;
+  color: white;
+}
+
+.w-btn-secondary:hover:not(:disabled) {
+  background-color: #4b5563;
+}
+
+.w-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Toast notification styles */
+.toast-container {
+  position: fixed;
+  top: 1.25rem;
+  right: 1.25rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.toast {
+  background: white;
+  border-radius: 0.375rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  min-width: 20rem;
+  max-width: 31.25rem;
+  border-left: 4px solid;
+  animation: slideInRight 0.3s ease-out;
+}
+
+.toast--success {
+  border-left-color: #10B981;
+}
+
+.toast--error {
+  border-left-color: #EF4444;
+}
+
+.toast-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+}
+
+.toast-message {
+  flex: 1;
+  margin-right: 1rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: #374151;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6B7280;
+  padding: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.toast-close:hover {
+  color: #374151;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 640px) {
+  .toast {
+    min-width: 17.5rem;
+    max-width: 90vw;
+  }
+}
+
+.w-section {
+  margin-bottom: 2rem;
+}
+
+.w-section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.w-required {
+  color: #dc2626;
+}
+
+.quantity-group {
+  display: none;
+}
+
+.quantity-group.active {
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .w-form-row,
+  .w-form-row-3 {
+    grid-template-columns: 1fr;
+  }
+  
+  .w-button-group {
+    flex-direction: column;
+  }
+  
+  .w-modal-body {
+    padding: 1rem;
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="w-content-wrapper">
+  <div class="w-modal-overlay">
+    <div class="w-modal-content">
+      <div class="w-modal-header">
+        <h1 class="w-modal-title">
+          {% if is_edit %}Edit Stock Register Entry{% else %}Add New Stock Register Entry{% endif %}
+        </h1>
+      </div>
+      
+      <div class="w-modal-body">
+        <form id="stockRegisterForm" class="w-form">
+          {% csrf_token %}
+          <!-- Basic Information Section -->
+          <div class="w-section">
+            <h2 class="w-section-title">Basic Information</h2>
+            
+            <div class="w-form-row">
+              <div class="w-form-group">
+                <label for="register_no" class="w-form-label">Register Number</label>
+                <input type="text" id="register_no" name="register_no" class="w-form-input" readonly
+                       value="{% if is_edit and stock_register %}{{ stock_register.register_no }}{% endif %}">
+                <p style="margin-top: 0.25rem; font-size: 0.75rem; color: #6b7280;">Auto-generated register number</p>
+              </div>
+              
+              <div class="w-form-group">
+                <label for="date" class="w-form-label">Date <span class="w-required">*</span></label>
+                <input type="date" id="date" name="date" class="w-form-input" required
+                       value="{% if is_edit and stock_register %}{{ stock_register.date|date:'Y-m-d' }}{% else %}{{ today|date:'Y-m-d' }}{% endif %}">
+                <div id="dateError" class="w-error-message"></div>
+              </div>
+            </div>
+            
+            <div class="w-form-row">
+              <div class="w-form-group">
+                <label for="item" class="w-form-label">Item <span class="w-required">*</span></label>
+                <select id="item" name="item" class="w-form-select" required>
+                  <option value="">Select an item</option>
+                  {% for item in items %}
+                    <option value="{{ item.id }}"
+                            {% if is_edit and stock_register and stock_register.item.id == item.id %}selected{% endif %}>
+                      {{ item.item_number }} - {{ item.name }}
+                    </option>
+                  {% endfor %}
+                </select>
+                <div id="itemError" class="w-error-message"></div>
+              </div>
+            </div>
+            
+            <div class="w-form-group">
+              <label for="description" class="w-form-label">Description</label>
+              <textarea id="description" name="description" class="w-form-textarea" rows="3">{% if is_edit and stock_register %}{{ stock_register.description }}{% endif %}</textarea>
+            </div>
+          </div>
+          
+          <!-- Transaction Details Section -->
+          <div class="w-section">
+            <h2 class="w-section-title">Transaction Details</h2>
+            
+            <div class="w-form-row">
+              <div class="w-form-group">
+                <label class="w-form-label">Transaction Type <span class="w-required">*</span></label>
+                <div class="w-radio-group">
+                  <div class="w-radio-item">
+                    <input type="radio" id="type_inward" name="transaction_type" value="INWARD" class="w-radio-input"
+                           {% if not is_edit or not stock_register or stock_register.transaction_type == 'INWARD' %}checked{% endif %}>
+                    <label for="type_inward" class="w-radio-label">Inward</label>
+                  </div>
+                  <div class="w-radio-item">
+                    <input type="radio" id="type_outward" name="transaction_type" value="OUTWARD" class="w-radio-input"
+                           {% if is_edit and stock_register and stock_register.transaction_type == 'OUTWARD' %}checked{% endif %}>
+                    <label for="type_outward" class="w-radio-label">Outward</label>
+                  </div>
+                </div>
+                <div id="transactionTypeError" class="w-error-message"></div>
+              </div>
+              
+              <div class="w-form-group">
+                <label for="unit_value" class="w-form-label">Unit Value (₹) <span class="w-required">*</span></label>
+                <input type="number" id="unit_value" name="unit_value" class="w-form-input" step="0.01" min="0" required
+                       value="{% if is_edit and stock_register %}{{ stock_register.unit_value }}{% endif %}">
+                <div id="unitValueError" class="w-error-message"></div>
+              </div>
+            </div>
+            
+            <div class="w-form-row">
+              <div class="w-form-group quantity-group active" id="inward_qty_group">
+                <label for="inward_qty" class="w-form-label">Inward Quantity <span class="w-required">*</span></label>
+                <input type="number" id="inward_qty" name="inward_qty" class="w-form-input" min="1" required
+                       value="{% if is_edit and stock_register %}{{ stock_register.inward_qty }}{% endif %}">
+                <div id="inwardQtyError" class="w-error-message"></div>
+              </div>
+              
+              <div class="w-form-group quantity-group" id="outward_qty_group">
+                <label for="outward_qty" class="w-form-label">Outward Quantity <span class="w-required">*</span></label>
+                <input type="number" id="outward_qty" name="outward_qty" class="w-form-input" min="1"
+                       value="{% if is_edit and stock_register %}{{ stock_register.outward_qty }}{% endif %}">
+                <div id="outwardQtyError" class="w-error-message"></div>
+              </div>
+              
+              <div class="w-form-group">
+                <label for="reference" class="w-form-label">Reference</label>
+                <input type="text" id="reference" name="reference" class="w-form-input" 
+                       placeholder="Reference document number"
+                       value="{% if is_edit and stock_register %}{{ stock_register.reference }}{% endif %}">
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+      
+      <div class="w-button-group">
+        <button type="button" onclick="handleCancel()" class="w-btn w-btn-secondary">
+          Cancel
+        </button>
+        <button type="button" onclick="handleFormSubmit()" id="submitBtn" class="w-btn w-btn-primary">
+          {% if is_edit %}Update Stock Entry{% else %}Create Stock Entry{% endif %}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const isEditMode = {{ is_edit|yesno:"true,false" }};
+const submitUrl = "{% if is_edit and stock_register %}{% url 'edit_stock_register_custom' stock_register.register_no %}{% else %}{% url 'add_stock_register_custom' %}{% endif %}";
+const adminHomeUrl = "/admin/snippets/Requisition/stockregister";
+
+function getCsrfToken() {
+  return document.querySelector('[name=csrfmiddlewaretoken]').value;
+}
+
+function showMessage(type, message) {
+  const toast = document.createElement('div');
+  toast.className = `toast toast--${type}`;
+  toast.innerHTML = `
+    <div class="toast-content">
+      <div class="toast-message">${message}</div>
+      <button class="toast-close" onclick="this.parentElement.parentElement.remove()">×</button>
+    </div>
+  `;
+
+  let toastContainer = document.querySelector('.toast-container');
+  if (!toastContainer) {
+    toastContainer = document.createElement('div');
+    toastContainer.className = 'toast-container';
+    document.querySelector('.w-content-wrapper').appendChild(toastContainer);
+  }
+
+  toastContainer.appendChild(toast);
+
+  setTimeout(() => {
+    if (toast.parentElement) {
+      toast.remove();
+    }
+  }, 5000);
+}
+
+function handleCancel() {
+  if (confirm('Are you sure you want to cancel? Any unsaved changes will be lost.')) {
+    window.location.href = adminHomeUrl;
+  }
+}
+
+function toggleQuantityFields() {
+  const transactionType = document.querySelector('input[name="transaction_type"]:checked').value;
+  const inwardGroup = document.getElementById('inward_qty_group');
+  const outwardGroup = document.getElementById('outward_qty_group');
+  const inwardInput = document.getElementById('inward_qty');
+  const outwardInput = document.getElementById('outward_qty');
+  
+  if (transactionType === 'INWARD') {
+    inwardGroup.classList.add('active');
+    outwardGroup.classList.remove('active');
+    inwardInput.required = true;
+    outwardInput.required = false;
+    // Only clear value if not in edit mode
+    if (!isEditMode) {
+      outwardInput.value = '';
+    }
+  } else {
+    inwardGroup.classList.remove('active');
+    outwardGroup.classList.add('active');
+    inwardInput.required = false;
+    outwardInput.required = true;
+    // Only clear value if not in edit mode
+    if (!isEditMode) {
+      inwardInput.value = '';
+    }
+  }
+}
+
+// Add event listeners for transaction type radio buttons
+document.addEventListener('DOMContentLoaded', function() {
+  // Fetch next register number only for add mode
+  if (!isEditMode) {
+    fetch('/requisition/api/stock-register/next-reference/')
+      .then(function(r){return r.json();})
+      .then(function(d){
+        if (d && d.register_no) {
+          var ref = document.getElementById('register_no');
+          if (ref) ref.value = d.register_no;
+        }
+      })
+      .catch(function(error) {
+        console.error('Error fetching register number:', error);
+      });
+  }
+  
+  const transactionTypeRadios = document.querySelectorAll('input[name="transaction_type"]');
+  transactionTypeRadios.forEach(radio => {
+    radio.addEventListener('change', toggleQuantityFields);
+  });
+  
+  // Initialize quantity fields based on transaction type (for edit mode)
+  if (isEditMode) {
+    toggleQuantityFields();
+  }
+  
+  // Set today's date as default only if not in edit mode
+  const dateInput = document.getElementById('date');
+  if (!isEditMode && !dateInput.value) {
+    const today = new Date().toISOString().split('T')[0];
+    dateInput.value = today;
+  }
+});
+
+function validateForm() {
+  let isValid = true;
+  
+  // Reset error messages
+  document.querySelectorAll('.w-error-message').forEach(el => {
+    el.style.display = 'none';
+    el.textContent = '';
+  });
+  
+  // Validate date
+  const date = document.getElementById('date').value;
+  if (!date) {
+    showError('dateError', 'Date is required');
+    isValid = false;
+  }
+  
+  // Validate item
+  const item = document.getElementById('item').value;
+  if (!item) {
+    showError('itemError', 'Item is required');
+    isValid = false;
+  }
+  
+  // Validate transaction type
+  const transactionType = document.querySelector('input[name="transaction_type"]:checked');
+  if (!transactionType) {
+    showError('transactionTypeError', 'Transaction type is required');
+    isValid = false;
+  }
+  
+  // Validate quantity based on transaction type
+  if (transactionType && transactionType.value === 'INWARD') {
+    const inwardQty = document.getElementById('inward_qty').value;
+    if (!inwardQty || parseInt(inwardQty) < 1) {
+      showError('inwardQtyError', 'Inward quantity must be at least 1');
+      isValid = false;
+    }
+  } else if (transactionType && transactionType.value === 'OUTWARD') {
+    const outwardQty = document.getElementById('outward_qty').value;
+    if (!outwardQty || parseInt(outwardQty) < 1) {
+      showError('outwardQtyError', 'Outward quantity must be at least 1');
+      isValid = false;
+    }
+  }
+  
+  // Validate unit value
+  const unitValue = document.getElementById('unit_value').value;
+  if (!unitValue || parseFloat(unitValue) < 0) {
+    showError('unitValueError', 'Unit value must be 0 or greater');
+    isValid = false;
+  }
+  
+  return isValid;
+}
+
+function showError(elementId, message) {
+  const errorElement = document.getElementById(elementId);
+  if (errorElement) {
+    errorElement.textContent = message;
+    errorElement.style.display = 'block';
+  }
+}
+
+async function handleFormSubmit() {
+  if (!validateForm()) {
+    showMessage('error', 'Please fix the errors in the form');
+    return;
+  }
+  
+  const submitBtn = document.getElementById('submitBtn');
+  submitBtn.disabled = true;
+  submitBtn.textContent = isEditMode ? 'Updating...' : 'Creating...';
+  
+  const formData = {
+    date: document.getElementById('date').value,
+    item: document.getElementById('item').value,
+    description: document.getElementById('description').value,
+    transaction_type: document.querySelector('input[name="transaction_type"]:checked').value,
+    inward_qty: document.getElementById('inward_qty').value || 0,
+    outward_qty: document.getElementById('outward_qty').value || 0,
+    unit_value: document.getElementById('unit_value').value,
+    reference: document.getElementById('reference').value,
+  };
+  
+  try {
+    const response = await fetch(submitUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken(),
+      },
+      body: JSON.stringify(formData),
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      showMessage('success', data.message || (isEditMode ? 'Stock Register entry updated successfully!' : 'Stock Register entry created successfully!'));
+      setTimeout(() => {
+        window.location.href = adminHomeUrl;
+      }, 1500);
+    } else {
+      showMessage('error', data.error || (isEditMode ? 'Failed to update stock register entry' : 'Failed to create stock register entry'));
+      submitBtn.disabled = false;
+      submitBtn.textContent = isEditMode ? 'Update Stock Entry' : 'Create Stock Entry';
+    }
+  } catch (error) {
+    showMessage('error', 'An error occurred: ' + error.message);
+    submitBtn.disabled = false;
+    submitBtn.textContent = isEditMode ? 'Update Stock Entry' : 'Create Stock Entry';
+  }
+}
+</script>
+{% endblock %}
+

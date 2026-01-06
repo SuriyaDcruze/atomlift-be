@@ -197,51 +197,142 @@ def get_users(request):
 
 
 @login_required
-def stock_register_view(request):
-    """Display Stock Register with calculated available stock"""
-    
-    # Get all items
+@require_http_methods(["GET"])
+def get_next_stock_register_reference(request):
+    """Return the next Stock Register number (predicted) e.g., STK0001"""
+    try:
+        last_entry = StockRegister.objects.all().order_by('id').last()
+        if last_entry and last_entry.register_no.startswith('STK'):
+            last_id = int(last_entry.register_no.replace('STK', ''))
+            next_ref = f'STK{str(last_id + 1).zfill(4)}'
+        else:
+            next_ref = 'STK0001'
+        return JsonResponse({"register_no": next_ref})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@login_required
+def add_stock_register_custom(request):
+    """Custom add stock register page"""
     items = Item.objects.all()
     
-    # Prepare stock data for each item
-    stock_data = []
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            
+            # Validate required fields
+            if not data.get('date'):
+                return JsonResponse({'success': False, 'error': 'Date is required'})
+            if not data.get('item'):
+                return JsonResponse({'success': False, 'error': 'Item is required'})
+            if not data.get('transaction_type'):
+                return JsonResponse({'success': False, 'error': 'Transaction type is required'})
+            
+            # Get foreign key objects
+            item = get_object_or_404(Item, id=data['item'])
+            
+            # Validate quantity based on transaction type
+            if data['transaction_type'] == 'INWARD':
+                if not data.get('inward_qty') or int(data.get('inward_qty', 0)) < 1:
+                    return JsonResponse({'success': False, 'error': 'Inward quantity must be at least 1'})
+                outward_qty = 0
+                inward_qty = int(data.get('inward_qty', 0))
+            else:  # OUTWARD
+                if not data.get('outward_qty') or int(data.get('outward_qty', 0)) < 1:
+                    return JsonResponse({'success': False, 'error': 'Outward quantity must be at least 1'})
+                inward_qty = 0
+                outward_qty = int(data.get('outward_qty', 0))
+            
+            # Validate unit value
+            unit_value = float(data.get('unit_value', 0))
+            if unit_value < 0:
+                return JsonResponse({'success': False, 'error': 'Unit value cannot be negative'})
+            
+            # Create new stock register entry
+            stock_register = StockRegister.objects.create(
+                date=data.get('date'),
+                item=item,
+                description=data.get('description', ''),
+                transaction_type=data['transaction_type'],
+                inward_qty=inward_qty,
+                outward_qty=outward_qty,
+                unit_value=unit_value,
+                reference=data.get('reference', '')
+            )
+            return JsonResponse({'success': True, 'message': 'Stock Register entry created successfully', 'register_no': stock_register.register_no})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
     
-    for idx, item in enumerate(items, start=1):
-        # Calculate total inward and outward for this item
-        stock_entries = StockRegister.objects.filter(item=item)
-        
-        total_inward = stock_entries.aggregate(
-            total=Sum('inward_qty')
-        )['total'] or 0
-        
-        total_outward = stock_entries.aggregate(
-            total=Sum('outward_qty')
-        )['total'] or 0
-        
-        available_stock = total_inward - total_outward
-        
-        # Calculate total value (using latest unit value if available)
-        latest_entry = stock_entries.order_by('-date').first()
-        unit_value = latest_entry.unit_value if latest_entry else item.sale_price
-        
-        stock_data.append({
-            'no': idx,
-            'item': item,
-            'unit': item.unit.value if item.unit else 'N/A',
-            'description': item.description or '-',
-            'type': item.type.value if item.type else 'N/A',
-            'value': unit_value,
-            'inward_stock': total_inward,
-            'outward_stock': total_outward,
-            'available_stock': available_stock,
-        })
+    return render(request, 'requisition/add_stock_register_custom.html', {
+        'items': items,
+        'is_edit': False
+    })
+
+
+@login_required
+def edit_stock_register_custom(request, register_no):
+    """Custom edit stock register page"""
+    try:
+        stock_register = StockRegister.objects.get(register_no=register_no)
+    except StockRegister.DoesNotExist:
+        messages.error(request, 'Stock Register entry not found')
+        return render(request, '404.html')
     
-    context = {
-        'stock_data': stock_data,
-        'title': 'Stock Register'
-    }
+    items = Item.objects.all()
     
-    return render(request, 'requisition/stock_register.html', context)
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            
+            # Validate required fields
+            if not data.get('date'):
+                return JsonResponse({'success': False, 'error': 'Date is required'})
+            if not data.get('item'):
+                return JsonResponse({'success': False, 'error': 'Item is required'})
+            if not data.get('transaction_type'):
+                return JsonResponse({'success': False, 'error': 'Transaction type is required'})
+            
+            # Get foreign key objects
+            item = get_object_or_404(Item, id=data['item'])
+            
+            # Validate quantity based on transaction type
+            if data['transaction_type'] == 'INWARD':
+                if not data.get('inward_qty') or int(data.get('inward_qty', 0)) < 1:
+                    return JsonResponse({'success': False, 'error': 'Inward quantity must be at least 1'})
+                outward_qty = 0
+                inward_qty = int(data.get('inward_qty', 0))
+            else:  # OUTWARD
+                if not data.get('outward_qty') or int(data.get('outward_qty', 0)) < 1:
+                    return JsonResponse({'success': False, 'error': 'Outward quantity must be at least 1'})
+                inward_qty = 0
+                outward_qty = int(data.get('outward_qty', 0))
+            
+            # Validate unit value
+            unit_value = float(data.get('unit_value', 0))
+            if unit_value < 0:
+                return JsonResponse({'success': False, 'error': 'Unit value cannot be negative'})
+            
+            # Update stock register entry
+            stock_register.date = data.get('date')
+            stock_register.item = item
+            stock_register.description = data.get('description', '')
+            stock_register.transaction_type = data['transaction_type']
+            stock_register.inward_qty = inward_qty
+            stock_register.outward_qty = outward_qty
+            stock_register.unit_value = unit_value
+            stock_register.reference = data.get('reference', '')
+            stock_register.save()
+            
+            return JsonResponse({'success': True, 'message': 'Stock Register entry updated successfully', 'register_no': stock_register.register_no})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    
+    return render(request, 'requisition/add_stock_register_custom.html', {
+        'stock_register': stock_register,
+        'items': items,
+        'is_edit': True
+    })
 
 
 def bulk_import_view(request):

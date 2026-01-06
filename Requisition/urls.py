@@ -1,5 +1,10 @@
 from django.urls import path
+from django.shortcuts import redirect
 from . import views
+
+def redirect_to_stock_register_admin(request):
+    """Redirect old stock register URL to Wagtail admin"""
+    return redirect('/admin/snippets/Requisition/stockregister/')
 
 urlpatterns = [
     # Custom add/edit pages
@@ -11,8 +16,11 @@ urlpatterns = [
     path('api/requisition/customers/', views.get_customers, name='get_requisition_customers'),
     path('api/requisition/users/', views.get_users, name='get_requisition_users'),
     
-    # Stock Register
-    path('stock-register/', views.stock_register_view, name='stock_register'),
+    # Stock Register - redirect old URL to Wagtail admin
+    path('stock-register/', redirect_to_stock_register_admin, name='stock_register'),
+    path('add-stock-register-custom/', views.add_stock_register_custom, name='add_stock_register_custom'),
+    path('edit-stock-register-custom/<str:register_no>/', views.edit_stock_register_custom, name='edit_stock_register_custom'),
+    path('api/stock-register/next-reference/', views.get_next_stock_register_reference, name='get_next_stock_register_reference'),
 ]
 
 

@@ -1,4 +1,6 @@
 from django.db import models
+from django.db.models import Sum
+from django.utils.html import format_html
 from wagtail.admin.panels import FieldPanel, MultiFieldPanel
 from wagtail.snippets.models import register_snippet
 from wagtail.snippets.views.snippets import SnippetViewSet, SnippetViewSetGroup, IndexView
@@ -184,6 +186,90 @@ class StockRegister(models.Model):
         total_inward = sum(entry.inward_qty for entry in entries)
         total_outward = sum(entry.outward_qty for entry in entries)
         return total_inward - total_outward
+    
+    def min_stock_alert(self):
+        """Display minimum stock alert with colored indicators based on threshold"""
+        if not self.item:
+            return "—"
+        
+        # Calculate available stock for this item (sum of all transactions)
+        stock_entries = StockRegister.objects.filter(item=self.item)
+        total_inward = stock_entries.aggregate(total=Sum('inward_qty'))['total'] or 0
+        total_outward = stock_entries.aggregate(total=Sum('outward_qty'))['total'] or 0
+        available_stock = total_inward - total_outward
+        
+        threshold_qty = self.item.threshold_qty
+        
+        # If no threshold set, return dash
+        if threshold_qty is None:
+            return "—"
+        
+        # Determine alert status based on threshold comparison
+        # CRITICAL: Stock is at or below 0 (out of stock or negative)
+        if available_stock <= 0:
+            bg_color = "#cc0000"  # Red
+            text_color = "white"
+            status_text = "CRITICAL"
+            stock_text = f"Stock: {available_stock} | Threshold: {threshold_qty}"
+        # LOW STOCK: Stock is positive but at or below threshold
+        elif available_stock <= threshold_qty:
+            bg_color = "#ffa500"  # Orange/Yellow
+            text_color = "white"
+            status_text = "LOW STOCK"
+            stock_text = f"Stock: {available_stock} | Threshold: {threshold_qty}"
+        # OK: Stock is above threshold
+        else:
+            bg_color = "#006400"  # Dark Green
+            text_color = "white"
+            status_text = "OK"
+            stock_text = f"Stock: {available_stock} | Threshold: {threshold_qty}"
+        
+        style = f"background-color: {bg_color}; color: {text_color}; padding: 8px 12px; text-align: center; border-radius: 4px; font-weight: bold; font-size: 11px; display: inline-block; min-width: 150px;"
+        
+        return format_html(
+            '<div style="{}">'
+            '<div style="font-weight: bold; margin-bottom: 2px;">{}</div>'
+            '<div style="font-size: 10px; opacity: 0.9;">{}</div>'
+            '</div>',
+            style,
+            status_text,
+            stock_text
+        )
+    
+    min_stock_alert.short_description = "MIN STOCK ALERT"
+    
+    def available_stock_display(self):
+        """Display available stock (balance) for this item"""
+        if not self.item:
+            return "—"
+        
+        # Calculate available stock for this item
+        stock_entries = StockRegister.objects.filter(item=self.item)
+        total_inward = stock_entries.aggregate(total=Sum('inward_qty'))['total'] or 0
+        total_outward = stock_entries.aggregate(total=Sum('outward_qty'))['total'] or 0
+        available_stock = total_inward - total_outward
+        
+        # Format with color based on stock level
+        if available_stock < 0:
+            # Negative stock - red
+            return format_html(
+                '<span style="color: #dc2626; font-weight: 600;">{}</span>',
+                available_stock
+            )
+        elif available_stock == 0:
+            # Zero stock - gray
+            return format_html(
+                '<span style="color: #6b7280; font-weight: 600;">{}</span>',
+                available_stock
+            )
+        else:
+            # Positive stock - green
+            return format_html(
+                '<span style="color: #059669; font-weight: 600;">{}</span>',
+                available_stock
+            )
+    
+    available_stock_display.short_description = "AVAILABLE STOCK"
 
 
 # ---------- SNIPPET VIEWSET ----------
@@ -280,9 +366,11 @@ class StockRegisterViewSet(SnippetViewSet):
         "transaction_type",
         "inward_qty",
         "outward_qty",
+        "available_stock_display",
         "unit_value",
         "total_value",
         "reference",
+        "min_stock_alert",
     )
     
     list_export = [
@@ -302,6 +390,23 @@ class StockRegisterViewSet(SnippetViewSet):
     
     search_fields = ("register_no", "item__name", "reference", "description")
     list_filter = ("transaction_type", "date", "item__type")
+
+    def get_add_url(self):
+        return reverse("add_stock_register_custom")
+
+    def get_edit_url(self, instance):
+        return reverse("edit_stock_register_custom", args=(instance.register_no,))
+
+    def add_view(self, request):
+        return redirect(self.get_add_url())
+
+    def edit_view(self, request, pk):
+        try:
+            instance = self.model.objects.get(pk=pk)
+            return redirect(self.get_edit_url(instance))
+        except self.model.DoesNotExist:
+            from django.shortcuts import render
+            return render(request, '404.html', status=404)
 
     # Custom IndexView to restrict export to superusers
     class RestrictedIndexView(IndexView):
