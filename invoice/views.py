@@ -180,11 +180,36 @@ def add_invoice_custom(request):
             if not data.get('amc_type'):
                 return JsonResponse({'success': False, 'error': 'AMC Type is required'}, status=400)
 
+            # Parse date strings to date objects
+            start_date_str = data.get('start_date')
+            due_date_str = data.get('due_date')
+            
+            start_date = None
+            due_date = None
+            
+            if start_date_str:
+                try:
+                    if isinstance(start_date_str, str):
+                        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+                    elif isinstance(start_date_str, date):
+                        start_date = start_date_str
+                except (ValueError, TypeError):
+                    return JsonResponse({'success': False, 'error': 'Invalid start_date format. Use YYYY-MM-DD'}, status=400)
+            
+            if due_date_str:
+                try:
+                    if isinstance(due_date_str, str):
+                        due_date = datetime.strptime(due_date_str, '%Y-%m-%d').date()
+                    elif isinstance(due_date_str, date):
+                        due_date = due_date_str
+                except (ValueError, TypeError):
+                    return JsonResponse({'success': False, 'error': 'Invalid due_date format. Use YYYY-MM-DD'}, status=400)
+
             invoice = Invoice.objects.create(
                 customer_id=data.get('customer') or None,
                 amc_type_id=data.get('amc_type'),
-                start_date=data.get('start_date'),
-                due_date=data.get('due_date'),
+                start_date=start_date,
+                due_date=due_date,
                 discount=data.get('discount', 0),
                 payment_term=data.get('payment_term', 'cash'),
                 status=data.get('status', 'open'),
@@ -278,11 +303,31 @@ def edit_invoice_custom(request, reference_id):
             if not data.get('amc_type'):
                 return JsonResponse({'success': False, 'error': 'AMC Type is required'}, status=400)
 
+            # Parse date strings to date objects
+            start_date_str = data.get('start_date')
+            due_date_str = data.get('due_date')
+            
+            if start_date_str:
+                try:
+                    if isinstance(start_date_str, str):
+                        invoice.start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+                    elif isinstance(start_date_str, date):
+                        invoice.start_date = start_date_str
+                except (ValueError, TypeError):
+                    return JsonResponse({'success': False, 'error': 'Invalid start_date format. Use YYYY-MM-DD'}, status=400)
+            
+            if due_date_str:
+                try:
+                    if isinstance(due_date_str, str):
+                        invoice.due_date = datetime.strptime(due_date_str, '%Y-%m-%d').date()
+                    elif isinstance(due_date_str, date):
+                        invoice.due_date = due_date_str
+                except (ValueError, TypeError):
+                    return JsonResponse({'success': False, 'error': 'Invalid due_date format. Use YYYY-MM-DD'}, status=400)
+
             # Update invoice fields
             invoice.customer_id = data.get('customer') if data.get('customer') else None
             invoice.amc_type_id = data.get('amc_type')
-            invoice.start_date = data.get('start_date')
-            invoice.due_date = data.get('due_date')
             invoice.discount = data.get('discount', 0)
             invoice.payment_term = data.get('payment_term', 'cash')
             invoice.status = data.get('status', 'open')
@@ -802,6 +847,7 @@ def customer_invoices_list(request):
     
     try:
         # Find customer by email (also checks for sub-customers)
+        from customer.utils import resolve_customer_from_email
         customer, is_subcustomer = resolve_customer_from_email(email)
         
         # Get all invoices for this customer
