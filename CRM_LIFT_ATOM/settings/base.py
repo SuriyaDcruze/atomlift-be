@@ -265,6 +265,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
     "https://technician.careelevators.in",
     "https://admin.careelevators.in",
+    "https://atom-lionscl.vercel.app"
     # Add your mobile app domains here
 ]
 
@@ -284,9 +285,11 @@ ALLOWED_HOSTS = [
     "127.0.0.1",
     "technician.careelevators.in",
     "admin.careelevators.in",
+    "atom-lionscl.vercel.app"
 ]
 
 CSRF_TRUSTED_ORIGINS = [
     "https://technician.careelevators.in",
     "https://admin.careelevators.in",
+    "https://atom-lionscl.vercel.app"
 ]
