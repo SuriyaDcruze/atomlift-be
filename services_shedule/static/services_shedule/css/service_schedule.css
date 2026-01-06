@@ -1,0 +1,20 @@
+/* Enable horizontal scrolling for the listing table */
+.listing {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+}
+
+/* Optional: Add some padding to the bottom to avoid scrollbar covering content */
+.listing::-webkit-scrollbar {
+    height: 12px;
+}
+
+.listing::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 6px;
+}
+
+.listing::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
