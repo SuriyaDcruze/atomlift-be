@@ -13,6 +13,7 @@ def dashboard_metrics(request):
     """
     Context processor to add dashboard metrics to admin templates.
     """
+    from datetime import timedelta
     total_customers = Customer.objects.count()
     total_complaints = Complaint.objects.count()
     # Count complaints where status is 'open' or 'in_progress' (not 'closed')
@@ -55,6 +56,40 @@ def dashboard_metrics(request):
         ).count()
         weekly_services.append(day_services)
 
+    # ----------------- Invoice notifications (due soon / overdue) -----------------
+    # unpaid invoices: open / partially_paid / due
+    unpaid_statuses = ['open', 'partially_paid', 'due']
+    # Due soon: within next 3 days (including today), not overdue
+    upcoming_window = today + timedelta(days=3)
+    due_soon_qs = Invoice.objects.select_related('customer').filter(
+        status__in=unpaid_statuses,
+        due_date__gte=today,
+        due_date__lte=upcoming_window,
+    ).order_by('due_date')
+
+    # Overdue: due_date < today
+    overdue_qs = Invoice.objects.select_related('customer').filter(
+        status__in=unpaid_statuses,
+        due_date__lt=today,
+    ).order_by('due_date')
+
+    # Limit lists for dashboard dropdown
+    due_soon_list = list(due_soon_qs[:10])
+    overdue_list = list(overdue_qs[:10])
+    invoice_notification_count = due_soon_qs.count() + overdue_qs.count()
+
+    # ----------------- AMC expiry notifications -----------------
+    # Only show AMCs going to expire (due soon), not expired ones
+    amc_qs_base = AMC.objects.select_related('customer').filter(end_date__isnull=False, end_date__gte=today)
+    amc_due_7_qs = amc_qs_base.filter(end_date__lte=today + timedelta(days=7)).order_by('end_date')
+    amc_due_30_qs = amc_qs_base.filter(end_date__gt=today + timedelta(days=7), end_date__lte=today + timedelta(days=30)).order_by('end_date')
+
+    amc_due_7_list = list(amc_due_7_qs[:10])
+    amc_due_30_list = list(amc_due_30_qs[:10])
+    amc_notification_count = amc_due_7_qs.count() + amc_due_30_qs.count()
+
+    notification_count_total = invoice_notification_count + amc_notification_count
+
     return {
         'total_customers': total_customers,
         'total_complaints': total_complaints,
@@ -67,4 +102,14 @@ def dashboard_metrics(request):
         'recent_complaints': recent_complaints,
         'weekly_payments': weekly_payments,
         'weekly_services': weekly_services,
+        # Notifications
+        'invoice_due_soon_list': due_soon_list,
+        'invoice_overdue_list': overdue_list,
+        'invoice_notification_count': invoice_notification_count,
+        # AMC notifications (only expiring soon, not expired)
+        'amc_due_7_list': amc_due_7_list,
+        'amc_due_30_list': amc_due_30_list,
+        'amc_notification_count': amc_notification_count,
+        # Total badge
+        'notification_count_total': notification_count_total,
     }

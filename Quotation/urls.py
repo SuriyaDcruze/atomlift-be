@@ -12,6 +12,12 @@ urlpatterns = [
     path('create/', views.create_quotation, name='create_quotation'),
     path('update/<str:reference_id>/', views.update_quotation, name='update_quotation'),
     
+    # PDF download
+    path('pdf/<int:pk>/', views.download_quotation_pdf, name='download_quotation_pdf'),
+    
+    # Email quotation
+    path('email/<int:pk>/', views.send_quotation_email, name='send_quotation_email'),
+    
     # API endpoints for dropdown management
     path('api/customers/', views.get_customers, name='api_get_customers'),
     path('api/amc-types/', views.get_amc_types, name='api_get_amc_types'),

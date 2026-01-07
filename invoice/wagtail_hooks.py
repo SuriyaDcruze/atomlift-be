@@ -2,8 +2,9 @@
 from wagtail import hooks
 from wagtail.snippets.widgets import SnippetListingButton
 from django.urls import path, reverse
-from .views import add_invoice_custom, edit_invoice_custom, view_invoice_custom
+from .views import add_invoice_custom, edit_invoice_custom, view_invoice_custom, send_invoice_reminder
 from .models import Invoice
+
 
 @hooks.register('register_admin_urls')
 def register_custom_invoice_urls():
@@ -11,6 +12,7 @@ def register_custom_invoice_urls():
         path('invoices/add-custom/', add_invoice_custom, name='add_invoice_custom'),
         path('invoices/edit-custom/<str:reference_id>/', edit_invoice_custom, name='edit_invoice_custom'),
         path('invoices/view-custom/<str:reference_id>/', view_invoice_custom, name='view_invoice_custom'),
+        path('invoices/send-reminder/<int:pk>/', send_invoice_reminder, name='send_invoice_reminder'),
     ]
 
 @hooks.register('register_snippet_listing_buttons')
@@ -46,6 +48,21 @@ def add_invoice_buttons(snippet, user, next_url=None):
             )
         except Exception as e:
             pass
+        
+        # Add Send Reminder Button (only for unpaid invoices)
+        if snippet.status in ['open', 'partially_paid', 'due']:
+            try:
+                reminder_url = reverse('send_invoice_reminder', kwargs={'pk': snippet.pk})
+                buttons.append(
+                    SnippetListingButton(
+                        label='Send Reminder',
+                        url=reminder_url,
+                        priority=80,
+                        icon_name='mail',
+                    )
+                )
+            except Exception as e:
+                pass
         
         return buttons
     return []

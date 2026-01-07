@@ -17,6 +17,9 @@ urlpatterns = [
     # PDF download
     path('pdf/<int:pk>/', views.download_invoice_pdf, name='download_invoice_pdf'),
     
+    # Send reminder
+    path('send-reminder/<int:pk>/', views.send_invoice_reminder, name='send_invoice_reminder'),
+    
     # Customer mobile app invoice API
     path('api/customer/invoices/', views.customer_invoices_list, name='customer_invoices_list'),
 ]

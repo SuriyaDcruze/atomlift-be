@@ -402,6 +402,15 @@ body {
   background: linear-gradient(to right, #213066, #182755);
 }
 
+.btn-success {
+  background: linear-gradient(to right, #10B981, #059669);
+  color: white;
+}
+
+.btn-success:hover {
+  background: linear-gradient(to right, #059669, #047857);
+}
+
 .option-modal {
   position: fixed;
   inset: 0;
@@ -836,7 +845,10 @@ body {
 
       <!-- Modal Footer -->
       <div class="w-modal-footer">
-        <button type="button" class="btn btn-secondary" onclick="window.history.back();">Cancel</button>
+        <a href="/admin/snippets/Quotation/quotation/" class="btn btn-secondary">Back to List</a>
+        {% if is_edit %}
+        <a href="{% url 'download_quotation_pdf' quotation.pk %}" class="btn btn-success">Download PDF</a>
+        {% endif %}
         <button
           type="button"
           id="submitBtn"

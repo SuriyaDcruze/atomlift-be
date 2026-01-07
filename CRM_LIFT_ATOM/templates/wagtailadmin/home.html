@@ -13,7 +13,142 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body class="bg-gray-50 min-h-screen p-4 sm:p-6">
-  <h1 class="text-xl sm:text-2xl font-semibold text-gray-800 mb-6">Dashboard</h1>
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-xl sm:text-2xl font-semibold text-gray-800">Dashboard</h1>
+    <!-- Notifications (Invoices) -->
+    <div class="relative mr-4 sm:mr-8 mt-1 z-20">
+      <button id="notifButton" class="relative inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-gray-100 focus:outline-none" aria-haspopup="true" aria-expanded="false">
+        <img src="{% static 'img/notification.png' %}" alt="Notifications" class="w-5 h-5 object-contain">
+        {% with total=notification_count_total|default:invoice_notification_count %}
+        {% if total and total > 0 %}
+        <span class="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white bg-red-500 rounded-full transform -translate-y-1/3 translate-x-1/3">
+          {{ total }}
+        </span>
+        {% endif %}
+        {% endwith %}
+      </button>
+
+      <!-- Dropdown panel -->
+      <div id="notifPanel" class="hidden absolute right-0 mt-3 w-80 sm:w-96 bg-white border rounded-lg shadow-lg z-50">
+        <div class="px-4 py-3 border-b flex items-center justify-between">
+          <span class="font-semibold text-gray-800 text-sm">Invoice Alerts</span>
+          <span class="text-xs text-gray-500">Due soon & Overdue</span>
+        </div>
+
+        <!-- Overdue -->
+        <div class="max-h-80 overflow-y-auto">
+          <div class="px-4 py-2">
+            <div class="flex items-center text-red-600 text-sm mb-1">
+              <i class="fas fa-exclamation-circle mr-2"></i>
+              <span class="font-medium">Overdue</span>
+            </div>
+            {% if invoice_overdue_list %}
+              <ul class="space-y-2">
+                {% for inv in invoice_overdue_list %}
+                  <li class="flex items-start justify-between text-sm text-gray-700">
+                    <div class="mr-2">
+                      <div class="font-medium text-gray-800">INV {{ inv.reference_id }}</div>
+                      <div class="text-xs text-gray-500">
+                        {% if inv.customer %}{{ inv.customer.site_name }} · {% endif %}
+                        Due: {{ inv.due_date|date:'Y-m-d' }}
+                      </div>
+                    </div>
+                    <a href="/invoice/view/{{ inv.reference_id }}/" class="text-blue-600 text-xs hover:underline whitespace-nowrap">View</a>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <div class="text-xs text-gray-500 px-1">No overdue invoices.</div>
+            {% endif %}
+          </div>
+
+          <div class="border-t my-1"></div>
+
+          <!-- Due soon -->
+          <div class="px-4 py-2">
+            <div class="flex items-center text-amber-600 text-sm mb-1">
+              <i class="fas fa-clock mr-2"></i>
+              <span class="font-medium">Due soon (≤ 3 days)</span>
+            </div>
+            {% if invoice_due_soon_list %}
+              <ul class="space-y-2">
+                {% for inv in invoice_due_soon_list %}
+                  <li class="flex items-start justify-between text-sm text-gray-700">
+                    <div class="mr-2">
+                      <div class="font-medium text-gray-800">INV {{ inv.reference_id }}</div>
+                      <div class="text-xs text-gray-500">
+                        {% if inv.customer %}{{ inv.customer.site_name }} · {% endif %}
+                        Due: {{ inv.due_date|date:'Y-m-d' }}
+                      </div>
+                    </div>
+                    <a href="/invoice/view/{{ inv.reference_id }}/" class="text-blue-600 text-xs hover:underline whitespace-nowrap">View</a>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <div class="text-xs text-gray-500 px-1">No invoices due soon.</div>
+            {% endif %}
+          </div>
+
+          <div class="border-t my-1"></div>
+
+          <!-- AMC Expiry -->
+          <div class="px-4 py-2">
+            <div class="flex items-center text-indigo-600 text-sm mb-1">
+              <i class="fas fa-handshake mr-2"></i>
+              <span class="font-medium">AMC Expiry</span>
+            </div>
+
+            <!-- Due in 7 days -->
+            <div class="mb-2">
+              <div class="text-xs font-medium text-amber-600 mb-1">Due in 7 days</div>
+              {% if amc_due_7_list %}
+                <ul class="space-y-1">
+                  {% for amc in amc_due_7_list %}
+                    <li class="flex items-start justify-between text-sm text-gray-700">
+                      <div class="mr-2">
+                        <div class="font-medium text-gray-800">{{ amc.reference_id }}</div>
+                        <div class="text-xs text-gray-500">
+                          {% if amc.customer %}{{ amc.customer.site_name }} · {% endif %}
+                          End: {{ amc.end_date|date:'Y-m-d' }}
+                        </div>
+                      </div>
+                      <a href="/admin/snippets/amc/amc/" class="text-blue-600 text-xs hover:underline whitespace-nowrap">View</a>
+                    </li>
+                  {% endfor %}
+                </ul>
+              {% else %}
+                <div class="text-xs text-gray-500">No AMCs expiring in a week.</div>
+              {% endif %}
+            </div>
+
+            <!-- Due in 30 days -->
+            <div>
+              <div class="text-xs font-medium text-yellow-600 mb-1">Due in 30 days</div>
+              {% if amc_due_30_list %}
+                <ul class="space-y-1">
+                  {% for amc in amc_due_30_list %}
+                    <li class="flex items-start justify-between text-sm text-gray-700">
+                      <div class="mr-2">
+                        <div class="font-medium text-gray-800">{{ amc.reference_id }}</div>
+                        <div class="text-xs text-gray-500">
+                          {% if amc.customer %}{{ amc.customer.site_name }} · {% endif %}
+                          End: {{ amc.end_date|date:'Y-m-d' }}
+                        </div>
+                      </div>
+                      <a href="/admin/snippets/amc/amc/" class="text-blue-600 text-xs hover:underline whitespace-nowrap">View</a>
+                    </li>
+                  {% endfor %}
+                </ul>
+              {% else %}
+                <div class="text-xs text-gray-500">No AMCs expiring in 30 days.</div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- First Row -->
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -188,6 +323,32 @@
         }
       }
     });
+
+    // Notifications dropdown toggle
+    (function () {
+      const btn = document.getElementById('notifButton');
+      const panel = document.getElementById('notifPanel');
+      if (!btn || !panel) return;
+
+      function closePanel(e) {
+        if (!panel.classList.contains('hidden')) {
+          // Click outside closes
+          if (e && (panel.contains(e.target) || btn.contains(e.target))) return;
+          panel.classList.add('hidden');
+          document.removeEventListener('click', closePanel);
+        }
+      }
+
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        panel.classList.toggle('hidden');
+        if (!panel.classList.contains('hidden')) {
+          setTimeout(() => document.addEventListener('click', closePanel), 0);
+        } else {
+          document.removeEventListener('click', closePanel);
+        }
+      });
+    })();
   </script>
 </body>
 </html>

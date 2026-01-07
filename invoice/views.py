@@ -21,8 +21,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import status
-from django.views.decorators.csrf import csrf_exempt
 from customer.models import Customer
+from customer.utils import resolve_customer_from_email
 from .serializers import InvoiceListSerializer
 
 logger = logging.getLogger(__name__)
@@ -180,36 +180,11 @@ def add_invoice_custom(request):
             if not data.get('amc_type'):
                 return JsonResponse({'success': False, 'error': 'AMC Type is required'}, status=400)
 
-            # Parse date strings to date objects
-            start_date_str = data.get('start_date')
-            due_date_str = data.get('due_date')
-            
-            start_date = None
-            due_date = None
-            
-            if start_date_str:
-                try:
-                    if isinstance(start_date_str, str):
-                        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
-                    elif isinstance(start_date_str, date):
-                        start_date = start_date_str
-                except (ValueError, TypeError):
-                    return JsonResponse({'success': False, 'error': 'Invalid start_date format. Use YYYY-MM-DD'}, status=400)
-            
-            if due_date_str:
-                try:
-                    if isinstance(due_date_str, str):
-                        due_date = datetime.strptime(due_date_str, '%Y-%m-%d').date()
-                    elif isinstance(due_date_str, date):
-                        due_date = due_date_str
-                except (ValueError, TypeError):
-                    return JsonResponse({'success': False, 'error': 'Invalid due_date format. Use YYYY-MM-DD'}, status=400)
-
             invoice = Invoice.objects.create(
                 customer_id=data.get('customer') or None,
                 amc_type_id=data.get('amc_type'),
-                start_date=start_date,
-                due_date=due_date,
+                start_date=data.get('start_date'),
+                due_date=data.get('due_date'),
                 discount=data.get('discount', 0),
                 payment_term=data.get('payment_term', 'cash'),
                 status=data.get('status', 'open'),
@@ -303,31 +278,11 @@ def edit_invoice_custom(request, reference_id):
             if not data.get('amc_type'):
                 return JsonResponse({'success': False, 'error': 'AMC Type is required'}, status=400)
 
-            # Parse date strings to date objects
-            start_date_str = data.get('start_date')
-            due_date_str = data.get('due_date')
-            
-            if start_date_str:
-                try:
-                    if isinstance(start_date_str, str):
-                        invoice.start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
-                    elif isinstance(start_date_str, date):
-                        invoice.start_date = start_date_str
-                except (ValueError, TypeError):
-                    return JsonResponse({'success': False, 'error': 'Invalid start_date format. Use YYYY-MM-DD'}, status=400)
-            
-            if due_date_str:
-                try:
-                    if isinstance(due_date_str, str):
-                        invoice.due_date = datetime.strptime(due_date_str, '%Y-%m-%d').date()
-                    elif isinstance(due_date_str, date):
-                        invoice.due_date = due_date_str
-                except (ValueError, TypeError):
-                    return JsonResponse({'success': False, 'error': 'Invalid due_date format. Use YYYY-MM-DD'}, status=400)
-
             # Update invoice fields
             invoice.customer_id = data.get('customer') if data.get('customer') else None
             invoice.amc_type_id = data.get('amc_type')
+            invoice.start_date = data.get('start_date')
+            invoice.due_date = data.get('due_date')
             invoice.discount = data.get('discount', 0)
             invoice.payment_term = data.get('payment_term', 'cash')
             invoice.status = data.get('status', 'open')
@@ -847,7 +802,6 @@ def customer_invoices_list(request):
     
     try:
         # Find customer by email (also checks for sub-customers)
-        from customer.utils import resolve_customer_from_email
         customer, is_subcustomer = resolve_customer_from_email(email)
         
         # Get all invoices for this customer
@@ -877,3 +831,129 @@ def customer_invoices_list(request):
             {'error': f'Internal server error: {str(e)}'}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+# ======================================================
+#  MANUAL INVOICE REMINDER
+# ======================================================
+
+def send_invoice_reminder(request, pk):
+    """Manually send a payment reminder for a specific invoice"""
+    from django.core.mail import EmailMessage
+    from django.conf import settings
+    from django.contrib import messages
+    from django.shortcuts import redirect
+    from django.utils import timezone
+    from .models import InvoiceReminder
+    
+    try:
+        invoice = get_object_or_404(
+            Invoice.objects.select_related('customer'),
+            pk=pk
+        )
+        
+        customer = invoice.customer
+        if not customer or not customer.email:
+            messages.error(request, f'Cannot send reminder: Customer has no email address.')
+            return redirect('wagtailsnippets_invoice_invoice:list')
+        
+        # Determine reminder type based on due date
+        today = timezone.now().date()
+        if invoice.due_date:
+            if invoice.due_date > today:
+                days_until = (invoice.due_date - today).days
+                reminder_type = 'due_soon'
+                subject = f'Payment Reminder: Invoice {invoice.reference_id} is due in {days_until} day(s)'
+            elif invoice.due_date == today:
+                reminder_type = 'due_today'
+                subject = f'Payment Reminder: Invoice {invoice.reference_id} is due TODAY'
+            else:
+                days_overdue = (today - invoice.due_date).days
+                reminder_type = 'overdue'
+                subject = f'URGENT: Invoice {invoice.reference_id} is {days_overdue} day(s) overdue'
+        else:
+            reminder_type = 'overdue'
+            subject = f'Payment Reminder: Invoice {invoice.reference_id}'
+        
+        # Calculate amounts
+        total_amount = invoice.get_total()
+        
+        # Build email body
+        if reminder_type == 'due_soon':
+            days_until = (invoice.due_date - today).days if invoice.due_date else 0
+            urgency = f"Your invoice is due in {days_until} day(s)."
+        elif reminder_type == 'due_today':
+            urgency = "Your invoice is due TODAY."
+        else:
+            days_overdue = (today - invoice.due_date).days if invoice.due_date else 0
+            urgency = f"Your invoice is {days_overdue} day(s) OVERDUE."
+        
+        email_body = f"""Dear {customer.site_name or 'Valued Customer'},
+
+This is a friendly reminder regarding your invoice.
+
+Invoice Details:
+- Invoice Number: {invoice.reference_id}
+- Invoice Date: {invoice.start_date.strftime('%d/%m/%Y') if invoice.start_date else 'N/A'}
+- Due Date: {invoice.due_date.strftime('%d/%m/%Y') if invoice.due_date else 'N/A'}
+- Amount Due: ₹{total_amount:.2f}
+- Current Status: {invoice.get_status_display()}
+
+{urgency}
+
+Please make payment at your earliest convenience to avoid any service interruptions.
+
+Payment Methods:
+- Cash
+- Cheque
+- NEFT
+
+If you have already made the payment, please ignore this reminder.
+
+Thank you for your business.
+
+Best regards,
+Atom Lifts India Pvt Ltd
+Phone: 9600087456
+Email: admin@atomlifts.com
+"""
+        
+        try:
+            email = EmailMessage(
+                subject=subject,
+                body=email_body,
+                from_email=settings.EMAIL_HOST_USER,
+                to=[customer.email],
+            )
+            email.send()
+            
+            # Record reminder
+            InvoiceReminder.objects.create(
+                invoice=invoice,
+                reminder_type=reminder_type,
+                sent_to_email=customer.email,
+                sent_successfully=True
+            )
+            
+            messages.success(request, f'Payment reminder sent successfully to {customer.email}')
+            
+        except Exception as e:
+            logger.error(f"Error sending reminder for invoice {invoice.reference_id}: {str(e)}")
+            
+            # Record failed reminder
+            InvoiceReminder.objects.create(
+                invoice=invoice,
+                reminder_type=reminder_type,
+                sent_to_email=customer.email,
+                sent_successfully=False,
+                error_message=str(e)
+            )
+            
+            messages.error(request, f'Failed to send reminder: {str(e)}')
+        
+        return redirect('wagtailsnippets_invoice_invoice:list')
+        
+    except Exception as e:
+        logger.error(f"Error in send_invoice_reminder: {str(e)}")
+        messages.error(request, f'Error: {str(e)}')
+        return redirect('wagtailsnippets_invoice_invoice:list')

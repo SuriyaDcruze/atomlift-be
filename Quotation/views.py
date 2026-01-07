@@ -1,15 +1,21 @@
 import json
 import csv
 import io
+import re
 from datetime import datetime, date
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.contrib import messages
 from django.urls import reverse
 from django.utils import timezone
 from django.core.exceptions import ValidationError
+from io import BytesIO
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from .models import Quotation
 from customer.models import Customer
 from customer.utils import resolve_customer_from_email
@@ -25,6 +31,244 @@ import logging
 from .serializers import QuotationListSerializer
 
 logger = logging.getLogger(__name__)
+
+
+def sanitize_filename(name):
+    """
+    Sanitize a string to be safe for use in filenames.
+    Removes or replaces special characters, spaces, etc.
+    """
+    if not name:
+        return ''
+    # Replace spaces and special characters with underscores
+    # Keep only alphanumeric, underscores, and hyphens
+    sanitized = re.sub(r'[^\w\s-]', '', str(name))
+    # Replace spaces with underscores
+    sanitized = re.sub(r'[-\s]+', '_', sanitized)
+    # Remove multiple consecutive underscores
+    sanitized = re.sub(r'_+', '_', sanitized)
+    # Remove leading/trailing underscores
+    sanitized = sanitized.strip('_')
+    return sanitized
+
+
+def _generate_quotation_pdf_buffer(quotation):
+    """Helper function to generate PDF buffer for a quotation (used by download and email)"""
+    # --- Context Preparation ---
+    context = {
+        'company_name': 'Atom Lifts India Pvt Ltd',
+        'address': 'No.87B, Pillayar Koll Street, Mannurpet, Ambattur Indus Estate, Chennai 50',
+        'phone': '9600087456',
+        'email': 'admin@atomlifts.com',
+
+        'quotation_no': quotation.reference_id,
+        'quotation_date': quotation.date.strftime('%d/%m/%Y') if quotation.date else '',
+        'customer_name': getattr(quotation.customer, 'site_name', '') if quotation.customer else '',
+        'customer_address': getattr(quotation.customer, 'site_address', '') if quotation.customer else '',
+        'amc_type': getattr(quotation.amc_type, 'name', '') if quotation.amc_type else '',
+        'quotation_type': quotation.get_type_display() if quotation.type else '',
+        'sales_executive': quotation.sales_service_executive.get_full_name() if quotation.sales_service_executive else '',
+        'year_of_make': quotation.year_of_make or '',
+        'remark': quotation.remark or '',
+        'other_remark': quotation.other_remark or '',
+    }
+
+    # Get associated lifts
+    lifts_list = list(quotation.lifts.all())
+
+    # --- Build PDF ---
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=72)
+    styles = getSampleStyleSheet()
+    story = []
+
+    # Header
+    header_style = ParagraphStyle(name='HeaderStyle', parent=styles['Heading1'], fontSize=18, alignment=1)
+    story.append(Paragraph(context['company_name'], header_style))
+    story.append(Paragraph(context['address'], styles['Normal']))
+    story.append(Paragraph(f"Phone: {context['phone']} | Email: {context['email']}", styles['Normal']))
+    story.append(Spacer(1, 12))
+
+    # Quotation Summary
+    data = [
+        ['Quotation No:', context['quotation_no']],
+        ['Quotation Date:', context['quotation_date']],
+        ['Quotation Type:', context['quotation_type']],
+        ['AMC Type:', context['amc_type']],
+    ]
+    summary_table = Table(data, colWidths=[120, 380])
+    summary_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+    ]))
+    story.append(summary_table)
+    story.append(Spacer(1, 12))
+
+    # Customer Info
+    story.append(Paragraph("Customer Details", styles['Heading2']))
+    cust_data = [
+        ['Customer Name:', context['customer_name']],
+        ['Address:', context['customer_address']],
+        ['Sales/Service Executive:', context['sales_executive']],
+    ]
+    if context['year_of_make']:
+        cust_data.append(['Year of Make:', context['year_of_make']])
+    
+    cust_table = Table(cust_data, colWidths=[140, 360])
+    cust_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+    ]))
+    story.append(cust_table)
+    story.append(Spacer(1, 12))
+
+    # Associated Lifts
+    if lifts_list:
+        story.append(Paragraph("Associated Lifts", styles['Heading2']))
+        lifts_data = [['Lift Name', 'Reference ID']]
+        for lift in lifts_list:
+            lifts_data.append([
+                lift.name or 'N/A',
+                lift.reference_id or 'N/A',
+            ])
+        lifts_table = Table(lifts_data, colWidths=[250, 250])
+        lifts_table.setStyle(TableStyle([
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ]))
+        story.append(lifts_table)
+        story.append(Spacer(1, 12))
+
+    # Remarks
+    if context['remark'] or context['other_remark']:
+        story.append(Paragraph("Remarks", styles['Heading2']))
+        if context['remark']:
+            story.append(Paragraph(f"<b>Remark:</b> {context['remark']}", styles['Normal']))
+            story.append(Spacer(1, 6))
+        if context['other_remark']:
+            story.append(Paragraph(f"<b>Other Remark:</b> {context['other_remark']}", styles['Normal']))
+        story.append(Spacer(1, 12))
+
+    # Build PDF
+    doc.build(story)
+    buffer.seek(0)
+    return buffer, context
+
+
+def download_quotation_pdf(request, pk):
+    """Generate and download a PDF for a specific quotation."""
+    try:
+        quotation = get_object_or_404(
+            Quotation.objects.select_related('customer', 'amc_type', 'sales_service_executive').prefetch_related('lifts'),
+            pk=pk
+        )
+
+        buffer, context = _generate_quotation_pdf_buffer(quotation)
+        
+        response = HttpResponse(buffer, content_type='application/pdf')
+        
+        # Generate filename with customer name
+        customer_name = sanitize_filename(context.get('customer_name', ''))
+        quotation_no = context.get('quotation_no', '') or str(quotation.pk)
+        
+        if customer_name:
+            filename = f'{customer_name}_quotation_{quotation_no}.pdf'
+        else:
+            filename = f'quotation_{quotation_no}.pdf'
+        
+        response['Content-Disposition'] = f'attachment; filename={filename}'
+        return response
+
+    except Exception as e:
+        logger.error(f"Error generating quotation PDF: {str(e)}")
+        return HttpResponse(f"Error generating PDF: {str(e)}", status=500)
+
+
+def send_quotation_email(request, pk):
+    """Send quotation PDF via email to customer"""
+    from django.core.mail import EmailMessage
+    from django.conf import settings
+    from django.contrib import messages
+    from django.shortcuts import redirect
+    
+    try:
+        quotation = get_object_or_404(
+            Quotation.objects.select_related('customer', 'amc_type', 'sales_service_executive').prefetch_related('lifts'),
+            pk=pk
+        )
+        
+        customer = quotation.customer
+        if not customer or not customer.email:
+            messages.error(request, 'Cannot send email: Customer has no email address.')
+            return redirect('/admin/snippets/Quotation/quotation/')
+        
+        # Generate PDF
+        buffer, context = _generate_quotation_pdf_buffer(quotation)
+        
+        # Generate filename
+        customer_name = sanitize_filename(context.get('customer_name', ''))
+        quotation_no = context.get('quotation_no', '') or str(quotation.pk)
+        
+        if customer_name:
+            filename = f'{customer_name}_quotation_{quotation_no}.pdf'
+        else:
+            filename = f'quotation_{quotation_no}.pdf'
+        
+        # Build email
+        subject = f'Quotation {quotation.reference_id} - Atom Lifts India Pvt Ltd'
+        
+        email_body = f"""Dear {customer.site_name or 'Valued Customer'},
+
+Please find attached the quotation details.
+
+Quotation Details:
+- Quotation Number: {quotation.reference_id}
+- Quotation Date: {context['quotation_date']}
+- Quotation Type: {context['quotation_type']}
+- AMC Type: {context['amc_type'] or 'N/A'}
+- Sales/Service Executive: {context['sales_executive'] or 'N/A'}
+
+Please review the attached quotation and contact us if you have any questions.
+
+Thank you for your interest in our services.
+
+Best regards,
+Atom Lifts India Pvt Ltd
+Phone: {context['phone']}
+Email: {context['email']}
+"""
+        
+        try:
+            # Reset buffer position before reading
+            buffer.seek(0)
+            pdf_content = buffer.read()
+            
+            email = EmailMessage(
+                subject=subject,
+                body=email_body,
+                from_email=settings.EMAIL_HOST_USER,
+                to=[customer.email],
+            )
+            email.attach(filename, pdf_content, 'application/pdf')
+            email.send()
+            
+            logger.info(f"Quotation {quotation.reference_id} sent successfully to {customer.email}")
+            messages.success(request, f'Quotation sent successfully to {customer.email}')
+            
+        except Exception as e:
+            logger.error(f"Error sending quotation email for {quotation.reference_id}: {str(e)}", exc_info=True)
+            messages.error(request, f'Failed to send email: {str(e)}')
+        
+        return redirect('/admin/snippets/Quotation/quotation/')
+        
+    except Exception as e:
+        logger.error(f"Error in send_quotation_email: {str(e)}")
+        messages.error(request, f'Error: {str(e)}')
+        return redirect('/admin/snippets/Quotation/quotation/')
 
 
 # quotation/views.py (relevant excerpts)

@@ -1,6 +1,8 @@
 # invoice/models.py (Wagtail Integration)
 
 from django.db import models
+from datetime import date as py_date
+from django.utils.dateparse import parse_date
 from wagtail.admin.panels import FieldPanel, MultiFieldPanel, InlinePanel
 from wagtail.snippets.models import register_snippet
 from modelcluster.fields import ParentalKey
@@ -50,15 +52,176 @@ class Invoice(ClusterableModel):
             # Safely generate reference_id
             last_id = int(last_invoice.reference_id.replace(self.REFERENCE_PREFIX, '')) if last_invoice and last_invoice.reference_id.startswith(self.REFERENCE_PREFIX) else 0
             self.reference_id = f'{self.REFERENCE_PREFIX}{str(last_id + 1).zfill(3)}'
+
+        # Coerce start_date/due_date if they were assigned as strings (common for JSON payloads)
+        if isinstance(self.start_date, str):
+            parsed = parse_date(self.start_date)
+            if parsed:
+                self.start_date = parsed
+        if isinstance(self.due_date, str):
+            parsed = parse_date(self.due_date)
+            if parsed:
+                self.due_date = parsed
         
         # Auto-update status to 'due' if due_date has passed and invoice is not paid
         from django.utils import timezone
         if self.due_date and self.status != 'paid':
-            if self.due_date < timezone.now().date():
+            if isinstance(self.due_date, py_date) and self.due_date < timezone.now().date():
                 self.status = 'due'
         
         super().save(*args, **kwargs)
+        
+        # Auto-send reminder emails (runs after save to ensure invoice exists)
+        self._auto_send_reminder_if_needed()
     
+    def _auto_send_reminder_if_needed(self):
+        """
+        Automatically send payment reminder emails when:
+        - Invoice is overdue (due_date passed) and no reminder sent in last 7 days
+        - Invoice is due today and no reminder sent today
+        - Invoice is due in 3 days and no reminder sent for this cycle
+        Only sends for unpaid invoices (open, partially_paid, due)
+        """
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        # Skip if invoice is paid or no customer email
+        if self.status == 'paid':
+            return
+        if not self.customer or not self.customer.email:
+            return
+        if not self.due_date:
+            return
+        
+        today = timezone.now().date()
+        
+        # Determine reminder type
+        reminder_type = None
+        days_diff = (self.due_date - today).days if isinstance(self.due_date, py_date) else 0
+        
+        # Use related name to check existing reminders (avoids circular import)
+        if days_diff < 0:
+            # Overdue - send if no reminder in last 7 days
+            recent = self.reminders.filter(
+                reminder_type='overdue',
+                reminder_date__gte=timezone.now() - timedelta(days=7)
+            ).exists()
+            if not recent:
+                reminder_type = 'overdue'
+        elif days_diff == 0:
+            # Due today - send if no reminder today
+            today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+            recent = self.reminders.filter(
+                reminder_type='due_today',
+                reminder_date__gte=today_start
+            ).exists()
+            if not recent:
+                reminder_type = 'due_today'
+        elif days_diff == 3:
+            # Due in 3 days - send if no reminder in last 3 days
+            recent = self.reminders.filter(
+                reminder_type='due_soon',
+                reminder_date__gte=timezone.now() - timedelta(days=3)
+            ).exists()
+            if not recent:
+                reminder_type = 'due_soon'
+        
+        if reminder_type:
+            self._send_reminder_email(reminder_type)
+    
+    def _send_reminder_email(self, reminder_type):
+        """Send reminder email for this invoice"""
+        from django.core.mail import EmailMessage
+        from django.conf import settings
+        from django.utils import timezone
+        import logging
+        
+        logger = logging.getLogger(__name__)
+        
+        try:
+            customer = self.customer
+            if not customer or not customer.email:
+                return False
+            
+            today = timezone.now().date()
+            total_amount = self.get_total()
+            
+            # Build subject and urgency message
+            if reminder_type == 'due_soon':
+                days_until = (self.due_date - today).days if self.due_date else 0
+                subject = f'Payment Reminder: Invoice {self.reference_id} is due in {days_until} day(s)'
+                urgency = f"Your invoice is due in {days_until} day(s)."
+            elif reminder_type == 'due_today':
+                subject = f'Payment Reminder: Invoice {self.reference_id} is due TODAY'
+                urgency = "Your invoice is due TODAY."
+            else:
+                days_overdue = (today - self.due_date).days if self.due_date else 0
+                subject = f'URGENT: Invoice {self.reference_id} is {days_overdue} day(s) overdue'
+                urgency = f"Your invoice is {days_overdue} day(s) OVERDUE."
+            
+            email_body = f"""Dear {customer.site_name or 'Valued Customer'},
+
+This is a friendly reminder regarding your invoice.
+
+Invoice Details:
+- Invoice Number: {self.reference_id}
+- Invoice Date: {self.start_date.strftime('%d/%m/%Y') if self.start_date else 'N/A'}
+- Due Date: {self.due_date.strftime('%d/%m/%Y') if self.due_date else 'N/A'}
+- Amount Due: ₹{total_amount:.2f}
+- Current Status: {self.get_status_display()}
+
+{urgency}
+
+Please make payment at your earliest convenience to avoid any service interruptions.
+
+Payment Methods:
+- Cash
+- Cheque
+- NEFT
+
+If you have already made the payment, please ignore this reminder.
+
+Thank you for your business.
+
+Best regards,
+Atom Lifts India Pvt Ltd
+Phone: 9600087456
+Email: admin@atomlifts.com
+"""
+            
+            email = EmailMessage(
+                subject=subject,
+                body=email_body,
+                from_email=settings.EMAIL_HOST_USER,
+                to=[customer.email],
+            )
+            email.send()
+            
+            # Record reminder using related manager
+            self.reminders.create(
+                reminder_type=reminder_type,
+                sent_to_email=customer.email,
+                sent_successfully=True
+            )
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error sending auto reminder for invoice {self.reference_id}: {str(e)}")
+            
+            # Record failed reminder
+            try:
+                self.reminders.create(
+                    reminder_type=reminder_type,
+                    sent_to_email=customer.email if customer and customer.email else '',
+                    sent_successfully=False,
+                    error_message=str(e)
+                )
+            except:
+                pass
+            
+            return False
+
     def get_subtotal(self):
         """Calculate subtotal amount from all invoice items (before discount)"""
         return round(sum(item.total for item in self.items.all()), 2)
@@ -268,11 +431,78 @@ class BulkImportInvoiceViewSet(SnippetViewSet):
     index_view_class = BulkImportIndexView
 
 
+# Invoice Reminder Tracking Model
+class InvoiceReminder(models.Model):
+    """Track invoice payment reminders sent to customers"""
+    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name='reminders')
+    reminder_date = models.DateTimeField(auto_now_add=True)
+    reminder_type = models.CharField(
+        max_length=20,
+        choices=[
+            ('due_soon', 'Due Soon (3 days before)'),
+            ('due_today', 'Due Today'),
+            ('overdue', 'Overdue'),
+        ],
+        default='overdue'
+    )
+    sent_to_email = models.EmailField()
+    sent_successfully = models.BooleanField(default=True)
+    error_message = models.TextField(blank=True)
+    
+    class Meta:
+        verbose_name = "Invoice Reminder"
+        verbose_name_plural = "Invoice Reminders"
+        ordering = ['-reminder_date']
+    
+    def __str__(self):
+        return f"Reminder for {self.invoice.reference_id} - {self.reminder_date.strftime('%Y-%m-%d %H:%M')}"
+
+
+# ---------- InvoiceReminder ViewSet ----------
+class InvoiceReminderViewSet(SnippetViewSet):
+    """ViewSet for viewing invoice reminders (read-only, auto-created)"""
+    model = InvoiceReminder
+    icon = "mail"
+    menu_label = "Reminders"
+    menu_order = 300
+    list_display = ('invoice', 'reminder_type', 'sent_to_email', 'sent_successfully', 'reminder_date')
+    list_filter = ('reminder_type', 'sent_successfully', 'reminder_date')
+    search_fields = ('invoice__reference_id', 'sent_to_email')
+    inspect_view_enabled = True
+    create_view_enabled = False  # Hide the add button (same as Routine Services)
+    edit_view_enabled = False
+    delete_view_enabled = True
+    list_display_add_buttons = None  # Hide the add button from list view header (same as Routine Services)
+    
+    # Hide add button completely - reminders are auto-generated only
+    def get_add_url(self):
+        return None
+    
+    def add_view(self, request):
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden("Invoice reminders are automatically generated. Manual creation is not allowed.")
+    
+    @property
+    def permission_policy(self):
+        """Use custom permission policy to deny add/edit permissions"""
+        from wagtail.permissions import ModelPermissionPolicy
+        
+        class NoAddInvoiceReminderPermissionPolicy(ModelPermissionPolicy):
+            """Custom permission policy that disallows adding/editing invoice reminders"""
+            def user_has_permission(self, user, action):
+                if action in ["add", "edit"]:
+                    return False
+                return super().user_has_permission(user, action)
+        
+        return NoAddInvoiceReminderPermissionPolicy(self.model)
+
+
 # ---------- SNIPPET GROUP ----------
 class InvoiceGroup(SnippetViewSetGroup):
-    # Only one ViewSet for this group
+    # All invoice-related ViewSets grouped together
     items = (
         InvoiceViewSet,
+        InvoiceReminderViewSet,
         BulkImportInvoiceViewSet,
     )
     menu_icon = "group"
