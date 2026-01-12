@@ -168,7 +168,7 @@
                         {% if leave.half_day %}(Half Day){% endif %}
                       </div>
                     </div>
-                    <a href="/admin/snippets/employeeleave/leaverequest/{{ leave.id }}/" class="text-blue-600 text-xs hover:underline whitespace-nowrap">View</a>
+                    <a href="/admin/snippets/employeeleave/leaverequest/{{ leave.id }}/inspect/" class="text-blue-600 text-xs hover:underline whitespace-nowrap">View</a>
                   </li>
                 {% endfor %}
               </ul>
@@ -199,7 +199,7 @@
                         {{ material.date|date:'Y-m-d' }}
                       </div>
                     </div>
-                    <a href="/admin/snippets/Material_Request/materialrequest/{{ material.id }}/" class="text-blue-600 text-xs hover:underline whitespace-nowrap">View</a>
+                    <a href="/admin/snippets/Material_Request/materialrequest/{{ material.id }}/inspect/" class="text-blue-600 text-xs hover:underline whitespace-nowrap">View</a>
                   </li>
                 {% endfor %}
               </ul>
