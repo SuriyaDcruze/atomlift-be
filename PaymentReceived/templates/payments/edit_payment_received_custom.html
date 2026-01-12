@@ -41,6 +41,42 @@
 function getCsrfToken(){var t=document.querySelector('[name=csrfmiddlewaretoken]');return t?t.value:''}
 function loadSelect(id,url,map,current){fetch(url).then(r=>r.json()).then(d=>{const s=document.getElementById(id);s.innerHTML='<option value="">Select</option>';d.forEach(i=>{const o=document.createElement('option');o.value=i.id;o.textContent=map?map(i):(i.site_name||i.number);if(current&&i.id==current){o.selected=true}s.appendChild(o);});});}
 
+function loadInvoicesForCustomer(customerId) {
+  const invoiceSelect = document.getElementById('invoice');
+  if (!invoiceSelect) return;
+  
+  // Store the currently selected invoice ID before clearing
+  const currentInvoiceId = invoiceSelect.value;
+  
+  // Show loading state
+  invoiceSelect.innerHTML = '<option value="">Loading invoices...</option>';
+  
+  // Fetch invoices for this customer
+  fetch(`/payments/api/payments/invoices/?customer_id=${customerId}`)
+    .then(r => r.json())
+    .then(d => {
+      invoiceSelect.innerHTML = '<option value="">Select Invoice (Optional)</option>';
+      if (d.length === 0) {
+        invoiceSelect.innerHTML += '<option value="" disabled>No invoices found for this customer</option>';
+      } else {
+        d.forEach(i => {
+          const o = document.createElement('option');
+          o.value = i.id;
+          o.textContent = i.number || `Invoice #${i.id}`;
+          // Restore selection if it matches
+          if (currentInvoiceId && i.id == currentInvoiceId) {
+            o.selected = true;
+          }
+          invoiceSelect.appendChild(o);
+        });
+      }
+    })
+    .catch(error => {
+      console.error('Error loading invoices:', error);
+      invoiceSelect.innerHTML = '<option value="">Error loading invoices</option>';
+    });
+}
+
 function validateCustomer() {
   const customerSelect = document.getElementById('customer');
   const customerError = document.getElementById('customerError');
@@ -101,7 +137,22 @@ function showMessage(type, message, description = '') {
 
 document.addEventListener('DOMContentLoaded',function(){
   loadSelect('customer','/payments/api/payments/customers/',null,{% if payment.customer %}{{ payment.customer.id }}{% else %}null{% endif %});
+  
+  // Load invoices for the selected customer (if customer exists)
+  {% if payment.customer %}
+  loadInvoicesForCustomer({{ payment.customer.id }});
+  // After invoices load, set the selected invoice
+  setTimeout(function() {
+    const invoiceSelect = document.getElementById('invoice');
+    {% if payment.invoice %}
+    if (invoiceSelect) {
+      invoiceSelect.value = {{ payment.invoice.id }};
+    }
+    {% endif %}
+  }, 500);
+  {% else %}
   loadSelect('invoice','/payments/api/payments/invoices/',i=>i.number,{% if payment.invoice %}{{ payment.invoice.id }}{% else %}null{% endif %});
+  {% endif %}
   document.getElementById('submitBtn').addEventListener('click',function(){
     // Validate before submitting
     if (!validateCustomer() || !validateAmount()) {
@@ -151,11 +202,20 @@ document.addEventListener('DOMContentLoaded',function(){
     }
   });
   
-  // Add validation on customer select
+  // Add validation on customer select and load invoices when customer changes
   document.getElementById('customer').addEventListener('change', function() {
     const customerError = document.getElementById('customerError');
     if (customerError) {
       customerError.style.display = 'none';
+    }
+    
+    // Load invoices for the selected customer
+    const customerId = this.value;
+    if (customerId) {
+      loadInvoicesForCustomer(customerId);
+    } else {
+      // If no customer selected, load all invoices
+      loadSelect('invoice','/payments/api/payments/invoices/',i=>i.number,null);
     }
   });
 });

@@ -44,11 +44,19 @@ def get_customers(request):
 
 @require_http_methods(["GET"])
 def get_invoices(request):
+    customer_id = request.GET.get('customer_id', None)
+    if customer_id:
+        # Filter invoices by customer
+        invoices = Invoice.objects.filter(customer_id=customer_id).order_by('-id')
+    else:
+        # Return all invoices if no customer_id provided
+        invoices = Invoice.objects.all().order_by('-id')
+    
     data = [{
         'id': i.id,
         'number': getattr(i, 'reference_id', i.id),
         'customer_id': i.customer_id if hasattr(i, 'customer_id') else None,
-    } for i in Invoice.objects.all().order_by('-id')]
+    } for i in invoices]
     return JsonResponse(data, safe=False)
 
 

@@ -269,6 +269,8 @@ function loadCustomers() {
           if (hiddenSelect) {
             hiddenSelect.value = i.id;
           }
+          // Load invoices for the preselected customer
+          loadInvoicesForCustomer(i.id);
         }
         s.appendChild(o);
       });
@@ -287,7 +289,11 @@ document.addEventListener('DOMContentLoaded',function(){
   
   loadCustomers();
   setupCustomerSearch();
+  
+  // Load invoices initially (only if no preselected customer, as loadCustomers will handle it)
+  {% if not preselected_customer %}
   loadSelect('invoice','/payments/api/payments/invoices/',i=>i.number);
+  {% endif %}
   
   document.getElementById('submitBtn').addEventListener('click',function(){
     // Validate before submitting
@@ -462,6 +468,38 @@ function selectCustomer(customer) {
   if (customerError) {
     customerError.style.display = 'none';
   }
+  
+  // Load invoices for the selected customer
+  loadInvoicesForCustomer(customer.id);
+}
+
+function loadInvoicesForCustomer(customerId) {
+  const invoiceSelect = document.getElementById('invoice');
+  if (!invoiceSelect) return;
+  
+  // Show loading state
+  invoiceSelect.innerHTML = '<option value="">Loading invoices...</option>';
+  
+  // Fetch invoices for this customer
+  fetch(`/payments/api/payments/invoices/?customer_id=${customerId}`)
+    .then(r => r.json())
+    .then(d => {
+      invoiceSelect.innerHTML = '<option value="">Select Invoice (Optional)</option>';
+      if (d.length === 0) {
+        invoiceSelect.innerHTML += '<option value="" disabled>No invoices found for this customer</option>';
+      } else {
+        d.forEach(i => {
+          const o = document.createElement('option');
+          o.value = i.id;
+          o.textContent = i.number || `Invoice #${i.id}`;
+          invoiceSelect.appendChild(o);
+        });
+      }
+    })
+    .catch(error => {
+      console.error('Error loading invoices:', error);
+      invoiceSelect.innerHTML = '<option value="">Error loading invoices</option>';
+    });
 }
 </script>
 {% endblock %}

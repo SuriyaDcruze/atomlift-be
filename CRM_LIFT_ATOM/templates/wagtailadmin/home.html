@@ -303,9 +303,12 @@
   <div class="bg-white p-4 rounded-lg shadow-sm border">
     <div class="flex flex-col sm:flex-row justify-between mb-4">
       <h3 class="text-gray-500 font-medium text-sm mb-2 sm:mb-0">New Complaints</h3>
-      <select class="border border-gray-300 rounded px-2 py-1 text-sm">
-        <option>October</option>
-        <option>September</option>
+      <select id="monthFilter" class="border border-gray-300 rounded px-2 py-1 text-sm">
+        {% for month in months_list %}
+        <option value="{{ month.value }}" {% if month.is_selected %}selected{% endif %}>
+          {{ month.display }} {{ month.year }}
+        </option>
+        {% endfor %}
       </select>
     </div>
     <div class="overflow-x-auto">
@@ -389,8 +392,7 @@
                 borderColor: 'rgb(0,255,149)',
                 backgroundColor: 'rgba(0,255,149,0.2)',
                 tension: 0.4,
-                pointRadius: 3,
-                yAxisID: 'y1'
+                pointRadius: 3
               }
             ]
           },
@@ -405,24 +407,7 @@
                 type: 'linear',
                 display: true,
                 position: 'left',
-                beginAtZero: true,
-                title: {
-                  display: true,
-                  text: 'Income (₹)'
-                }
-              },
-              y1: {
-                type: 'linear',
-                display: true,
-                position: 'right',
-                beginAtZero: true,
-                title: {
-                  display: true,
-                  text: 'Completed Services'
-                },
-                grid: {
-                  drawOnChartArea: false
-                }
+                beginAtZero: true
               }
             }
           }
@@ -488,6 +473,19 @@
             badge.style.display = 'none';
           }
         }
+      }
+    })();
+    
+    // Month filter functionality
+    (function() {
+      const monthFilter = document.getElementById('monthFilter');
+      if (monthFilter) {
+        monthFilter.addEventListener('change', function() {
+          const selectedMonth = this.value;
+          const currentUrl = new URL(window.location.href);
+          currentUrl.searchParams.set('month', selectedMonth);
+          window.location.href = currentUrl.toString();
+        });
       }
     })();
   </script>

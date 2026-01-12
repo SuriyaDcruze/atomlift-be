@@ -9,6 +9,7 @@ from Material_Request.models import MaterialRequest
 from django.db.models import Sum, Count
 from datetime import datetime, timedelta
 from django.utils import timezone
+from calendar import month_name
 
 
 def dashboard_metrics(request):
@@ -16,6 +17,9 @@ def dashboard_metrics(request):
     Context processor to add dashboard metrics to admin templates.
     """
     from datetime import timedelta
+    # Get today's date first, as it's used throughout the function
+    today = timezone.now().date()
+    
     total_customers = Customer.objects.count()
     total_complaints = Complaint.objects.count()
     # Count complaints where status is 'open' or 'in_progress' (not 'closed')
@@ -27,11 +31,51 @@ def dashboard_metrics(request):
     total_invoices = Invoice.objects.count()
     open_invoices = Invoice.objects.filter(status__in=['open', 'partially_paid']).count()
 
-    # Recent complaints for dashboard table
-    recent_complaints = Complaint.objects.select_related('assign_to').order_by('-created')[:5]
+    # Get selected month from request (if provided)
+    selected_month = request.GET.get('month', None)
+    if selected_month:
+        try:
+            year, month = selected_month.split('-')
+            filter_month = int(month)
+            filter_year = int(year)
+        except (ValueError, AttributeError):
+            filter_month = today.month
+            filter_year = today.year
+    else:
+        filter_month = today.month
+        filter_year = today.year
+    
+    # Recent complaints for dashboard table - filter by selected month
+    recent_complaints = Complaint.objects.select_related('assign_to').filter(
+        created__month=filter_month,
+        created__year=filter_year
+    ).order_by('-created')[:5]
+    
+    # Generate list of months for dropdown (current month and previous 5 months)
+    months_list = []
+    for i in range(6):  # Current month + 5 previous months
+        # Calculate month date by going back i months from current month
+        month_date = today.replace(day=1)
+        for _ in range(i):
+            # Go back one month
+            if month_date.month == 1:
+                month_date = month_date.replace(year=month_date.year - 1, month=12)
+            else:
+                month_date = month_date.replace(month=month_date.month - 1)
+        
+        month_value = f"{month_date.year}-{month_date.month:02d}"
+        month_display = month_name[month_date.month]
+        is_selected = (filter_month == month_date.month and filter_year == month_date.year)
+        months_list.append({
+            'value': month_value,
+            'display': month_display,
+            'year': month_date.year,
+            'month': month_date.month,
+            'is_current': i == 0,
+            'is_selected': is_selected
+        })
 
     # Weekly payment received data for the graph - using PaymentReceived model
-    today = timezone.now().date()
     week_start = today - timedelta(days=today.weekday())  # Start of current week (Monday)
     week_end = week_start + timedelta(days=6)  # End of current week (Sunday)
     
@@ -129,6 +173,9 @@ def dashboard_metrics(request):
         'open_invoices': open_invoices,
         'total_invoices': total_invoices,
         'recent_complaints': recent_complaints,
+        'months_list': months_list,
+        'current_month_display': month_name[filter_month],
+        'current_month_value': f"{filter_year}-{filter_month:02d}",
         'weekly_payments': weekly_payments,
         'weekly_services': weekly_services,
         # Notifications
