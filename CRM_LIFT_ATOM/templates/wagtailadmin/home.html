@@ -351,52 +351,84 @@
   </div>
 
   {{ weekly_payments|json_script:"weekly-payments-data" }}
+  {{ weekly_services|json_script:"weekly-services-data" }}
   
   <script>
     const ctx = document.getElementById('weeklyChart');
-    
-    // Get dynamic Income data from PaymentReceived
-    const weeklyPayments = JSON.parse(document.getElementById('weekly-payments-data').textContent);
-    
-    // Static Services data
-    const weeklyServices = [60, 80, 70, 85, 75, 95, 80];
-    
-    new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-        datasets: [
-          {
-            label: 'Income',
-            data: weeklyPayments,
-            borderColor: 'rgb(0,149,255)',
-            backgroundColor: 'rgba(0,149,255,0.2)',
-            tension: 0.4,
-            pointRadius: 3,
+    if (!ctx) {
+      console.error('Chart canvas element not found');
+    } else {
+      // Get dynamic Income data from PaymentReceived
+      const paymentsElement = document.getElementById('weekly-payments-data');
+      const servicesElement = document.getElementById('weekly-services-data');
+      
+      if (!paymentsElement || !servicesElement) {
+        console.error('Data elements not found');
+      } else {
+        const weeklyPayments = JSON.parse(paymentsElement.textContent);
+        
+        // Get dynamic Services data from RoutineService (completed services)
+        const weeklyServices = JSON.parse(servicesElement.textContent);
+        
+        new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            datasets: [
+              {
+                label: 'Income',
+                data: weeklyPayments,
+                borderColor: 'rgb(0,149,255)',
+                backgroundColor: 'rgba(0,149,255,0.2)',
+                tension: 0.4,
+                pointRadius: 3,
+              },
+              {
+                label: 'Completed Services',
+                data: weeklyServices,
+                borderColor: 'rgb(0,255,149)',
+                backgroundColor: 'rgba(0,255,149,0.2)',
+                tension: 0.4,
+                pointRadius: 3,
+                yAxisID: 'y1'
+              }
+            ]
           },
-          {
-            label: 'Services',
-            data: weeklyServices,
-            borderColor: 'rgb(0,255,149)',
-            backgroundColor: 'rgba(0,255,149,0.2)',
-            tension: 0.4,
-            pointRadius: 3,
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'top' },
+            },
+            scales: {
+              y: {
+                type: 'linear',
+                display: true,
+                position: 'left',
+                beginAtZero: true,
+                title: {
+                  display: true,
+                  text: 'Income (₹)'
+                }
+              },
+              y1: {
+                type: 'linear',
+                display: true,
+                position: 'right',
+                beginAtZero: true,
+                title: {
+                  display: true,
+                  text: 'Completed Services'
+                },
+                grid: {
+                  drawOnChartArea: false
+                }
+              }
+            }
           }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { position: 'top' },
-        },
-        scales: {
-          y: { 
-            beginAtZero: true
-          }
-        }
+        });
       }
-    });
+    }
 
     // Notifications dropdown toggle
     (function () {
