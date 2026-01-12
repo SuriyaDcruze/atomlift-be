@@ -133,6 +133,16 @@ def dashboard_metrics(request):
     amc_due_7_list = list(amc_due_7_qs[:10])
     amc_due_30_list = list(amc_due_30_qs[:10])
     amc_notification_count = amc_due_7_qs.count() + amc_due_30_qs.count()
+    
+    # Count AMCs pending renewal: expired AMCs + AMCs expiring within 30 days (excluding cancelled)
+    amc_pending_renewal = AMC.objects.filter(
+        end_date__isnull=False
+    ).exclude(
+        status='cancelled'
+    ).filter(
+        # Either expired (end_date < today) OR expiring within 30 days (end_date <= today + 30 days)
+        end_date__lte=today + timedelta(days=30)
+    ).count()
 
     # ----------------- Leave Request notifications -----------------
     # Get pending leave requests from technicians (users in employee groups)
@@ -167,7 +177,7 @@ def dashboard_metrics(request):
         'total_customers': total_customers,
         'total_complaints': total_complaints,
         'open_complaints': open_complaints,
-        'amc_due_count': AMC.objects.filter(amount_due__gt=0).count(),
+        'amc_due_count': amc_pending_renewal,
         'amc_due_total': total_amc_due,
         'total_income': total_income,
         'open_invoices': open_invoices,
@@ -194,4 +204,6 @@ def dashboard_metrics(request):
         'material_notification_count': material_notification_count,
         # Total badge
         'notification_count_total': notification_count_total,
+        # Current date for "Last updated" display
+        'current_date': today,
     }
