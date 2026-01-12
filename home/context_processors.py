@@ -4,6 +4,8 @@ from amc.models import AMC
 from invoice.models import Invoice
 from PaymentReceived.models import PaymentReceived
 from Routine_services.models import RoutineService
+from employeeleave.models import LeaveRequest
+from Material_Request.models import MaterialRequest
 from django.db.models import Sum, Count
 from datetime import datetime, timedelta
 from django.utils import timezone
@@ -88,7 +90,34 @@ def dashboard_metrics(request):
     amc_due_30_list = list(amc_due_30_qs[:10])
     amc_notification_count = amc_due_7_qs.count() + amc_due_30_qs.count()
 
-    notification_count_total = invoice_notification_count + amc_notification_count
+    # ----------------- Leave Request notifications -----------------
+    # Get pending leave requests from technicians (users in employee groups)
+    pending_leave_qs = LeaveRequest.objects.select_related('user').filter(
+        status='pending'
+    ).filter(
+        user__groups__isnull=False
+    ).distinct().order_by('-created_at')
+    
+    pending_leave_list = list(pending_leave_qs[:10])
+    leave_notification_count = pending_leave_qs.count()
+
+    # ----------------- Material Request notifications -----------------
+    # Get recent material requests (from last 7 days, or all if less than 10)
+    # Since MaterialRequest doesn't have status, show recent requests that need attention
+    recent_material_qs = MaterialRequest.objects.select_related('item').filter(
+        date__gte=today - timedelta(days=7)
+    ).order_by('-date')
+    
+    # If we have less than 10 in the last 7 days, get the 10 most recent overall
+    material_count = recent_material_qs.count()
+    if material_count < 10:
+        recent_material_qs = MaterialRequest.objects.select_related('item').order_by('-date')
+        material_count = recent_material_qs.count()
+    
+    recent_material_list = list(recent_material_qs[:10])
+    material_notification_count = material_count
+
+    notification_count_total = invoice_notification_count + amc_notification_count + leave_notification_count + material_notification_count
 
     return {
         'total_customers': total_customers,
@@ -110,6 +139,12 @@ def dashboard_metrics(request):
         'amc_due_7_list': amc_due_7_list,
         'amc_due_30_list': amc_due_30_list,
         'amc_notification_count': amc_notification_count,
+        # Leave request notifications
+        'pending_leave_list': pending_leave_list,
+        'leave_notification_count': leave_notification_count,
+        # Material request notifications
+        'recent_material_list': recent_material_list,
+        'material_notification_count': material_notification_count,
         # Total badge
         'notification_count_total': notification_count_total,
     }
