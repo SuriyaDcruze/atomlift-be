@@ -3,6 +3,7 @@ from wagtail.snippets.views.snippets import SnippetViewSet, SnippetViewSetGroup,
 from wagtail import hooks
 from wagtail.admin.menu import MenuItem, SubmenuMenuItem
 from wagtail.permissions import ModelPermissionPolicy
+from wagtail.snippets.widgets import SnippetListingButton
 from django.urls import reverse
 from django.urls import path
 from django.shortcuts import render, redirect
@@ -130,6 +131,16 @@ class MaterialRequestViewSet(SnippetViewSet):
         # Redirect back to the list view using the snippet URL pattern
         return redirect(reverse('snippets:list', args=[self.model._meta.app_label, self.model._meta.model_name]))
 
+    def get_view_url(self, instance):
+        """Get custom view URL for material request"""
+        from django.urls import reverse
+        return reverse("view_material_request_custom", args=(instance.pk,))
+    
+    def get_edit_url(self, instance):
+        """Get edit URL for material request (uses default Wagtail edit)"""
+        from django.urls import reverse
+        return reverse("wagtailsnippets:edit", args=[self.model._meta.app_label, self.model._meta.model_name, instance.pk])
+    
     def get_urlpatterns(self):
         urlpatterns = super().get_urlpatterns()
         return urlpatterns
@@ -178,5 +189,29 @@ def remove_material_request_add_buttons(buttons, snippet, user, context=None):
             hasattr(btn, 'label') and ('Add' in str(btn.label) or 'Create' in str(btn.label))
         )]
     return buttons
+
+# Hook to add custom buttons for Material Requests (similar to invoices)
+@hooks.register('register_snippet_listing_buttons')
+def add_material_request_buttons(snippet, user, next_url=None):
+    """Add custom buttons in Material Request listing."""
+    if isinstance(snippet, MaterialRequest):
+        buttons = []
+        
+        # Add View Button
+        try:
+            view_url = reverse('view_material_request_custom', kwargs={'pk': snippet.pk})
+            buttons.append(
+                SnippetListingButton(
+                    label='View',
+                    url=view_url,
+                    priority=100,
+                    icon_name='view',
+                )
+            )
+        except Exception as e:
+            pass
+        
+        return buttons
+    return []
 
 
