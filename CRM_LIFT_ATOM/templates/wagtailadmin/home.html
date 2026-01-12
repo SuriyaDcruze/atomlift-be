@@ -32,11 +32,16 @@
       <div id="notifPanel" class="hidden absolute right-0 mt-3 w-80 sm:w-96 bg-white border rounded-lg shadow-lg z-50">
         <div class="px-4 py-3 border-b flex items-center justify-between">
           <span class="font-semibold text-gray-800 text-sm">Notifications</span>
-          <span class="text-xs text-gray-500">Alerts & Requests</span>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-gray-500">Alerts & Requests</span>
+            <button id="clearNotificationsBtn" class="text-xs text-blue-600 hover:text-blue-800 hover:underline focus:outline-none" title="Clear all notifications">
+              Clear
+            </button>
+          </div>
         </div>
 
         <!-- Overdue -->
-        <div class="max-h-80 overflow-y-auto">
+        <div id="notificationsContent" class="max-h-80 overflow-y-auto">
           <div class="px-4 py-2">
             <div class="flex items-center text-red-600 text-sm mb-1">
               <i class="fas fa-exclamation-circle mr-2"></i>
@@ -207,6 +212,13 @@
               <div class="text-xs text-gray-500 px-1">No recent material requests.</div>
             {% endif %}
           </div>
+        </div>
+        
+        <!-- Empty State (hidden by default) -->
+        <div id="emptyNotificationsState" class="hidden px-4 py-8 text-center">
+          <i class="fas fa-bell-slash text-gray-300 text-4xl mb-3"></i>
+          <p class="text-sm text-gray-500 font-medium">No notifications</p>
+          <p class="text-xs text-gray-400 mt-1">All notifications have been cleared</p>
         </div>
       </div>
     </div>
@@ -390,6 +402,11 @@
     (function () {
       const btn = document.getElementById('notifButton');
       const panel = document.getElementById('notifPanel');
+      const clearBtn = document.getElementById('clearNotificationsBtn');
+      const notificationsContent = document.getElementById('notificationsContent');
+      const emptyState = document.getElementById('emptyNotificationsState');
+      const badge = btn?.querySelector('span');
+      
       if (!btn || !panel) return;
 
       function closePanel(e) {
@@ -410,6 +427,36 @@
           document.removeEventListener('click', closePanel);
         }
       });
+
+      // Clear notifications functionality
+      if (clearBtn && notificationsContent && emptyState) {
+        clearBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          
+          // Hide notifications content
+          notificationsContent.classList.add('hidden');
+          
+          // Show empty state
+          emptyState.classList.remove('hidden');
+          
+          // Hide notification badge
+          if (badge) {
+            badge.style.display = 'none';
+          }
+          
+          // Store cleared state in localStorage
+          localStorage.setItem('notificationsCleared', 'true');
+        });
+
+        // Check if notifications were previously cleared
+        if (localStorage.getItem('notificationsCleared') === 'true') {
+          notificationsContent.classList.add('hidden');
+          emptyState.classList.remove('hidden');
+          if (badge) {
+            badge.style.display = 'none';
+          }
+        }
+      }
     })();
   </script>
 </body>
