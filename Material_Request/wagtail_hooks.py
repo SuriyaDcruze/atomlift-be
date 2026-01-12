@@ -179,39 +179,35 @@ class MaterialRequestGroup(SnippetViewSetGroup):
 # Register the Material Request group (appears above Travel Request)
 register_snippet(MaterialRequestGroup)
 
-# Hook to remove any add buttons that might appear
+# Hook to customize Material Request listing buttons - remove add buttons and add View button
 @hooks.register('construct_snippet_listing_buttons')
-def remove_material_request_add_buttons(buttons, snippet, user, context=None):
-    """Remove any add buttons for MaterialRequest"""
+def customize_material_request_listing_buttons(buttons, snippet, user, context=None):
+    """Customize Material Request listing buttons - remove add buttons, add View button"""
     if isinstance(snippet, MaterialRequest):
         # Remove any add/create buttons
         buttons[:] = [btn for btn in buttons if not (
             hasattr(btn, 'label') and ('Add' in str(btn.label) or 'Create' in str(btn.label))
         )]
-    return buttons
-
-# Hook to add custom buttons for Material Requests (similar to invoices)
-@hooks.register('register_snippet_listing_buttons')
-def add_material_request_buttons(snippet, user, next_url=None):
-    """Add custom buttons in Material Request listing."""
-    if isinstance(snippet, MaterialRequest):
-        buttons = []
         
-        # Add View Button
+        # Add View button
         try:
-            view_url = reverse('view_material_request_custom', kwargs={'pk': snippet.pk})
-            buttons.append(
-                SnippetListingButton(
-                    label='View',
-                    url=view_url,
-                    priority=100,
-                    icon_name='view',
-                )
-            )
+            # Try with namespace first
+            view_url = reverse('material_request:view_material_request_custom', kwargs={'pk': snippet.pk})
         except Exception as e:
-            pass
+            try:
+                # Try without namespace
+                view_url = reverse('view_material_request_custom', kwargs={'pk': snippet.pk})
+            except Exception as e2:
+                # Fallback to direct URL if reverse fails
+                view_url = f"/material_request/view/{snippet.pk}/"
         
-        return buttons
-    return []
+        buttons.append(SnippetListingButton(
+            label='View',
+            url=view_url,
+            priority=100,
+            icon_name='view',
+        ))
+    
+    return buttons
 
 
