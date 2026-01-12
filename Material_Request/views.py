@@ -158,6 +158,19 @@ def material_request_delete(request, pk):
     else:
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
+
+def view_material_request_custom(request, pk):
+    """Custom material request detail view"""
+    try:
+        material_request = MaterialRequest.objects.select_related('item').get(pk=pk)
+    except MaterialRequest.DoesNotExist:
+        messages.error(request, 'Material request not found')
+        return render(request, '404.html')
+    
+    return render(request, 'Material_Request/view_material_request_custom.html', {
+        'material_request': material_request,
+    })
+
 def bulk_import_view(request):
     """View for bulk importing material requests from CSV/Excel"""
     if request.method == 'POST':

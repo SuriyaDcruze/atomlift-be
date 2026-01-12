@@ -13,6 +13,9 @@ urlpatterns = [
     # Bulk import view
     path('bulk-import/', views.bulk_import_view, name='material_request_bulk_import'),
 
+    # Custom view page
+    path('view/<int:pk>/', views.view_material_request_custom, name='view_material_request_custom'),
+
     # API endpoints for Material Request CRUD operations
     path('api/list/', views.material_request_list, name='material_request_list'),
     path('api/create/', views.material_request_create, name='material_request_create'),
